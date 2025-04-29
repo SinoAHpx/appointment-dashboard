@@ -14,6 +14,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input'
 import { useAuthStore } from '@/lib/store'
 import { toast } from 'sonner'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { InfoIcon } from 'lucide-react'
 
 const loginSchema = z.object({
     username: z.string().min(2, {
@@ -48,7 +50,6 @@ export default function LoginPage() {
                     description: `欢迎回来，${values.username}`,
                 })
                 router.push('/dashboard')
-                console.log('登录成功')
             } else {
                 toast("登录失败", {
                     description: '用户名或密码不正确',
@@ -82,6 +83,15 @@ export default function LoginPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    <Alert className="mb-6 bg-blue-50 text-blue-800 border-blue-200">
+                        <InfoIcon className="h-4 w-4 mr-2" />
+                        <AlertDescription className="text-sm">
+                            <div className="font-medium mb-1">测试账号：</div>
+                            <div>管理员: admin / admin123</div>
+                            <div>普通用户: user1 / user123</div>
+                        </AlertDescription>
+                    </Alert>
+
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                             <FormField

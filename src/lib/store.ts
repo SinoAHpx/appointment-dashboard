@@ -3,8 +3,11 @@ import { persist } from 'zustand/middleware'
 
 // 用户类型定义
 interface User {
-    id?: string
+    id: string
     username: string
+    name: string
+    role: 'admin' | 'user'
+    email?: string
 }
 
 // 认证状态类型定义
@@ -13,6 +16,7 @@ interface AuthState {
     isAuthenticated: boolean
     login: (username: string, password: string) => Promise<boolean>
     logout: () => void
+    isAdmin: () => boolean
 }
 
 // 预约类型定义
@@ -143,28 +147,41 @@ interface ReportState {
 // 认证状态存储
 export const useAuthStore = create<AuthState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             user: null,
             isAuthenticated: false,
             login: async (username: string, password: string) => {
-                // 模拟登录请求，实际项目中替换为真实API调用
                 try {
-                    // 示例简单验证
-                    if (username && password.length >= 6) {
+                    // 使用API调用进行登录验证
+                    const response = await fetch('/api/auth', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ username, password }),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.user) {
                         set({
-                            user: { id: '1', username },
+                            user: data.user,
                             isAuthenticated: true
-                        })
-                        return true
+                        });
+                        return true;
                     }
-                    return false
+                    return false;
                 } catch (error) {
-                    console.error('登录失败:', error)
-                    return false
+                    console.error('登录失败:', error);
+                    return false;
                 }
             },
             logout: () => {
-                set({ user: null, isAuthenticated: false })
+                set({ user: null, isAuthenticated: false });
+            },
+            isAdmin: () => {
+                const { user } = get();
+                return user?.role === 'admin';
             }
         }),
         {

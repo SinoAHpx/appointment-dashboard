@@ -73,7 +73,7 @@ const documentTypes = [
 ]
 
 export default function AppointmentsPage() {
-    const { isAuthenticated } = useAuthStore()
+    const { isAuthenticated, isAdmin } = useAuthStore()
     const router = useRouter()
     const {
         appointments,
@@ -432,17 +432,19 @@ export default function AppointmentsPage() {
                                 <TableHead>文件数量</TableHead>
                                 <TableHead>文件类型</TableHead>
                                 <TableHead>状态</TableHead>
-                                <TableHead className="text-right">操作</TableHead>
+                                {isAdmin() && (
+                                    <TableHead className="text-right">操作</TableHead>
+                                )}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-6">加载中...</TableCell>
+                                    <TableCell colSpan={isAdmin() ? 8 : 7} className="text-center py-6">加载中...</TableCell>
                                 </TableRow>
                             ) : filteredAppointments.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-6">
+                                    <TableCell colSpan={isAdmin() ? 8 : 7} className="text-center py-6">
                                         {searchQuery ? '没有找到匹配的预约' : '暂无预约记录'}
                                     </TableCell>
                                 </TableRow>
@@ -462,24 +464,26 @@ export default function AppointmentsPage() {
                                                 {getStatusLabel(appointment.status)}
                                             </span>
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    onClick={() => handleStartEdit(appointment)}
-                                                >
-                                                    <Pencil size={16} />
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    onClick={() => handleDeleteAppointment(appointment.id)}
-                                                >
-                                                    <Trash size={16} />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
+                                        {isAdmin() && (
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => handleStartEdit(appointment)}
+                                                    >
+                                                        <Pencil size={16} />
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => handleDeleteAppointment(appointment.id)}
+                                                    >
+                                                        <Trash size={16} />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))
                             )}
@@ -521,133 +525,135 @@ export default function AppointmentsPage() {
                 </CardContent>
             </Card>
 
-            {/* 编辑预约对话框 */}
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>编辑预约</DialogTitle>
-                        <DialogDescription>
-                            修改预约信息
-                        </DialogDescription>
-                    </DialogHeader>
-                    {editingAppointment && (
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-2 gap-4">
+            {/* 编辑预约对话框 - 只有管理员能访问 */}
+            {isAdmin() && (
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle>编辑预约</DialogTitle>
+                            <DialogDescription>
+                                修改预约信息
+                            </DialogDescription>
+                        </DialogHeader>
+                        {editingAppointment && (
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="edit-dateTime">预约时间 *</Label>
+                                        <Input
+                                            id="edit-dateTime"
+                                            name="dateTime"
+                                            type="datetime-local"
+                                            value={editingAppointment.dateTime}
+                                            onChange={handleEditAppointmentChange}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="edit-contactName">联系人 *</Label>
+                                        <Input
+                                            id="edit-contactName"
+                                            name="contactName"
+                                            value={editingAppointment.contactName}
+                                            onChange={handleEditAppointmentChange}
+                                            placeholder="请输入联系人姓名"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="edit-contactPhone">联系电话 *</Label>
+                                        <Input
+                                            id="edit-contactPhone"
+                                            name="contactPhone"
+                                            value={editingAppointment.contactPhone}
+                                            onChange={handleEditAppointmentChange}
+                                            placeholder="请输入联系电话"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="edit-documentCount">文件数量 *</Label>
+                                        <Input
+                                            id="edit-documentCount"
+                                            name="documentCount"
+                                            type="number"
+                                            min="1"
+                                            value={editingAppointment.documentCount}
+                                            onChange={handleEditAppointmentChange}
+                                            required
+                                        />
+                                    </div>
+                                </div>
                                 <div className="flex flex-col gap-2">
-                                    <Label htmlFor="edit-dateTime">预约时间 *</Label>
+                                    <Label htmlFor="edit-documentType">文件类型 *</Label>
+                                    <Select
+                                        value={editingAppointment.documentType}
+                                        onValueChange={handleEditDocumentTypeChange}
+                                    >
+                                        <SelectTrigger id="edit-documentType">
+                                            <SelectValue placeholder="选择文件类型" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {documentTypes.map(type => (
+                                                <SelectItem key={type.value} value={type.value}>
+                                                    {type.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="edit-contactAddress">联系地址 *</Label>
                                     <Input
-                                        id="edit-dateTime"
-                                        name="dateTime"
-                                        type="datetime-local"
-                                        value={editingAppointment.dateTime}
+                                        id="edit-contactAddress"
+                                        name="contactAddress"
+                                        value={editingAppointment.contactAddress}
                                         onChange={handleEditAppointmentChange}
+                                        placeholder="请输入联系地址"
                                         required
                                     />
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    <Label htmlFor="edit-contactName">联系人 *</Label>
-                                    <Input
-                                        id="edit-contactName"
-                                        name="contactName"
-                                        value={editingAppointment.contactName}
-                                        onChange={handleEditAppointmentChange}
-                                        placeholder="请输入联系人姓名"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="edit-contactPhone">联系电话 *</Label>
-                                    <Input
-                                        id="edit-contactPhone"
-                                        name="contactPhone"
-                                        value={editingAppointment.contactPhone}
-                                        onChange={handleEditAppointmentChange}
-                                        placeholder="请输入联系电话"
-                                        required
-                                    />
+                                    <Label htmlFor="edit-status">状态 *</Label>
+                                    <Select
+                                        value={editingAppointment.status}
+                                        onValueChange={(value) => setEditingAppointment({ ...editingAppointment, status: value as any })}
+                                    >
+                                        <SelectTrigger id="edit-status">
+                                            <SelectValue placeholder="选择状态" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="pending">待确认</SelectItem>
+                                            <SelectItem value="confirmed">已确认</SelectItem>
+                                            <SelectItem value="completed">已完成</SelectItem>
+                                            <SelectItem value="cancelled">已取消</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    <Label htmlFor="edit-documentCount">文件数量 *</Label>
-                                    <Input
-                                        id="edit-documentCount"
-                                        name="documentCount"
-                                        type="number"
-                                        min="1"
-                                        value={editingAppointment.documentCount}
+                                    <Label htmlFor="edit-notes">备注</Label>
+                                    <Textarea
+                                        id="edit-notes"
+                                        name="notes"
+                                        value={editingAppointment.notes || ''}
                                         onChange={handleEditAppointmentChange}
-                                        required
+                                        placeholder="请输入备注信息"
+                                        rows={3}
                                     />
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="edit-documentType">文件类型 *</Label>
-                                <Select
-                                    value={editingAppointment.documentType}
-                                    onValueChange={handleEditDocumentTypeChange}
-                                >
-                                    <SelectTrigger id="edit-documentType">
-                                        <SelectValue placeholder="选择文件类型" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {documentTypes.map(type => (
-                                            <SelectItem key={type.value} value={type.value}>
-                                                {type.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="edit-contactAddress">联系地址 *</Label>
-                                <Input
-                                    id="edit-contactAddress"
-                                    name="contactAddress"
-                                    value={editingAppointment.contactAddress}
-                                    onChange={handleEditAppointmentChange}
-                                    placeholder="请输入联系地址"
-                                    required
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="edit-status">状态 *</Label>
-                                <Select
-                                    value={editingAppointment.status}
-                                    onValueChange={(value) => setEditingAppointment({ ...editingAppointment, status: value as any })}
-                                >
-                                    <SelectTrigger id="edit-status">
-                                        <SelectValue placeholder="选择状态" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="pending">待确认</SelectItem>
-                                        <SelectItem value="confirmed">已确认</SelectItem>
-                                        <SelectItem value="completed">已完成</SelectItem>
-                                        <SelectItem value="cancelled">已取消</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="edit-notes">备注</Label>
-                                <Textarea
-                                    id="edit-notes"
-                                    name="notes"
-                                    value={editingAppointment.notes || ''}
-                                    onChange={handleEditAppointmentChange}
-                                    placeholder="请输入备注信息"
-                                    rows={3}
-                                />
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="outline">取消</Button>
-                        </DialogClose>
-                        <Button onClick={handleUpdateAppointment}>更新</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                        )}
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button variant="outline">取消</Button>
+                            </DialogClose>
+                            <Button onClick={handleUpdateAppointment}>更新</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
     )
 } 

@@ -10,13 +10,22 @@
 ## 主要功能
 
 1. 用户登录与认证
+   - 基于角色的访问控制（RBAC）
+   - 管理员和普通用户权限区分
+   - 基于JSON文件的用户数据管理
 2. 会话管理与保存
 3. 仪表盘功能
 4. 预约管理（创建、编辑、删除、查看）
+   - 管理员可执行所有操作
+   - 普通用户仅能创建预约
 5. 用户管理（创建、编辑、删除、查看客户信息）
+   - 仅管理员可访问
 6. 人员管理（添加、编辑、删除员工及其状态）
+   - 仅管理员可访问
 7. 车辆管理（添加、编辑、删除车辆及其状态）
+   - 仅管理员可访问
 8. 数据查询与导出（按条件筛选预约数据并导出CSV或Excel）
+   - 仅管理员可访问
 9. 登出功能
 10. 响应式设计
 
@@ -25,6 +34,8 @@
 - `/src/app` - Next.js应用路由
   - `/(auth)` - 认证相关页面
   - `/login` - 登录页面
+  - `/api` - API路由
+    - `/api/auth` - 认证API
   - `/dashboard` - 仪表盘页面
     - `/dashboard/appointments` - 预约管理页面
     - `/dashboard/users` - 客户管理页面
@@ -37,16 +48,19 @@
 - `/src/lib` - 工具库
   - `store.ts` - Zustand状态库（包含所有模块的状态管理）
   - `utils.ts` - 工具函数
+  - `users.json` - 模拟用户数据
 
 ## 技术亮点
 
 1. 使用Next.js的App Router进行路由管理
-2. 使用Zustand进行状态管理，每个功能模块有单独的状态存储
-3. 使用Tailwind CSS和Shadcn UI构建现代化UI
-4. 采用React Hook Form和Zod进行表单验证
-5. 模块化的数据管理和组件设计
-6. 响应式布局适配各种设备尺寸
-7. 持久化存储用户状态和应用数据
+2. 基于角色的访问控制（RBAC）系统
+3. 使用Zustand进行状态管理，每个功能模块有单独的状态存储
+4. API路由处理用户认证
+5. 使用Tailwind CSS和Shadcn UI构建现代化UI
+6. 采用React Hook Form和Zod进行表单验证
+7. 模块化的数据管理和组件设计
+8. 响应式布局适配各种设备尺寸
+9. 持久化存储用户状态和应用数据
 
 ## Dependencies
 
@@ -113,6 +127,9 @@ root
                 - page.tsx          # 车辆管理页面组件
             - reports/              # 数据查询与导出页面目录
                 - page.tsx          # 数据查询与导出页面组件
+        - api/                      # API路由目录
+            - auth/                 # 认证API目录
+                - route.ts          # 认证API处理程序
         - favicon.ico               # 网站图标
         - globals.css               # 全局样式
         - layout.tsx                # 根布局组件
@@ -174,5 +191,6 @@ root
     - lib/            # 工具库目录
         - store.ts                  # Zustand状态库，包含所有模块的状态管理
         - utils.ts                  # 通用工具函数
+        - users.json                # 模拟用户数据
 - tsconfig.json       # TypeScript配置文件
 ```
