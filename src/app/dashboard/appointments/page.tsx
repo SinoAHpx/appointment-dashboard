@@ -97,7 +97,8 @@ export default function AppointmentsPage() {
         contactAddress: '',
         documentCount: 1,
         documentType: 'confidential',
-        notes: ''
+        notes: '',
+        status: 'pending' as 'pending' | 'confirmed' | 'completed' | 'cancelled'
     })
 
     // 编辑预约表单状态
@@ -192,7 +193,8 @@ export default function AppointmentsPage() {
                     contactAddress: '',
                     documentCount: 1,
                     documentType: 'confidential',
-                    notes: ''
+                    notes: '',
+                    status: 'pending'
                 })
             } else {
                 toast.error('创建预约失败')
@@ -491,7 +493,7 @@ export default function AppointmentsPage() {
                                     <PaginationItem>
                                         <PaginationPrevious
                                             onClick={() => setPage(p => Math.max(1, p - 1))}
-                                            disabled={page === 1}
+                                            isActive={page === 1}
                                         />
                                     </PaginationItem>
 
@@ -509,7 +511,7 @@ export default function AppointmentsPage() {
                                     <PaginationItem>
                                         <PaginationNext
                                             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                            disabled={page === totalPages}
+                                            isActive={page === totalPages}
                                         />
                                     </PaginationItem>
                                 </PaginationContent>
