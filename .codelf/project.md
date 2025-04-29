@@ -11,14 +11,16 @@
 
 1. 用户登录与认证
 2. 会话管理与保存
-3. 路由保护
-4. 响应式设计
+4. 仪表盘功能
+5. 登出功能
+6. 响应式设计
 
 ## 项目结构
 
 - `/src/app` - Next.js应用路由
   - `/(auth)` - 认证相关页面
   - `/login` - 登录页面
+  - `/dashboard` - 仪表盘页面
 - `/src/components` - React组件
   - `/ui` - Shadcn UI组件
   - `auth-wrapper.tsx` - 认证包装器组件
@@ -31,7 +33,6 @@
 1. 使用Next.js的App Router进行路由管理
 2. 使用Zustand进行简洁的状态管理
 3. 使用Tailwind CSS和Shadcn UI构建现代化UI
-4. 使用中间件实现路由保护
 5. 采用React Hook Form和Zod进行表单验证
 
 ## Dependencies (init from programming language specification like package.json, requirements.txt, etc.)

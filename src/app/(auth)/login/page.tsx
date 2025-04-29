@@ -47,7 +47,8 @@ export default function LoginPage() {
                 toast('登录成功', {
                     description: `欢迎回来，${values.username}`,
                 })
-                router.push('/')
+                router.push('/dashboard')
+                console.log('登录成功')
             } else {
                 toast("登录失败", {
                     description: '用户名或密码不正确',

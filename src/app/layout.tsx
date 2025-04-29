@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "预约管理系统",
   description: "一个简单高效的预约管理系统",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

@@ -10,6 +10,9 @@ appointment-dashboard/
 │   │   ├── (auth)/         # 认证相关路由组
 │   │   │   ├── login/      # 登录页面
 │   │   │   └── layout.tsx  # 认证布局
+│   │   ├── dashboard/      # 仪表盘页面
+│   │   │   ├── page.tsx    # 仪表盘主页
+│   │   │   └── layout.tsx  # 仪表盘布局
 │   │   ├── layout.tsx      # 根布局
 │   │   └── page.tsx        # 首页
 │   ├── components/         # React组件
@@ -23,7 +26,6 @@ appointment-dashboard/
 │   ├── lib/                # 工具库
 │   │   ├── store.ts        # Zustand状态库
 │   │   └── utils.ts        # 工具函数
-│   └── middleware.ts       # Next.js中间件
 ├── .gitignore              # Git忽略文件
 ├── bun.lock                # Bun锁文件
 ├── components.json         # Shadcn UI配置
@@ -40,8 +42,12 @@ appointment-dashboard/
 
 - `src/lib/store.ts` - 使用Zustand实现的认证状态管理
 - `src/components/auth-wrapper.tsx` - 保护路由的组件
-- `src/middleware.ts` - 实现路由保护的中间件
 - `src/app/(auth)/login/page.tsx` - 登录页面组件
+
+### 仪表盘相关
+
+- `src/app/dashboard/page.tsx` - 仪表盘主页面
+- `src/app/dashboard/layout.tsx` - 仪表盘布局，包含顶部导航和登出功能
 
 ### UI组件
 
