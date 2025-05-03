@@ -31,6 +31,11 @@ import {
 	PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -48,25 +53,37 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
 	type Appointment,
 	useAppointmentStore,
 	useAuthStore,
 } from "@/lib/store";
 import {
 	Calendar,
+	CheckCircle,
 	Clock,
 	FileText,
+	LayoutList,
 	MapPin,
 	Pencil,
 	Phone,
 	Plus,
+	RotateCcw,
 	Search,
 	Trash,
+	Truck,
 	User,
+	XCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 // 文件袋类型选项
 const documentTypes = [
@@ -85,12 +102,14 @@ export default function AppointmentsPage() {
 		fetchAppointments,
 		addAppointment,
 		updateAppointment,
+		updateAppointmentStatus,
 		deleteAppointment,
 	} = useAppointmentStore();
 
 	const [page, setPage] = useState(1);
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+	const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 
 	// 新建预约表单状态
@@ -102,12 +121,10 @@ export default function AppointmentsPage() {
 		documentCount: 1,
 		documentType: "confidential",
 		notes: "",
-		status: "pending" as "pending" | "confirmed" | "completed" | "cancelled",
+		status: "pending" as "pending" | "confirmed" | "in_progress" | "completed" | "cancelled",
+		estimatedCompletionTime: "",
+		processingNotes: "",
 	});
-
-	// 编辑预约表单状态
-	const [editingAppointment, setEditingAppointment] =
-		useState<Appointment | null>(null);
 
 	// 每页数量
 	const perPage = 10;
@@ -221,6 +238,8 @@ export default function AppointmentsPage() {
 					documentType: "confidential",
 					notes: "",
 					status: "pending",
+					estimatedCompletionTime: "",
+					processingNotes: "",
 				});
 			} else {
 				toast.error("创建预约失败");
@@ -296,6 +315,20 @@ export default function AppointmentsPage() {
 		}).format(date);
 	};
 
+	// 处理状态更新
+	const handleStatusUpdate = async (appointmentId: string, newStatus: Appointment["status"]) => {
+		try {
+			const success = await updateAppointmentStatus(appointmentId, newStatus);
+			if (success) {
+				toast.success(`预约状态已更新为${getStatusLabel(newStatus)}`);
+			} else {
+				toast.error("更新预约状态失败");
+			}
+		} catch (error) {
+			toast.error("更新预约状态失败: " + (error as Error).message);
+		}
+	};
+
 	// 获取状态标签
 	const getStatusLabel = (status: string) => {
 		switch (status) {
@@ -303,6 +336,8 @@ export default function AppointmentsPage() {
 				return "待确认";
 			case "confirmed":
 				return "已确认";
+			case "in_progress":
+				return "处理中";
 			case "completed":
 				return "已完成";
 			case "cancelled":
@@ -319,12 +354,103 @@ export default function AppointmentsPage() {
 				return "bg-yellow-100 text-yellow-800";
 			case "confirmed":
 				return "bg-blue-100 text-blue-800";
+			case "in_progress":
+				return "bg-purple-100 text-purple-800";
 			case "completed":
 				return "bg-green-100 text-green-800";
 			case "cancelled":
 				return "bg-red-100 text-red-800";
 			default:
 				return "bg-gray-100 text-gray-800";
+		}
+	};
+
+	// 在 TableCell 中渲染状态和操作按钮
+	const renderStatusCell = (appointment: Appointment) => {
+		if (isAdmin()) {
+			return (
+				<div className="flex items-center gap-2">
+					<span
+						className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}
+					>
+						{getStatusLabel(appointment.status)}
+					</span>
+					<Popover>
+						<PopoverTrigger asChild>
+							<Button
+								variant="outline"
+								size="sm"
+								className="ml-2 h-7 px-2 text-xs"
+							>
+								处理
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent className="w-56 p-2">
+							<div className="grid gap-1">
+								<h4 className="text-sm font-semibold mb-1">更新状态</h4>
+								<Button
+									variant="ghost"
+									size="sm"
+									className={`justify-start text-xs ${appointment.status === "pending" ? "bg-secondary" : ""}`}
+									onClick={() => handleStatusUpdate(appointment.id, "pending")}
+									disabled={appointment.status === "pending"}
+								>
+									<RotateCcw className="mr-2 h-4 w-4" />
+									待确认
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									className={`justify-start text-xs ${appointment.status === "confirmed" ? "bg-secondary" : ""}`}
+									onClick={() => handleStatusUpdate(appointment.id, "confirmed")}
+									disabled={appointment.status === "confirmed"}
+								>
+									<Clock className="mr-2 h-4 w-4" />
+									已确认
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									className={`justify-start text-xs ${appointment.status === "in_progress" ? "bg-secondary" : ""}`}
+									onClick={() => handleStatusUpdate(appointment.id, "in_progress")}
+									disabled={appointment.status === "in_progress"}
+								>
+									<Truck className="mr-2 h-4 w-4" />
+									处理中
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									className={`justify-start text-xs ${appointment.status === "completed" ? "bg-secondary" : ""}`}
+									onClick={() => handleStatusUpdate(appointment.id, "completed")}
+									disabled={appointment.status === "completed"}
+								>
+									<CheckCircle className="mr-2 h-4 w-4" />
+									已完成
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									className={`justify-start text-xs ${appointment.status === "cancelled" ? "bg-secondary" : ""}`}
+									onClick={() => handleStatusUpdate(appointment.id, "cancelled")}
+									disabled={appointment.status === "cancelled"}
+								>
+									<XCircle className="mr-2 h-4 w-4" />
+									已取消
+								</Button>
+							</div>
+						</PopoverContent>
+					</Popover>
+				</div>
+			);
+		} else {
+			return (
+				<span
+					className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}
+				>
+					{getStatusLabel(appointment.status)}
+				</span>
+			);
 		}
 	};
 
@@ -472,6 +598,7 @@ export default function AppointmentsPage() {
 						<TableCaption>预约列表</TableCaption>
 						<TableHeader>
 							<TableRow>
+								<TableHead>预约编号</TableHead>
 								<TableHead>预约时间</TableHead>
 								<TableHead>联系人</TableHead>
 								<TableHead>联系电话</TableHead>
@@ -488,7 +615,7 @@ export default function AppointmentsPage() {
 							{isLoading ? (
 								<TableRow>
 									<TableCell
-										colSpan={isAdmin() ? 8 : 7}
+										colSpan={isAdmin() ? 9 : 8}
 										className="text-center py-6"
 									>
 										加载中...
@@ -497,7 +624,7 @@ export default function AppointmentsPage() {
 							) : filteredAppointments.length === 0 ? (
 								<TableRow>
 									<TableCell
-										colSpan={isAdmin() ? 8 : 7}
+										colSpan={isAdmin() ? 9 : 8}
 										className="text-center py-6"
 									>
 										{searchQuery ? "没有找到匹配的预约" : "暂无预约记录"}
@@ -507,8 +634,11 @@ export default function AppointmentsPage() {
 								filteredAppointments.map((appointment) => (
 									<TableRow key={appointment.id}>
 										<TableCell>
-											{formatDateTime(appointment.dateTime)}
+											<Badge variant="outline" className="font-mono font-medium">
+												{appointment.appointmentId || `APT-${appointment.id}`}
+											</Badge>
 										</TableCell>
+										<TableCell>{formatDateTime(appointment.dateTime)}</TableCell>
 										<TableCell>{appointment.contactName}</TableCell>
 										<TableCell>{appointment.contactPhone}</TableCell>
 										<TableCell className="max-w-xs truncate">
@@ -521,31 +651,45 @@ export default function AppointmentsPage() {
 											)?.label || appointment.documentType}
 										</TableCell>
 										<TableCell>
-											<span
-												className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}
-											>
-												{getStatusLabel(appointment.status)}
-											</span>
+											{renderStatusCell(appointment)}
 										</TableCell>
 										{isAdmin() && (
 											<TableCell className="text-right">
 												<div className="flex justify-end gap-2">
-													<Button
-														variant="outline"
-														size="icon"
-														onClick={() => handleStartEdit(appointment)}
-													>
-														<Pencil size={16} />
-													</Button>
-													<Button
-														variant="outline"
-														size="icon"
-														onClick={() =>
-															handleDeleteAppointment(appointment.id)
-														}
-													>
-														<Trash size={16} />
-													</Button>
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="outline"
+																	size="icon"
+																	onClick={() => handleStartEdit(appointment)}
+																>
+																	<Pencil size={16} />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent>
+																<p>编辑预约</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="outline"
+																	size="icon"
+																	onClick={() =>
+																		handleDeleteAppointment(appointment.id)
+																	}
+																>
+																	<Trash size={16} />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent>
+																<p>删除预约</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
 												</div>
 											</TableCell>
 										)}
@@ -697,13 +841,35 @@ export default function AppointmentsPage() {
 										<SelectContent>
 											<SelectItem value="pending">待确认</SelectItem>
 											<SelectItem value="confirmed">已确认</SelectItem>
+											<SelectItem value="in_progress">处理中</SelectItem>
 											<SelectItem value="completed">已完成</SelectItem>
 											<SelectItem value="cancelled">已取消</SelectItem>
 										</SelectContent>
 									</Select>
 								</div>
 								<div className="flex flex-col gap-2">
-									<Label htmlFor="edit-notes">备注</Label>
+									<Label htmlFor="edit-estimatedCompletionTime">预计完成时间</Label>
+									<Input
+										id="edit-estimatedCompletionTime"
+										name="estimatedCompletionTime"
+										type="datetime-local"
+										value={editingAppointment.estimatedCompletionTime || ""}
+										onChange={handleEditAppointmentChange}
+									/>
+								</div>
+								<div className="flex flex-col gap-2">
+									<Label htmlFor="edit-processingNotes">处理备注</Label>
+									<Textarea
+										id="edit-processingNotes"
+										name="processingNotes"
+										value={editingAppointment.processingNotes || ""}
+										onChange={handleEditAppointmentChange}
+										placeholder="请输入处理相关的备注信息"
+										rows={3}
+									/>
+								</div>
+								<div className="flex flex-col gap-2">
+									<Label htmlFor="edit-notes">客户备注</Label>
 									<Textarea
 										id="edit-notes"
 										name="notes"

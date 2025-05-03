@@ -131,15 +131,117 @@ const initDb = (db: Database) => {
     db.run(`
       CREATE TABLE IF NOT EXISTS appointments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        appointmentId TEXT UNIQUE NOT NULL, -- 预约唯一标识码
         customerName TEXT NOT NULL, -- Maybe link to customers table later? For now, keep simple.
         appointmentTime DATETIME NOT NULL,
         serviceType TEXT,
         staffId INTEGER,
         vehicleId INTEGER,
-        status TEXT CHECK( status IN ('pending', 'confirmed', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
+        status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
+        estimatedCompletionTime DATETIME,  -- 预计完成时间
+        processingNotes TEXT,  -- 处理备注
+        lastUpdatedBy INTEGER,  -- 最后更新用户ID
+        lastUpdatedAt DATETIME,  -- 最后更新时间
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL, -- Optional: Handle staff deletion
-        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL -- Optional: Handle vehicle deletion
+        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL, -- Optional: Handle vehicle deletion
+        FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL -- Optional: Handle user deletion
+      );
+    `);
+
+    // 检查appointments表中是否存在appointmentId列
+    const appointmentIdColumnExists = db.query<{ count: number }, []>(
+      "SELECT COUNT(*) as count FROM pragma_table_info('appointments') WHERE name = 'appointmentId'"
+    ).get();
+
+    // 如果appointmentId列不存在，则进行表迁移
+    if (appointmentIdColumnExists && appointmentIdColumnExists.count === 0) {
+      console.log("Migrating appointments table to add new columns...");
+
+      // 1. 创建临时表
+      db.run(`
+        CREATE TABLE appointments_temp (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          appointmentId TEXT UNIQUE NOT NULL,
+          customerName TEXT NOT NULL,
+          appointmentTime DATETIME NOT NULL,
+          serviceType TEXT,
+          staffId INTEGER,
+          vehicleId INTEGER,
+          status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
+          estimatedCompletionTime DATETIME,
+          processingNotes TEXT,
+          lastUpdatedBy INTEGER,
+          lastUpdatedAt DATETIME,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
+          FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
+          FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL
+        );
+      `);
+
+      // 2. 从老表中复制数据并生成唯一ID
+      db.run(`
+        INSERT INTO appointments_temp (
+          id, customerName, appointmentTime, serviceType, staffId, vehicleId, status, createdAt
+        )
+        SELECT 
+          id, customerName, appointmentTime, serviceType, staffId, vehicleId, 
+          CASE 
+            WHEN status = 'pending' THEN 'pending'
+            WHEN status = 'confirmed' THEN 'confirmed'
+            WHEN status = 'completed' THEN 'completed'
+            WHEN status = 'cancelled' THEN 'cancelled'
+            ELSE 'pending'
+          END as status,
+          createdAt 
+        FROM appointments;
+      `);
+
+      // 3. 为每条记录生成唯一的appointmentId
+      const appointmentIds = db.query<{ id: number }, []>(
+        "SELECT id FROM appointments_temp"
+      ).all();
+
+      const generateUniqueId = (id: number) => {
+        const prefix = 'APT';
+        const timestamp = Date.now().toString().slice(-6);
+        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        return `${prefix}-${id}-${timestamp}-${random}`;
+      };
+
+      for (const { id } of appointmentIds) {
+        const uniqueId = generateUniqueId(id);
+        db.run(
+          "UPDATE appointments_temp SET appointmentId = ? WHERE id = ?",
+          [uniqueId, id]
+        );
+      }
+
+      // 4. 删除旧表
+      db.run("DROP TABLE appointments;");
+
+      // 5. 重命名临时表
+      db.run("ALTER TABLE appointments_temp RENAME TO appointments;");
+
+      console.log("Successfully migrated appointments table with new columns");
+    }
+
+    // Create appointment history table for tracking status changes
+    db.run(`
+      CREATE TABLE IF NOT EXISTS appointment_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        appointmentId INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        staffId INTEGER,
+        vehicleId INTEGER,
+        notes TEXT,
+        updatedBy INTEGER NOT NULL,
+        updatedAt DATETIME NOT NULL,
+        FOREIGN KEY (appointmentId) REFERENCES appointments (id) ON DELETE CASCADE,
+        FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
+        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
+        FOREIGN KEY (updatedBy) REFERENCES users (id) ON DELETE SET NULL
       );
     `);
 

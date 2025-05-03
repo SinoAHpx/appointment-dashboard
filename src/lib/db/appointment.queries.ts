@@ -3,29 +3,59 @@ import { getDb } from "./db";
 // Define the Appointment type based on the database schema
 export interface Appointment {
 	id: number;
+	appointmentId: string; // Unique appointment identifier for tracking
 	customerName: string;
 	appointmentTime: string; // Store as ISO 8601 string (DATETIME)
 	serviceType: string | null;
 	staffId: number | null;
 	vehicleId: number | null;
-	status: "pending" | "confirmed" | "completed" | "cancelled";
+	status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+	estimatedCompletionTime: string | null; // Estimated completion time
+	processingNotes: string | null; // Notes for processing
+	lastUpdatedBy: number | null; // User ID who last updated
+	lastUpdatedAt: string | null; // Timestamp of last update
 	createdAt: string;
+}
+
+// History record for appointment status changes
+export interface AppointmentHistory {
+	id: number;
+	appointmentId: number;
+	status: Appointment["status"];
+	staffId: number | null;
+	vehicleId: number | null;
+	notes: string | null;
+	updatedBy: number;
+	updatedAt: string;
 }
 
 // Type for creating a new appointment (omit id and createdAt)
 export type NewAppointmentData = Omit<
 	Appointment,
-	"id" | "createdAt" | "staffId" | "vehicleId"
+	"id" | "appointmentId" | "createdAt" | "staffId" | "vehicleId" | "lastUpdatedBy" | "lastUpdatedAt" | "estimatedCompletionTime" | "processingNotes"
 > & {
 	staffId?: number | null; // Optional in creation
 	vehicleId?: number | null; // Optional in creation
 	appointmentTime: string; // Ensure time is provided
+	estimatedCompletionTime?: string | null;
+	processingNotes?: string | null;
+	updatedBy?: number | null;
 };
 
 // Type for updating an appointment (all fields optional)
 export type UpdateAppointmentData = Partial<
-	Omit<Appointment, "id" | "createdAt">
+	Omit<Appointment, "id" | "appointmentId" | "createdAt">
 >;
+
+// Type for recording a status change
+export type AppointmentStatusChange = {
+	appointmentId: number;
+	status: Appointment["status"];
+	staffId?: number | null;
+	vehicleId?: number | null;
+	notes?: string | null;
+	updatedBy: number;
+};
 
 /**
  * Fetches all appointments from the database, ordered by appointment time.
@@ -39,6 +69,69 @@ export const getAllAppointments = (): Appointment[] => {
 		return query.all();
 	} catch (error) {
 		console.error("Error fetching all appointments:", error);
+		return [];
+	}
+};
+
+/**
+ * Generates a unique appointment ID with prefix
+ */
+export const generateAppointmentId = (): string => {
+	const prefix = 'APT';
+	const timestamp = Date.now().toString().slice(-6);
+	const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+	return `${prefix}-${timestamp}-${random}`;
+};
+
+/**
+ * Records a status change in the appointment history
+ */
+export const recordAppointmentHistory = (
+	data: AppointmentStatusChange
+): boolean => {
+	try {
+		const db = getDb();
+		const { appointmentId, status, staffId, vehicleId, notes, updatedBy } = data;
+		const now = new Date().toISOString();
+
+		const insertQuery = db.query(
+			`INSERT INTO appointment_history 
+			(appointmentId, status, staffId, vehicleId, notes, updatedBy, updatedAt)
+			VALUES (?, ?, ?, ?, ?, ?, ?)`
+		);
+
+		const result = insertQuery.run(
+			appointmentId,
+			status,
+			staffId || null,
+			vehicleId || null,
+			notes || null,
+			updatedBy,
+			now
+		);
+
+		return result.changes > 0;
+	} catch (error) {
+		console.error("Error recording appointment history:", error);
+		return false;
+	}
+};
+
+/**
+ * Gets appointment history records for a specific appointment
+ */
+export const getAppointmentHistory = (appointmentId: number): AppointmentHistory[] => {
+	try {
+		const db = getDb();
+		const query = db.query<AppointmentHistory, [number]>(
+			`SELECT * FROM appointment_history 
+			WHERE appointmentId = ? 
+			ORDER BY updatedAt DESC`
+		);
+
+		return query.all(appointmentId);
+	} catch (error) {
+		console.error("Error fetching appointment history:", error);
 		return [];
 	}
 };
@@ -58,36 +151,63 @@ export const addAppointment = (
 			staffId = null,
 			vehicleId = null,
 			status = "pending",
+			estimatedCompletionTime = null,
+			processingNotes = null,
+			updatedBy = null,
 		} = data;
 
-		// Ensure appointmentTime is a valid format if needed, though TEXT affinity is flexible
-		// const isoTime = new Date(appointmentTime).toISOString(); // Example if strict ISO needed
+		// Generate unique appointment ID
+		const appointmentId = generateAppointmentId();
+		const now = new Date().toISOString();
 
 		const insertQuery = db.query<
 			Appointment,
 			[
 				string,
 				string,
+				string,
 				string | null,
 				number | null,
 				number | null,
 				Appointment["status"],
+				string | null,
+				string | null,
+				number | null,
+				string | null
 			]
 		>(
 			`INSERT INTO appointments 
-       (customerName, appointmentTime, serviceType, staffId, vehicleId, status)
-       VALUES (?, ?, ?, ?, ?, ?) 
-       RETURNING id, customerName, appointmentTime, serviceType, staffId, vehicleId, status, createdAt`,
+       (appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+       RETURNING id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdAt`,
 		);
 
 		const newAppointment = insertQuery.get(
+			appointmentId,
 			customerName,
-			appointmentTime, // Use the provided string directly
+			appointmentTime,
 			serviceType,
 			staffId,
 			vehicleId,
 			status,
+			estimatedCompletionTime,
+			processingNotes,
+			updatedBy,
+			updatedBy ? now : null
 		);
+
+		// Record initial status in history if there's an updatedBy value
+		if (updatedBy && newAppointment) {
+			recordAppointmentHistory({
+				appointmentId: newAppointment.id,
+				status,
+				staffId,
+				vehicleId,
+				notes: processingNotes,
+				updatedBy
+			});
+		}
+
 		return newAppointment;
 	} catch (error) {
 		console.error("Error adding appointment:", error);
@@ -113,16 +233,35 @@ export const updateAppointment = (
 			return currentQuery.get(id);
 		}
 
+		// Add lastUpdatedAt field to update the timestamp
+		if (data.lastUpdatedBy && !fields.includes("lastUpdatedAt")) {
+			data.lastUpdatedAt = new Date().toISOString();
+			fields.push("lastUpdatedAt");
+		}
+
 		let setClause = fields.map((field) => `${field} = ?`).join(", ");
 		const values = fields.map((field) => data[field]);
 		values.push(id); // Add id for the WHERE clause
 
 		const updateQuery = db.query<Appointment, any[]>(
 			`UPDATE appointments SET ${setClause} WHERE id = ? 
-       RETURNING id, customerName, appointmentTime, serviceType, staffId, vehicleId, status, createdAt`,
+       RETURNING id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdAt`,
 		);
 
 		const updatedAppointment = updateQuery.get(...values);
+
+		// Record status change in history if status was updated and there's an updatedBy value
+		if (data.status && data.lastUpdatedBy && updatedAppointment) {
+			recordAppointmentHistory({
+				appointmentId: id,
+				status: data.status,
+				staffId: data.staffId !== undefined ? data.staffId : updatedAppointment.staffId,
+				vehicleId: data.vehicleId !== undefined ? data.vehicleId : updatedAppointment.vehicleId,
+				notes: data.processingNotes !== undefined ? data.processingNotes : updatedAppointment.processingNotes,
+				updatedBy: data.lastUpdatedBy
+			});
+		}
+
 		return updatedAppointment;
 	} catch (error) {
 		console.error("Error updating appointment:", error);
