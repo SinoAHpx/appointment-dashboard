@@ -115,11 +115,11 @@ export default function AppointmentsPage() {
 	const totalPages = Math.ceil(
 		appointments.filter(
 			(appointment) =>
-				appointment.contactName
+				(appointment.contactName ?? '')
 					.toLowerCase()
 					.includes(searchQuery.toLowerCase()) ||
-				appointment.contactPhone.includes(searchQuery) ||
-				appointment.contactAddress
+				(appointment.contactPhone ?? '').includes(searchQuery) ||
+				(appointment.contactAddress ?? '')
 					.toLowerCase()
 					.includes(searchQuery.toLowerCase()),
 		).length / perPage,
@@ -129,11 +129,11 @@ export default function AppointmentsPage() {
 	const filteredAppointments = appointments
 		.filter(
 			(appointment) =>
-				appointment.contactName
+				(appointment.contactName ?? '')
 					.toLowerCase()
 					.includes(searchQuery.toLowerCase()) ||
-				appointment.contactPhone.includes(searchQuery) ||
-				appointment.contactAddress
+				(appointment.contactPhone ?? '').includes(searchQuery) ||
+				(appointment.contactAddress ?? '')
 					.toLowerCase()
 					.includes(searchQuery.toLowerCase()),
 		)

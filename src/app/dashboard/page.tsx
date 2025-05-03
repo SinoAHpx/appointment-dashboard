@@ -26,7 +26,7 @@ export default function DashboardPage() {
     const router = useRouter();
 
     // Fetch data from stores
-    const { appointments } = useAppointmentStore();
+    const { appointments, fetchAppointments } = useAppointmentStore();
     const { customers } = useCustomerStore();
     const { staffList } = useStaffStore();
     const { vehicles } = useVehicleStore();
@@ -34,7 +34,7 @@ export default function DashboardPage() {
     // Calculate stats (example logic, replace with more robust logic if needed)
     const today = new Date().toISOString().split("T")[0];
     const todaysAppointments = appointments.filter((app) =>
-        app.dateTime.startsWith(today),
+        (app.dateTime ?? '').startsWith(today),
     );
     const pendingAppointments = appointments.filter(
         (app) => app.status === "pending",
@@ -48,6 +48,10 @@ export default function DashboardPage() {
             router.push("/login");
         }
     }, [isAuthenticated, router]);
+
+    useEffect(() => {
+        fetchAppointments();
+    }, [fetchAppointments]);
 
     if (!isAuthenticated) {
         return null;
@@ -101,7 +105,7 @@ export default function DashboardPage() {
                             其中{" "}
                             {
                                 pendingAppointments.filter((app) =>
-                                    app.dateTime.startsWith(today),
+                                    (app.dateTime ?? '').startsWith(today),
                                 ).length
                             }{" "}
                             个待确认
