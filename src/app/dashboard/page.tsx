@@ -5,14 +5,33 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useAuthStore } from '@/lib/store'
-import { CalendarDays, Users, Car, UserCircle, BarChart3, Clock } from 'lucide-react'
+import {
+    useAuthStore,
+    useAppointmentStore,
+    useCustomerStore,
+    useStaffStore,
+    useVehicleStore
+} from '@/lib/store'
+import { CalendarDays, Users, Car, UserCircle, Clock } from 'lucide-react'
 
 export default function DashboardPage() {
     const { isAuthenticated, user } = useAuthStore()
     const router = useRouter()
 
-    // 如果用户未登录，重定向到登录页面
+    // Fetch data from stores
+    const { appointments } = useAppointmentStore()
+    const { customers } = useCustomerStore()
+    const { staffList } = useStaffStore()
+    const { vehicles } = useVehicleStore()
+
+    // Calculate stats (example logic, replace with more robust logic if needed)
+    const today = new Date().toISOString().split('T')[0]
+    const todaysAppointments = appointments.filter(app => app.dateTime.startsWith(today))
+    const pendingAppointments = appointments.filter(app => app.status === 'pending')
+    const availableStaff = staffList.filter(staff => staff.isAvailable)
+    const availableVehicles = vehicles.filter(vehicle => vehicle.isAvailable)
+
+    // Redirect if not authenticated
     useEffect(() => {
         if (!isAuthenticated) {
             router.push('/login')
@@ -25,6 +44,10 @@ export default function DashboardPage() {
 
     const isAdmin = user?.role === 'admin'
 
+    const handleCardClick = (path: string) => {
+        router.push(path)
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-2">
@@ -33,51 +56,52 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
+                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick('/dashboard/appointments')}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">总预约数</CardTitle>
                         <CalendarDays className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">128</div>
-                        <p className="text-xs text-muted-foreground">
+                        <div className="text-2xl font-bold">{appointments.length}</div>
+                        {/* Add comparison logic if historical data is available */}
+                        {/* <p className="text-xs text-muted-foreground">
                             较上周增长 +12%
-                        </p>
+                        </p> */}
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick('/dashboard/appointments')}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">今日预约</CardTitle>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">8</div>
+                        <div className="text-2xl font-bold">{todaysAppointments.length}</div>
                         <p className="text-xs text-muted-foreground">
-                            其中 2 个待确认
+                            其中 {pendingAppointments.filter(app => app.dateTime.startsWith(today)).length} 个待确认
                         </p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick('/dashboard/staff')}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">工作人员</CardTitle>
                         <UserCircle className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">12</div>
+                        <div className="text-2xl font-bold">{staffList.length}</div>
                         <p className="text-xs text-muted-foreground">
-                            平均评分 4.8/5
+                            {availableStaff.length} 人可用
                         </p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick('/dashboard/vehicles')}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">车辆</CardTitle>
                         <Car className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">24</div>
+                        <div className="text-2xl font-bold">{vehicles.length}</div>
                         <p className="text-xs text-muted-foreground">
-                            可用 20 辆
+                            可用 {availableVehicles.length} 辆
                         </p>
                     </CardContent>
                 </Card>
@@ -95,16 +119,17 @@ export default function DashboardPage() {
                         <div className="flex flex-col space-y-2">
                             <div className="flex items-center justify-between">
                                 <span>今日预约</span>
-                                <span className="font-medium">8</span>
+                                <span className="font-medium">{todaysAppointments.length}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span>待确认预约</span>
-                                <span className="font-medium">3</span>
+                                <span className="font-medium">{pendingAppointments.length}</span>
                             </div>
-                            <div className="flex items-center justify-between">
+                            {/* Add logic for upcoming appointments if needed */}
+                            {/* <div className="flex items-center justify-between">
                                 <span>即将到期预约</span>
                                 <span className="font-medium">5</span>
-                            </div>
+                            </div> */}
                         </div>
                     </CardContent>
                     <CardFooter>
@@ -119,40 +144,6 @@ export default function DashboardPage() {
                 {isAdmin && (
                     <Card className="col-span-1">
                         <CardHeader>
-                            <CardTitle>客户管理</CardTitle>
-                            <CardDescription>
-                                管理您的客户信息
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span>总客户数</span>
-                                    <span className="font-medium">86</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span>本月新客户</span>
-                                    <span className="font-medium">12</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span>活跃客户</span>
-                                    <span className="font-medium">42</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button asChild className="w-full">
-                                <Link href="/dashboard/users">
-                                    查看所有客户
-                                </Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                )}
-
-                {isAdmin && (
-                    <Card className="col-span-1">
-                        <CardHeader>
                             <CardTitle>人员管理</CardTitle>
                             <CardDescription>
                                 管理您的员工信息
@@ -162,16 +153,17 @@ export default function DashboardPage() {
                             <div className="flex flex-col space-y-2">
                                 <div className="flex items-center justify-between">
                                     <span>总员工数</span>
-                                    <span className="font-medium">12</span>
+                                    <span className="font-medium">{staffList.length}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span>当前在线</span>
-                                    <span className="font-medium">8</span>
+                                    <span>当前可用</span>
+                                    <span className="font-medium">{availableStaff.length}</span>
                                 </div>
-                                <div className="flex items-center justify-between">
+                                {/* Add logic for staff on leave if needed */}
+                                {/* <div className="flex items-center justify-between">
                                     <span>本周休假</span>
                                     <span className="font-medium">2</span>
-                                </div>
+                                </div> */}
                             </div>
                         </CardContent>
                         <CardFooter>
@@ -183,75 +175,39 @@ export default function DashboardPage() {
                         </CardFooter>
                     </Card>
                 )}
+                {isAdmin && (
+                    <div className="grid gap-4 grid-cols-1">
+                        {/* Vehicle Management Card - Adjusted grid for removal of Reports */}
+                        <Card className="col-span-1">
+                            <CardHeader>
+                                <CardTitle>车辆管理</CardTitle>
+                                <CardDescription>
+                                    管理您的车辆信息
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span>总车辆数</span>
+                                        <span className="font-medium">{vehicles.length}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span>可用车辆</span>
+                                        <span className="font-medium">{availableVehicles.length}</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <CardFooter>
+                                <Button asChild className="w-full">
+                                    <Link href="/dashboard/vehicles">
+                                        查看所有车辆
+                                    </Link>
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    </div>
+                )}
             </div>
-
-            {isAdmin && (
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>车辆管理</CardTitle>
-                            <CardDescription>
-                                管理您的车辆信息
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span>总车辆数</span>
-                                    <span className="font-medium">24</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span>可用车辆</span>
-                                    <span className="font-medium">20</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span>维修中</span>
-                                    <span className="font-medium">4</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button asChild className="w-full">
-                                <Link href="/dashboard/vehicles">
-                                    查看所有车辆
-                                </Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
-
-                    <Card className="col-span-1">
-                        <CardHeader>
-                            <CardTitle>数据报表</CardTitle>
-                            <CardDescription>
-                                查看分析报表和统计数据
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span>本月预约数</span>
-                                    <span className="font-medium">128</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span>客户满意度</span>
-                                    <span className="font-medium">4.7/5</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span>月度收益</span>
-                                    <span className="font-medium">¥42,580</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button asChild className="w-full">
-                                <Link href="/dashboard/reports">
-                                    查看所有报表
-                                </Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                </div>
-            )}
         </div>
     )
 } 

@@ -15,8 +15,9 @@
    - 基于JSON文件的用户数据管理
 2. 会话管理与保存
 3. 仪表盘功能
-   - 统计卡片显示（预约数量、今日预约、工作人员、车辆等）
-   - 快速导航到各功能模块
+   - 动态统计卡片显示（连接Zustand状态）
+   - 点击统计卡片可跳转到对应管理页面
+   - 快速导航到各功能模块（预约、客户、人员、车辆）
    - 根据用户角色显示不同内容
    - 各模块数据概览展示
 4. 预约管理（创建、编辑、删除、查看）
@@ -28,8 +29,7 @@
    - 仅管理员可访问
 7. 车辆管理（添加、编辑、删除车辆及其状态）
    - 仅管理员可访问
-8. 数据查询与导出（按条件筛选预约数据并导出CSV或Excel）
-   - 仅管理员可访问
+8. ~~数据查询与导出（按条件筛选预约数据并导出CSV或Excel）~~
 9. 登出功能
 10. 响应式设计
 
@@ -45,7 +45,7 @@
     - `/dashboard/users` - 客户管理页面
     - `/dashboard/staff` - 人员管理页面
     - `/dashboard/vehicles` - 车辆管理页面
-    - `/dashboard/reports` - 数据查询与导出页面
+    - ~~/dashboard/reports~~ - ~~数据查询与导出页面~~
 - `/src/components` - React组件
   - `/ui` - Shadcn UI组件
   - `auth-wrapper.tsx` - 认证包装器组件
@@ -58,7 +58,7 @@
 
 1. 使用Next.js的App Router进行路由管理
 2. 基于角色的访问控制（RBAC）系统
-3. 使用Zustand进行状态管理，每个功能模块有单独的状态存储
+3. 使用Zustand进行状态管理，每个功能模块有单独的状态存储，并在仪表盘动态显示
 4. API路由处理用户认证
 5. 使用Tailwind CSS和Shadcn UI构建现代化UI
 6. 采用React Hook Form和Zod进行表单验证
@@ -130,8 +130,8 @@ root
                 - page.tsx          # 人员管理页面组件
             - vehicles/             # 车辆管理页面目录
                 - page.tsx          # 车辆管理页面组件
-            - reports/              # 数据查询与导出页面目录
-                - page.tsx          # 数据查询与导出页面组件
+            # - reports/              # 数据查询与导出页面目录 (REMOVED)
+            #     - page.tsx          # 数据查询与导出页面组件 (REMOVED)
         - api/                      # API路由目录
             - auth/                 # 认证API目录
                 - route.ts          # 认证API处理程序
