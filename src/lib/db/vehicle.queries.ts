@@ -79,7 +79,7 @@ export const updateVehicle = (
 
 		let setClause = fields.map((field) => `${field} = ?`).join(", ");
 		const values = fields.map((field) => data[field]);
-		values.push(id);
+		values.push(id.toString());
 
 		const updateQuery = db.query<Vehicle, any[]>(
 			`UPDATE vehicles SET ${setClause} WHERE id = ? RETURNING id, plateNumber, model, status, createdAt`,

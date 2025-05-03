@@ -1,4 +1,4 @@
-import { findUserByUsernameWithPassword } from "@/lib/user.queries";
+import { findUserByUsernameWithPassword } from "@/lib/db/user.queries";
 import { NextResponse } from "next/server";
 
 // 登录API路由

@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import {
     type NewAppointmentData as DbNewAppointmentData,
     type UpdateAppointmentData as DbUpdateAppointmentData,
-} from "../appointment.queries";
+} from "../db/appointment.queries";
 
 // 预约类型定义
 export interface Appointment {

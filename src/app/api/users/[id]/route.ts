@@ -1,4 +1,4 @@
-import { updateUser, deleteUser } from "@/lib/user.queries";
+import { updateUser, deleteUser } from "@/lib/db/user.queries";
 import { NextResponse } from "next/server";
 
 // Update a user by ID

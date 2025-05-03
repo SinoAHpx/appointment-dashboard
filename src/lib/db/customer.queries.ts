@@ -93,7 +93,7 @@ export const updateCustomer = (
 
 		let setClause = fields.map((field) => `${field} = ?`).join(", ");
 		const values = fields.map((field) => data[field]);
-		values.push(id);
+		values.push(id.toString());
 
 		const updateQuery = db.query<Customer, any[]>(
 			`UPDATE customers SET ${setClause} WHERE id = ? 

@@ -6,7 +6,7 @@ import {
 	deleteAppointment,
 	getAllAppointments,
 	updateAppointment,
-} from "@/lib/appointment.queries";
+} from "@/lib/db/appointment.queries";
 import { NextRequest, NextResponse } from "next/server";
 
 // 获取所有预约

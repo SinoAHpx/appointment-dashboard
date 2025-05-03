@@ -4,7 +4,7 @@ import {
     type Customer as DbCustomer,
     type NewCustomerData as DbNewCustomerData,
     type UpdateCustomerData as DbUpdateCustomerData,
-} from "../customer.queries";
+} from "../db/customer.queries";
 
 // 导出客户类型
 export type CustomerUser = DbCustomer;

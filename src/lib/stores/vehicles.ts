@@ -4,7 +4,7 @@ import {
     type Vehicle as DbVehicle,
     type NewVehicleData as DbNewVehicleData,
     type UpdateVehicleData as DbUpdateVehicleData,
-} from "../vehicle.queries";
+} from "../db/vehicle.queries";
 
 // 导出车辆类型
 export type Vehicle = DbVehicle;

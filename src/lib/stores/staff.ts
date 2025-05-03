@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { type Staff as DbStaff } from "../staff.queries";
+import { type Staff as DbStaff } from "../db/staff.queries";
 
 // 导出员工类型
 export type Staff = DbStaff;

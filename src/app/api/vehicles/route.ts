@@ -6,7 +6,7 @@ import {
 	deleteVehicle,
 	getAllVehicles,
 	updateVehicle,
-} from "@/lib/vehicle.queries";
+} from "@/lib/db/vehicle.queries";
 import { NextRequest, NextResponse } from "next/server";
 
 // 获取所有车辆

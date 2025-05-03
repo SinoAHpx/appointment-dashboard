@@ -1,6 +1,6 @@
-import { getAllUsers, createUser } from "@/lib/user.queries";
+import { getAllUsers, createUser } from "@/lib/db/user.queries";
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db/db";
 
 // Get all users
 export async function GET() {

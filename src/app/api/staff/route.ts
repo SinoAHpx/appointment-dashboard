@@ -4,7 +4,7 @@ import {
 	deleteStaff,
 	getAllStaff,
 	updateStaff,
-} from "@/lib/staff.queries";
+} from "@/lib/db/staff.queries";
 import { NextRequest, NextResponse } from "next/server";
 
 // 获取所有员工

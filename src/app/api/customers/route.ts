@@ -5,7 +5,7 @@ import {
 	deleteCustomer,
 	getAllCustomers,
 	updateCustomer,
-} from "@/lib/customer.queries";
+} from "@/lib/db/customer.queries";
 import { NextRequest, NextResponse } from "next/server";
 
 // 获取所有客户
