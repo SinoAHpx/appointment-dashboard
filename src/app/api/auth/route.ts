@@ -1,4 +1,5 @@
 import { findUserByUsernameWithPassword } from "@/lib/db/user.queries";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 // 登录API路由
@@ -53,10 +54,32 @@ export async function POST(request: Request) {
 
 		console.log("最终返回用户信息:", finalUser);
 
-		return NextResponse.json({
+		// 设置cookie，跟zustand的persist中间件保持一致
+		const authState = {
+			state: {
+				user: finalUser,
+				isAuthenticated: true
+			},
+			version: 0
+		};
+
+		// 创建响应对象
+		const response = NextResponse.json({
 			success: true,
 			user: finalUser,
 		});
+
+		// 设置有7天过期时间的cookie
+		response.cookies.set({
+			name: "auth-storage",
+			value: JSON.stringify(authState),
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			maxAge: 60 * 60 * 24 * 7, // 7天
+			path: "/"
+		});
+
+		return response;
 	} catch (error) {
 		console.error("登录过程发生错误:", error);
 		return NextResponse.json(

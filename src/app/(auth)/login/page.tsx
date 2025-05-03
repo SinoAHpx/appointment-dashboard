@@ -63,7 +63,24 @@ export default function LoginPage() {
 				toast("登录成功", {
 					description: `欢迎回来，${values.username}`,
 				});
-				router.push("/dashboard");
+				
+				// 获取URL参数中的回调地址
+				const searchParams = new URLSearchParams(window.location.search);
+				const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+				
+				// 增加短暂延时确保状态更新并且Toast有时间显示
+				setTimeout(() => {
+					try {
+						// 避免使用路由跳转，直接修改location
+						window.location.href = callbackUrl.startsWith('/')
+							? callbackUrl
+							: `/${callbackUrl}`;
+					} catch (error) {
+						console.error('重定向失败:', error);
+						// 如果自定义URL有问题，回退到dashboard
+						window.location.href = '/dashboard';
+					}
+				}, 500);
 			} else {
 				toast("登录失败", {
 					description: "用户名或密码不正确",

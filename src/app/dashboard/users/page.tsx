@@ -38,6 +38,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { AuthGuard } from "@/components/AuthGuard";
 import { AdminUser, useAuthStore, useUserStore } from "@/lib/store";
 import { format } from "date-fns";
 import {
@@ -111,20 +112,10 @@ export default function UsersPage() {
 		.sort((a, b) => a.username.localeCompare(b.username))
 		.slice((page - 1) * perPage, page * perPage);
 
-	// 如果用户未登录，重定向到登录页面
+	// 加载用户数据
 	useEffect(() => {
-		if (!isAuthenticated) {
-			router.push("/login");
-		} else {
-			// 检查是否为管理员
-			if (!isAdmin()) {
-				router.push("/dashboard");
-				toast.error("您没有权限访问用户管理页面");
-			} else {
-				fetchUsers();
-			}
-		}
-	}, [isAuthenticated, isAdmin, router, fetchUsers]);
+		fetchUsers();
+	}, [fetchUsers]);
 
 	// 处理新建用户表单变更
 	const handleNewUserChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -299,325 +290,323 @@ export default function UsersPage() {
 		}
 	};
 
-	if (!isAuthenticated || !isAdmin()) {
-		return null;
-	}
-
 	return (
-		<div className="space-y-6">
-			<div className="flex justify-between items-center">
-				<h1 className="text-2xl font-bold">用户管理</h1>
-				<Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-					<DialogTrigger asChild>
-						<Button className="flex items-center gap-1">
-							<Plus size={16} />
-							<span>新建用户</span>
-						</Button>
-					</DialogTrigger>
+		<AuthGuard requiredRole="admin">
+			<div className="space-y-6">
+				<div className="flex justify-between items-center">
+					<h1 className="text-2xl font-bold">用户管理</h1>
+					<Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+						<DialogTrigger asChild>
+							<Button className="flex items-center gap-1">
+								<Plus size={16} />
+								<span>新建用户</span>
+							</Button>
+						</DialogTrigger>
+						<DialogContent className="sm:max-w-[500px]">
+							<DialogHeader>
+								<DialogTitle>新建用户</DialogTitle>
+								<DialogDescription>
+									创建可以登录系统的新用户
+								</DialogDescription>
+							</DialogHeader>
+							<div className="grid gap-4 py-4">
+								<div className="grid grid-cols-2 gap-4">
+									<div className="flex flex-col gap-2">
+										<Label htmlFor="username">用户名 *</Label>
+										<Input
+											id="username"
+											name="username"
+											value={newUser.username}
+											onChange={handleNewUserChange}
+											placeholder="登录用户名"
+											required
+										/>
+									</div>
+									<div className="flex flex-col gap-2">
+										<Label htmlFor="name">姓名 *</Label>
+										<Input
+											id="name"
+											name="name"
+											value={newUser.name}
+											onChange={handleNewUserChange}
+											placeholder="用户姓名"
+											required
+										/>
+									</div>
+								</div>
+								<div className="flex flex-col gap-2">
+									<Label htmlFor="password">密码 *</Label>
+									<Input
+										id="password"
+										name="password"
+										type="password"
+										value={newUser.password}
+										onChange={handleNewUserChange}
+										placeholder="密码"
+										required
+									/>
+								</div>
+								<div className="flex flex-col gap-2">
+									<Label htmlFor="email">邮箱</Label>
+									<Input
+										id="email"
+										name="email"
+										type="email"
+										value={newUser.email}
+										onChange={handleNewUserChange}
+										placeholder="邮箱地址（可选）"
+									/>
+								</div>
+								<div className="flex flex-col gap-2">
+									<Label htmlFor="role">角色 *</Label>
+									<Select
+										value={newUser.role}
+										onValueChange={handleRoleChange}
+									>
+										<SelectTrigger id="role">
+											<SelectValue placeholder="选择角色" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="user">普通用户</SelectItem>
+											<SelectItem value="admin">管理员</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+							<DialogFooter>
+								<DialogClose asChild>
+									<Button variant="outline">取消</Button>
+								</DialogClose>
+								<Button onClick={handleSubmitNewUser}>创建</Button>
+							</DialogFooter>
+						</DialogContent>
+					</Dialog>
+				</div>
+
+				<div className="flex justify-between items-center">
+					<div className="relative w-80">
+						<Search
+							className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400"
+							size={18}
+						/>
+						<Input
+							className="pl-8"
+							placeholder="搜索用户名、姓名、邮箱或角色"
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+						/>
+					</div>
+				</div>
+
+				<Card>
+					<CardContent className="pt-6">
+						<Table>
+							<TableCaption>用户列表</TableCaption>
+							<TableHeader>
+								<TableRow>
+									<TableHead>用户名</TableHead>
+									<TableHead>姓名</TableHead>
+									<TableHead>邮箱</TableHead>
+									<TableHead>角色</TableHead>
+									<TableHead>创建时间</TableHead>
+									<TableHead className="text-right">操作</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{isLoading ? (
+									<TableRow>
+										<TableCell colSpan={6} className="text-center py-6">
+											加载中...
+										</TableCell>
+									</TableRow>
+								) : filteredUsers.length === 0 ? (
+									<TableRow>
+										<TableCell colSpan={6} className="text-center py-6">
+											{searchQuery ? "没有找到匹配的用户" : "暂无用户记录"}
+										</TableCell>
+									</TableRow>
+								) : (
+									filteredUsers.map((user) => (
+										<TableRow key={user.id}>
+											<TableCell>{user.username}</TableCell>
+											<TableCell>{user.name}</TableCell>
+											<TableCell>{user.email || "-"}</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-1">
+													{user.role === "admin" ? (
+														<>
+															<ShieldAlert size={16} className="text-red-500" />
+															<span>管理员</span>
+														</>
+													) : (
+														<>
+															<User size={16} className="text-blue-500" />
+															<span>普通用户</span>
+														</>
+													)}
+												</div>
+											</TableCell>
+											<TableCell>{formatDate(user.createdAt)}</TableCell>
+											<TableCell className="text-right">
+												<div className="flex justify-end gap-2">
+													<Button
+														variant="outline"
+														size="icon"
+														onClick={() => handleStartEdit(user)}
+														disabled={user.id === 1}
+														title={user.id === 1 ? "不能编辑管理员账户" : "编辑用户"}
+													>
+														<Pencil size={16} />
+													</Button>
+													<Button
+														variant="outline"
+														size="icon"
+														onClick={() => handleDeleteUser(user.id)}
+														disabled={user.id === 1}
+														title={user.id === 1 ? "不能删除管理员账户" : "删除用户"}
+													>
+														<Trash size={16} />
+													</Button>
+												</div>
+											</TableCell>
+										</TableRow>
+									))
+								)}
+							</TableBody>
+						</Table>
+
+						{totalPages > 1 && (
+							<div className="mt-4">
+								<Pagination>
+									<PaginationContent>
+										<PaginationItem>
+											<PaginationPrevious
+												onClick={() => setPage((p) => Math.max(1, p - 1))}
+												isActive={page === 1}
+											/>
+										</PaginationItem>
+
+										{Array.from({ length: totalPages }).map((_, i) => (
+											<PaginationItem key={`page-${i}`}>
+												<PaginationLink
+													onClick={() => setPage(i + 1)}
+													isActive={page === i + 1}
+												>
+													{i + 1}
+												</PaginationLink>
+											</PaginationItem>
+										))}
+
+										<PaginationItem>
+											<PaginationNext
+												onClick={() =>
+													setPage((p) => Math.min(totalPages, p + 1))
+												}
+												isActive={page === totalPages}
+											/>
+										</PaginationItem>
+									</PaginationContent>
+								</Pagination>
+							</div>
+						)}
+					</CardContent>
+				</Card>
+
+				{/* 编辑用户对话框 */}
+				<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
 					<DialogContent className="sm:max-w-[500px]">
 						<DialogHeader>
-							<DialogTitle>新建用户</DialogTitle>
-							<DialogDescription>
-								创建可以登录系统的新用户
-							</DialogDescription>
+							<DialogTitle>编辑用户</DialogTitle>
+							<DialogDescription>修改用户信息</DialogDescription>
 						</DialogHeader>
-						<div className="grid gap-4 py-4">
-							<div className="grid grid-cols-2 gap-4">
+						{editingUser && (
+							<div className="grid gap-4 py-4">
+								<div className="grid grid-cols-2 gap-4">
+									<div className="flex flex-col gap-2">
+										<Label htmlFor="edit-username">用户名 *</Label>
+										<Input
+											id="edit-username"
+											name="username"
+											value={editingUser.username}
+											onChange={handleEditUserChange}
+											placeholder="登录用户名"
+											required
+										/>
+									</div>
+									<div className="flex flex-col gap-2">
+										<Label htmlFor="edit-name">姓名 *</Label>
+										<Input
+											id="edit-name"
+											name="name"
+											value={editingUser.name}
+											onChange={handleEditUserChange}
+											placeholder="用户姓名"
+											required
+										/>
+									</div>
+								</div>
+
 								<div className="flex flex-col gap-2">
-									<Label htmlFor="username">用户名 *</Label>
+									<div className="flex items-center justify-between">
+										<Label htmlFor="edit-password">密码</Label>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => setIsChangingPassword(!isChangingPassword)}
+										>
+											{isChangingPassword ? "取消修改密码" : "修改密码"}
+										</Button>
+									</div>
+									{isChangingPassword && (
+										<Input
+											id="edit-password"
+											name="password"
+											type="password"
+											value={newPassword}
+											onChange={(e) => setNewPassword(e.target.value)}
+											placeholder="新密码"
+										/>
+									)}
+								</div>
+
+								<div className="flex flex-col gap-2">
+									<Label htmlFor="edit-email">邮箱</Label>
 									<Input
-										id="username"
-										name="username"
-										value={newUser.username}
-										onChange={handleNewUserChange}
-										placeholder="登录用户名"
-										required
+										id="edit-email"
+										name="email"
+										type="email"
+										value={editingUser.email || ""}
+										onChange={handleEditUserChange}
+										placeholder="邮箱地址（可选）"
 									/>
 								</div>
+
 								<div className="flex flex-col gap-2">
-									<Label htmlFor="name">姓名 *</Label>
-									<Input
-										id="name"
-										name="name"
-										value={newUser.name}
-										onChange={handleNewUserChange}
-										placeholder="用户姓名"
-										required
-									/>
+									<Label htmlFor="edit-role">角色 *</Label>
+									<Select
+										value={editingUser.role}
+										onValueChange={handleEditRoleChange}
+									>
+										<SelectTrigger id="edit-role">
+											<SelectValue placeholder="选择角色" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="user">普通用户</SelectItem>
+											<SelectItem value="admin">管理员</SelectItem>
+										</SelectContent>
+									</Select>
 								</div>
 							</div>
-							<div className="flex flex-col gap-2">
-								<Label htmlFor="password">密码 *</Label>
-								<Input
-									id="password"
-									name="password"
-									type="password"
-									value={newUser.password}
-									onChange={handleNewUserChange}
-									placeholder="密码"
-									required
-								/>
-							</div>
-							<div className="flex flex-col gap-2">
-								<Label htmlFor="email">邮箱</Label>
-								<Input
-									id="email"
-									name="email"
-									type="email"
-									value={newUser.email}
-									onChange={handleNewUserChange}
-									placeholder="邮箱地址（可选）"
-								/>
-							</div>
-							<div className="flex flex-col gap-2">
-								<Label htmlFor="role">角色 *</Label>
-								<Select
-									value={newUser.role}
-									onValueChange={handleRoleChange}
-								>
-									<SelectTrigger id="role">
-										<SelectValue placeholder="选择角色" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="user">普通用户</SelectItem>
-										<SelectItem value="admin">管理员</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
+						)}
 						<DialogFooter>
 							<DialogClose asChild>
 								<Button variant="outline">取消</Button>
 							</DialogClose>
-							<Button onClick={handleSubmitNewUser}>创建</Button>
+							<Button onClick={handleUpdateUser}>更新</Button>
 						</DialogFooter>
 					</DialogContent>
 				</Dialog>
 			</div>
-
-			<div className="flex justify-between items-center">
-				<div className="relative w-80">
-					<Search
-						className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400"
-						size={18}
-					/>
-					<Input
-						className="pl-8"
-						placeholder="搜索用户名、姓名、邮箱或角色"
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-					/>
-				</div>
-			</div>
-
-			<Card>
-				<CardContent className="pt-6">
-					<Table>
-						<TableCaption>用户列表</TableCaption>
-						<TableHeader>
-							<TableRow>
-								<TableHead>用户名</TableHead>
-								<TableHead>姓名</TableHead>
-								<TableHead>邮箱</TableHead>
-								<TableHead>角色</TableHead>
-								<TableHead>创建时间</TableHead>
-								<TableHead className="text-right">操作</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{isLoading ? (
-								<TableRow>
-									<TableCell colSpan={6} className="text-center py-6">
-										加载中...
-									</TableCell>
-								</TableRow>
-							) : filteredUsers.length === 0 ? (
-								<TableRow>
-									<TableCell colSpan={6} className="text-center py-6">
-										{searchQuery ? "没有找到匹配的用户" : "暂无用户记录"}
-									</TableCell>
-								</TableRow>
-							) : (
-								filteredUsers.map((user) => (
-									<TableRow key={user.id}>
-										<TableCell>{user.username}</TableCell>
-										<TableCell>{user.name}</TableCell>
-										<TableCell>{user.email || "-"}</TableCell>
-										<TableCell>
-											<div className="flex items-center gap-1">
-												{user.role === "admin" ? (
-													<>
-														<ShieldAlert size={16} className="text-red-500" />
-														<span>管理员</span>
-													</>
-												) : (
-													<>
-														<User size={16} className="text-blue-500" />
-														<span>普通用户</span>
-													</>
-												)}
-											</div>
-										</TableCell>
-										<TableCell>{formatDate(user.createdAt)}</TableCell>
-										<TableCell className="text-right">
-											<div className="flex justify-end gap-2">
-												<Button
-													variant="outline"
-													size="icon"
-													onClick={() => handleStartEdit(user)}
-													disabled={user.id === 1}
-													title={user.id === 1 ? "不能编辑管理员账户" : "编辑用户"}
-												>
-													<Pencil size={16} />
-												</Button>
-												<Button
-													variant="outline"
-													size="icon"
-													onClick={() => handleDeleteUser(user.id)}
-													disabled={user.id === 1}
-													title={user.id === 1 ? "不能删除管理员账户" : "删除用户"}
-												>
-													<Trash size={16} />
-												</Button>
-											</div>
-										</TableCell>
-									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-
-					{totalPages > 1 && (
-						<div className="mt-4">
-							<Pagination>
-								<PaginationContent>
-									<PaginationItem>
-										<PaginationPrevious
-											onClick={() => setPage((p) => Math.max(1, p - 1))}
-											isActive={page === 1}
-										/>
-									</PaginationItem>
-
-									{Array.from({ length: totalPages }).map((_, i) => (
-										<PaginationItem key={`page-${i}`}>
-											<PaginationLink
-												onClick={() => setPage(i + 1)}
-												isActive={page === i + 1}
-											>
-												{i + 1}
-											</PaginationLink>
-										</PaginationItem>
-									))}
-
-									<PaginationItem>
-										<PaginationNext
-											onClick={() =>
-												setPage((p) => Math.min(totalPages, p + 1))
-											}
-											isActive={page === totalPages}
-										/>
-									</PaginationItem>
-								</PaginationContent>
-							</Pagination>
-						</div>
-					)}
-				</CardContent>
-			</Card>
-
-			{/* 编辑用户对话框 */}
-			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-				<DialogContent className="sm:max-w-[500px]">
-					<DialogHeader>
-						<DialogTitle>编辑用户</DialogTitle>
-						<DialogDescription>修改用户信息</DialogDescription>
-					</DialogHeader>
-					{editingUser && (
-						<div className="grid gap-4 py-4">
-							<div className="grid grid-cols-2 gap-4">
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="edit-username">用户名 *</Label>
-									<Input
-										id="edit-username"
-										name="username"
-										value={editingUser.username}
-										onChange={handleEditUserChange}
-										placeholder="登录用户名"
-										required
-									/>
-								</div>
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="edit-name">姓名 *</Label>
-									<Input
-										id="edit-name"
-										name="name"
-										value={editingUser.name}
-										onChange={handleEditUserChange}
-										placeholder="用户姓名"
-										required
-									/>
-								</div>
-							</div>
-
-							<div className="flex flex-col gap-2">
-								<div className="flex items-center justify-between">
-									<Label htmlFor="edit-password">密码</Label>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => setIsChangingPassword(!isChangingPassword)}
-									>
-										{isChangingPassword ? "取消修改密码" : "修改密码"}
-									</Button>
-								</div>
-								{isChangingPassword && (
-									<Input
-										id="edit-password"
-										name="password"
-										type="password"
-										value={newPassword}
-										onChange={(e) => setNewPassword(e.target.value)}
-										placeholder="新密码"
-									/>
-								)}
-							</div>
-
-							<div className="flex flex-col gap-2">
-								<Label htmlFor="edit-email">邮箱</Label>
-								<Input
-									id="edit-email"
-									name="email"
-									type="email"
-									value={editingUser.email || ""}
-									onChange={handleEditUserChange}
-									placeholder="邮箱地址（可选）"
-								/>
-							</div>
-
-							<div className="flex flex-col gap-2">
-								<Label htmlFor="edit-role">角色 *</Label>
-								<Select
-									value={editingUser.role}
-									onValueChange={handleEditRoleChange}
-								>
-									<SelectTrigger id="edit-role">
-										<SelectValue placeholder="选择角色" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="user">普通用户</SelectItem>
-										<SelectItem value="admin">管理员</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
-					)}
-					<DialogFooter>
-						<DialogClose asChild>
-							<Button variant="outline">取消</Button>
-						</DialogClose>
-						<Button onClick={handleUpdateUser}>更新</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-		</div>
+		</AuthGuard>
 	);
 }
