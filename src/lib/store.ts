@@ -1,5 +1,43 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import {
+    // Comment out direct database imports
+    // getAllStaff as dbGetAllStaff,
+    // addStaff as dbAddStaff,
+    // updateStaff as dbUpdateStaff,
+    // deleteStaff as dbDeleteStaff,
+    type Staff as DbStaff // Keep the type definition
+} from './staff.queries';
+import {
+    // Comment out direct database imports
+    // getAllAppointments as dbGetAllAppointments,
+    // addAppointment as dbAddAppointment,
+    // updateAppointment as dbUpdateAppointment,
+    // deleteAppointment as dbDeleteAppointment,
+    type Appointment as DbAppointment, // Keep the type definition
+    type NewAppointmentData as DbNewAppointmentData,
+    type UpdateAppointmentData as DbUpdateAppointmentData
+} from './appointment.queries';
+import {
+    // Comment out direct database imports
+    // getAllVehicles as dbGetAllVehicles,
+    // addVehicle as dbAddVehicle,
+    // updateVehicle as dbUpdateVehicle,
+    // deleteVehicle as dbDeleteVehicle,
+    type Vehicle as DbVehicle, // Keep the type definition
+    type NewVehicleData as DbNewVehicleData,
+    type UpdateVehicleData as DbUpdateVehicleData
+} from './vehicle.queries';
+import {
+    // Comment out direct database imports
+    // getAllCustomers as dbGetAllCustomers,
+    // addCustomer as dbAddCustomer,
+    // updateCustomer as dbUpdateCustomer,
+    // deleteCustomer as dbDeleteCustomer,
+    type Customer as DbCustomer, // Keep the type definition
+    type NewCustomerData as DbNewCustomerData,
+    type UpdateCustomerData as DbUpdateCustomerData
+} from './customer.queries';
 
 // 用户类型定义
 interface User {
@@ -41,45 +79,29 @@ interface AppointmentState {
     isLoading: boolean
     error: string | null
     fetchAppointments: () => Promise<void>
-    addAppointment: (appointment: Omit<Appointment, 'id' | 'createdAt'>) => Promise<boolean>
-    updateAppointment: (id: string, data: Partial<Appointment>) => Promise<boolean>
-    deleteAppointment: (id: string) => Promise<boolean>
-    assignStaff: (appointmentId: string, staffIds: string[]) => Promise<boolean>
-    assignVehicle: (appointmentId: string, vehicleId: string) => Promise<boolean>
+    addAppointment: (appointmentData: DbNewAppointmentData) => Promise<boolean>
+    updateAppointment: (id: number, data: DbUpdateAppointmentData) => Promise<boolean>
+    deleteAppointment: (id: number) => Promise<boolean>
+    assignStaff: (appointmentId: number, staffId: number | null) => Promise<boolean>
+    assignVehicle: (appointmentId: number, vehicleId: number | null) => Promise<boolean>
 }
 
-// 用户信息类型定义
-export interface CustomerUser {
-    id: string
-    name: string
-    phone: string
-    email: string
-    address: string
-    company?: string
-    createdAt: string
-}
+// Use the DB-aligned Customer type
+export type CustomerUser = DbCustomer; // Rename export to match usage
 
-// 用户管理状态类型定义
+// Update CustomerState to use the correct types and signatures
 interface CustomerState {
-    customers: CustomerUser[]
-    isLoading: boolean
-    error: string | null
-    fetchCustomers: () => Promise<void>
-    addCustomer: (customer: Omit<CustomerUser, 'id' | 'createdAt'>) => Promise<boolean>
-    updateCustomer: (id: string, data: Partial<CustomerUser>) => Promise<boolean>
-    deleteCustomer: (id: string) => Promise<boolean>
+    customers: CustomerUser[]; // Use the DB type
+    isLoading: boolean;
+    error: string | null;
+    fetchCustomers: () => Promise<void>;
+    addCustomer: (customerData: DbNewCustomerData) => Promise<boolean>; // Use specific type
+    updateCustomer: (id: number, data: DbUpdateCustomerData) => Promise<boolean>; // Use specific type, id is number
+    deleteCustomer: (id: number) => Promise<boolean>; // id is number
 }
 
-// 员工类型定义
-export interface Staff {
-    id: string
-    name: string
-    phone: string
-    email: string
-    position: string
-    isAvailable: boolean
-    createdAt: string
-}
+// Use the DB-aligned Staff type
+export type Staff = DbStaff;
 
 // 员工管理状态类型定义
 interface StaffState {
@@ -87,22 +109,13 @@ interface StaffState {
     isLoading: boolean
     error: string | null
     fetchStaff: () => Promise<void>
-    addStaff: (staff: Omit<Staff, 'id' | 'createdAt'>) => Promise<boolean>
-    updateStaff: (id: string, data: Partial<Staff>) => Promise<boolean>
-    deleteStaff: (id: string) => Promise<boolean>
-    toggleAvailability: (id: string) => Promise<boolean>
+    addStaff: (name: string, status?: Staff['status']) => Promise<boolean>
+    updateStaff: (id: number, data: Partial<Pick<Staff, 'name' | 'status'>>) => Promise<boolean>
+    deleteStaff: (id: number) => Promise<boolean>
 }
 
-// 车辆类型定义
-export interface Vehicle {
-    id: string
-    plateNumber: string
-    model: string
-    capacity: number
-    isAvailable: boolean
-    lastMaintenance?: string
-    createdAt: string
-}
+// Use the DB-aligned Vehicle type
+export type Vehicle = DbVehicle;
 
 // 车辆管理状态类型定义
 interface VehicleState {
@@ -110,10 +123,10 @@ interface VehicleState {
     isLoading: boolean
     error: string | null
     fetchVehicles: () => Promise<void>
-    addVehicle: (vehicle: Omit<Vehicle, 'id' | 'createdAt'>) => Promise<boolean>
-    updateVehicle: (id: string, data: Partial<Vehicle>) => Promise<boolean>
-    deleteVehicle: (id: string) => Promise<boolean>
-    toggleAvailability: (id: string) => Promise<boolean>
+    addVehicle: (vehicleData: DbNewVehicleData) => Promise<boolean>
+    updateVehicle: (id: number, data: DbUpdateVehicleData) => Promise<boolean>
+    deleteVehicle: (id: number) => Promise<boolean>
+    toggleAvailability: (id: number) => Promise<boolean>
 }
 
 // 报表过滤条件类型定义
@@ -196,7 +209,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 // 创建UUID
 const createId = () => Math.random().toString(36).substring(2, 9)
 
-// 预约状态存储
+// Appointment Management State Store (Updated to use API)
 export const useAppointmentStore = create<AppointmentState>()(
     persist(
         (set, get) => ({
@@ -204,115 +217,113 @@ export const useAppointmentStore = create<AppointmentState>()(
             isLoading: false,
             error: null,
             fetchAppointments: async () => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 这里将来应该改为实际API调用
-                    // 暂时不设置appointments，保持模拟数据为空
-                    set({ isLoading: false })
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/appointments');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        set({ appointments: data.appointments, isLoading: false });
+                    } else {
+                        throw new Error(data.message || '获取预约列表失败');
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
+                    console.error("Failed to fetch appointments:", error);
+                    set({ isLoading: false, error: (error as Error).message });
                 }
             },
             addAppointment: async (appointmentData) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 创建新预约
-                    const newAppointment: Appointment = {
-                        ...appointmentData,
-                        id: createId(),
-                        createdAt: new Date().toISOString(),
-                        status: 'pending'
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/appointments', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(appointmentData),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.appointment) {
+                        set(state => ({
+                            appointments: [...state.appointments, data.appointment],
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(data.message || "Failed to add appointment.");
                     }
-                    // 更新状态
-                    set(state => ({
-                        appointments: [...state.appointments, newAppointment],
-                        isLoading: false
-                    }))
-                    return true
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to add appointment:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
             updateAppointment: async (id, data) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 更新预约
-                    set(state => ({
-                        appointments: state.appointments.map(appointment =>
-                            appointment.id === id
-                                ? { ...appointment, ...data }
-                                : appointment
-                        ),
-                        isLoading: false
-                    }))
-                    return true
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/appointments', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ id, ...data }),
+                    });
+
+                    const responseData = await response.json();
+
+                    if (responseData.success && responseData.appointment) {
+                        set(state => ({
+                            appointments: state.appointments.map(app =>
+                                app.id === id ? responseData.appointment : app
+                            ),
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(responseData.message || `Failed to update appointment with ID ${id}.`);
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to update appointment:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
             deleteAppointment: async (id) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 删除预约
-                    set(state => ({
-                        appointments: state.appointments.filter(appointment => appointment.id !== id),
-                        isLoading: false
-                    }))
-                    return true
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch(`/api/appointments?id=${id}`, {
+                        method: 'DELETE',
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        set(state => ({
+                            appointments: state.appointments.filter(app => app.id !== id),
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(data.message || `Failed to delete appointment with ID ${id}.`);
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to delete appointment:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
-            assignStaff: async (appointmentId, staffIds) => {
-                set({ isLoading: true, error: null })
-                try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 分配员工
-                    set(state => ({
-                        appointments: state.appointments.map(appointment =>
-                            appointment.id === appointmentId
-                                ? { ...appointment, assignedStaff: staffIds }
-                                : appointment
-                        ),
-                        isLoading: false
-                    }))
-                    return true
-                } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
-                }
+            // assignStaff and assignVehicle now simply call updateAppointment via API
+            assignStaff: async (appointmentId, staffId) => {
+                return get().updateAppointment(appointmentId, { staffId });
             },
             assignVehicle: async (appointmentId, vehicleId) => {
-                set({ isLoading: true, error: null })
-                try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 分配车辆
-                    set(state => ({
-                        appointments: state.appointments.map(appointment =>
-                            appointment.id === appointmentId
-                                ? { ...appointment, assignedVehicle: vehicleId }
-                                : appointment
-                        ),
-                        isLoading: false
-                    }))
-                    return true
-                } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
-                }
+                return get().updateAppointment(appointmentId, { vehicleId });
             }
         }),
         {
@@ -321,7 +332,7 @@ export const useAppointmentStore = create<AppointmentState>()(
     )
 )
 
-// 用户管理状态存储
+// Customer Management State Store (Updated to use API)
 export const useCustomerStore = create<CustomerState>()(
     persist(
         (set) => ({
@@ -329,72 +340,105 @@ export const useCustomerStore = create<CustomerState>()(
             isLoading: false,
             error: null,
             fetchCustomers: async () => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 这里将来应该改为实际API调用
-                    set({ isLoading: false })
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/customers');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        set({ customers: data.customers, isLoading: false });
+                    } else {
+                        throw new Error(data.message || '获取客户列表失败');
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
+                    console.error("Failed to fetch customers:", error);
+                    set({ isLoading: false, error: (error as Error).message });
                 }
             },
             addCustomer: async (customerData) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 创建新用户
-                    const newCustomer: CustomerUser = {
-                        ...customerData,
-                        id: createId(),
-                        createdAt: new Date().toISOString()
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/customers', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(customerData),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.customer) {
+                        set(state => ({
+                            customers: [...state.customers, data.customer],
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(data.message || "Failed to add customer.");
                     }
-                    // 更新状态
-                    set(state => ({
-                        customers: [...state.customers, newCustomer],
-                        isLoading: false
-                    }))
-                    return true
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to add customer:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
             updateCustomer: async (id, data) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 更新用户
-                    set(state => ({
-                        customers: state.customers.map(customer =>
-                            customer.id === id
-                                ? { ...customer, ...data }
-                                : customer
-                        ),
-                        isLoading: false
-                    }))
-                    return true
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/customers', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ id, ...data }),
+                    });
+
+                    const responseData = await response.json();
+
+                    if (responseData.success && responseData.customer) {
+                        set(state => ({
+                            customers: state.customers.map(c =>
+                                c.id === id ? responseData.customer : c
+                            ),
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(responseData.message || `Failed to update customer with ID ${id}.`);
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to update customer:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
             deleteCustomer: async (id) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 删除用户
-                    set(state => ({
-                        customers: state.customers.filter(customer => customer.id !== id),
-                        isLoading: false
-                    }))
-                    return true
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch(`/api/customers?id=${id}`, {
+                        method: 'DELETE',
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        set(state => ({
+                            customers: state.customers.filter(c => c.id !== id),
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(data.message || `Failed to delete customer with ID ${id}.`);
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to delete customer:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             }
         }),
@@ -404,102 +448,115 @@ export const useCustomerStore = create<CustomerState>()(
     )
 )
 
-// 员工管理状态存储
+// Staff Management State Store (Updated to use API)
 export const useStaffStore = create<StaffState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             staffList: [],
             isLoading: false,
             error: null,
             fetchStaff: async () => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 这里将来应该改为实际API调用
-                    set({ isLoading: false })
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/staff');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        set({ staffList: data.staffList, isLoading: false });
+                    } else {
+                        throw new Error(data.message || '获取员工列表失败');
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
+                    console.error("Failed to fetch staff:", error);
+                    set({ isLoading: false, error: (error as Error).message });
                 }
             },
-            addStaff: async (staffData) => {
-                set({ isLoading: true, error: null })
+            addStaff: async (name, status) => {
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 创建新员工
-                    const newStaff: Staff = {
-                        ...staffData,
-                        id: createId(),
-                        createdAt: new Date().toISOString()
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/staff', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ name, status }),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.staff) {
+                        set(state => ({
+                            staffList: [...state.staffList, data.staff],
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(data.message || "Failed to add staff member.");
                     }
-                    // 更新状态
-                    set(state => ({
-                        staffList: [...state.staffList, newStaff],
-                        isLoading: false
-                    }))
-                    return true
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to add staff:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
             updateStaff: async (id, data) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 更新员工
-                    set(state => ({
-                        staffList: state.staffList.map(staff =>
-                            staff.id === id
-                                ? { ...staff, ...data }
-                                : staff
-                        ),
-                        isLoading: false
-                    }))
-                    return true
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/staff', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ id, ...data }),
+                    });
+
+                    const responseData = await response.json();
+
+                    if (responseData.success && responseData.staff) {
+                        set(state => ({
+                            staffList: state.staffList.map(staff =>
+                                staff.id === id ? responseData.staff : staff
+                            ),
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(responseData.message || `Failed to update staff member with ID ${id}.`);
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to update staff:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
             deleteStaff: async (id) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 删除员工
-                    set(state => ({
-                        staffList: state.staffList.filter(staff => staff.id !== id),
-                        isLoading: false
-                    }))
-                    return true
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch(`/api/staff?id=${id}`, {
+                        method: 'DELETE',
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        set(state => ({
+                            staffList: state.staffList.filter(staff => staff.id !== id),
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(data.message || `Failed to delete staff member with ID ${id}.`);
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to delete staff:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
-            toggleAvailability: async (id) => {
-                set({ isLoading: true, error: null })
-                try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 切换可用性
-                    set(state => ({
-                        staffList: state.staffList.map(staff =>
-                            staff.id === id
-                                ? { ...staff, isAvailable: !staff.isAvailable }
-                                : staff
-                        ),
-                        isLoading: false
-                    }))
-                    return true
-                } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
-                }
-            }
         }),
         {
             name: 'staff-storage'
@@ -507,101 +564,126 @@ export const useStaffStore = create<StaffState>()(
     )
 )
 
-// 车辆管理状态存储
+// Vehicle Management State Store (Updated to use API)
 export const useVehicleStore = create<VehicleState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             vehicles: [],
             isLoading: false,
             error: null,
             fetchVehicles: async () => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 这里将来应该改为实际API调用
-                    set({ isLoading: false })
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/vehicles');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        set({ vehicles: data.vehicles, isLoading: false });
+                    } else {
+                        throw new Error(data.message || '获取车辆列表失败');
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
+                    console.error("Failed to fetch vehicles:", error);
+                    set({ isLoading: false, error: (error as Error).message });
                 }
             },
             addVehicle: async (vehicleData) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 创建新车辆
-                    const newVehicle: Vehicle = {
-                        ...vehicleData,
-                        id: createId(),
-                        createdAt: new Date().toISOString()
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/vehicles', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(vehicleData),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.vehicle) {
+                        set(state => ({
+                            vehicles: [...state.vehicles, data.vehicle],
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(data.message || "Failed to add vehicle.");
                     }
-                    // 更新状态
-                    set(state => ({
-                        vehicles: [...state.vehicles, newVehicle],
-                        isLoading: false
-                    }))
-                    return true
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to add vehicle:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
             updateVehicle: async (id, data) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 更新车辆
-                    set(state => ({
-                        vehicles: state.vehicles.map(vehicle =>
-                            vehicle.id === id
-                                ? { ...vehicle, ...data }
-                                : vehicle
-                        ),
-                        isLoading: false
-                    }))
-                    return true
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch('/api/vehicles', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ id, ...data }),
+                    });
+
+                    const responseData = await response.json();
+
+                    if (responseData.success && responseData.vehicle) {
+                        set(state => ({
+                            vehicles: state.vehicles.map(v =>
+                                v.id === id ? responseData.vehicle : v
+                            ),
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(responseData.message || `Failed to update vehicle with ID ${id}.`);
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to update vehicle:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
             deleteVehicle: async (id) => {
-                set({ isLoading: true, error: null })
+                set({ isLoading: true, error: null });
                 try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 删除车辆
-                    set(state => ({
-                        vehicles: state.vehicles.filter(vehicle => vehicle.id !== id),
-                        isLoading: false
-                    }))
-                    return true
+                    // Use API endpoint instead of direct DB call
+                    const response = await fetch(`/api/vehicles?id=${id}`, {
+                        method: 'DELETE',
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        set(state => ({
+                            vehicles: state.vehicles.filter(v => v.id !== id),
+                            isLoading: false
+                        }));
+                        return true;
+                    } else {
+                        throw new Error(data.message || `Failed to delete vehicle with ID ${id}.`);
+                    }
                 } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                    console.error("Failed to delete vehicle:", error);
+                    set({ isLoading: false, error: (error as Error).message });
+                    return false;
                 }
             },
             toggleAvailability: async (id) => {
-                set({ isLoading: true, error: null })
-                try {
-                    // 模拟API请求
-                    await delay(500)
-                    // 切换可用性
-                    set(state => ({
-                        vehicles: state.vehicles.map(vehicle =>
-                            vehicle.id === id
-                                ? { ...vehicle, isAvailable: !vehicle.isAvailable }
-                                : vehicle
-                        ),
-                        isLoading: false
-                    }))
-                    return true
-                } catch (error) {
-                    set({ isLoading: false, error: (error as Error).message })
-                    return false
+                const currentVehicle = get().vehicles.find(v => v.id === id);
+                if (!currentVehicle) {
+                    console.warn(`Vehicle with ID ${id} not found for toggling availability.`);
+                    return false;
                 }
+                // Simple toggle: available <-> in_use. Maintenance needs explicit update.
+                const newStatus = currentVehicle.status === 'available' ? 'in_use' : 'available';
+
+                // Use the existing updateVehicle method through API
+                return get().updateVehicle(id, { status: newStatus });
             }
         }),
         {

@@ -1,18 +1,18 @@
 # 项目概述
 
 项目名称：预约管理系统
-技术栈：Next.js 14, TypeScript, Tailwind CSS, Shadcn UI, Zustand
+技术栈：Next.js 14, TypeScript, Tailwind CSS, Shadcn UI, Zustand, SQLite (Bun:sqlite)
 
 ## 项目描述
 
-这是一个基于Next.js和TypeScript开发的预约管理系统，使用Shadcn UI组件库实现现代化的用户界面，以及Zustand进行状态管理。系统提供了用户认证功能，并使用中文作为界面语言。
+这是一个基于Next.js和TypeScript开发的预约管理系统，使用Shadcn UI组件库实现现代化的用户界面，以及Zustand进行状态管理。系统提供了用户认证功能，使用SQLite数据库存储所有数据，并使用中文作为界面语言。
 
 ## 主要功能
 
 1. 用户登录与认证
    - 基于角色的访问控制（RBAC）
    - 管理员和普通用户权限区分
-   - 基于JSON文件的用户数据管理
+   - 基于SQLite数据库的用户数据管理
 2. 会话管理与保存
 3. 仪表盘功能
    - 动态统计卡片显示（连接Zustand状态）
@@ -23,12 +23,16 @@
 4. 预约管理（创建、编辑、删除、查看）
    - 管理员可执行所有操作
    - 普通用户仅能创建预约
+   - 数据持久化存储在SQLite数据库
 5. 用户管理（创建、编辑、删除、查看客户信息）
    - 仅管理员可访问
+   - 数据持久化存储在SQLite数据库
 6. 人员管理（添加、编辑、删除员工及其状态）
    - 仅管理员可访问
+   - 数据持久化存储在SQLite数据库
 7. 车辆管理（添加、编辑、删除车辆及其状态）
    - 仅管理员可访问
+   - 数据持久化存储在SQLite数据库
 8. ~~数据查询与导出（按条件筛选预约数据并导出CSV或Excel）~~
 9. 登出功能
 10. 响应式设计
@@ -40,6 +44,10 @@
   - `/login` - 登录页面
   - `/api` - API路由
     - `/api/auth` - 认证API
+    - `/api/staff` - 人员管理API
+    - `/api/vehicles` - 车辆管理API
+    - `/api/customers` - 客户管理API
+    - `/api/appointments` - 预约管理API
   - `/dashboard` - 仪表盘页面
     - `/dashboard/appointments` - 预约管理页面
     - `/dashboard/users` - 客户管理页面
@@ -50,22 +58,33 @@
   - `/ui` - Shadcn UI组件
   - `auth-wrapper.tsx` - 认证包装器组件
 - `/src/lib` - 工具库
+  - `db.ts` - SQLite数据库连接和初始化
+  - `user.queries.ts` - 用户相关数据库查询
+  - `staff.queries.ts` - 人员相关数据库查询
+  - `vehicle.queries.ts` - 车辆相关数据库查询
+  - `customer.queries.ts` - 客户相关数据库查询
+  - `appointment.queries.ts` - 预约相关数据库查询
   - `store.ts` - Zustand状态库（包含所有模块的状态管理）
   - `utils.ts` - 工具函数
-  - `users.json` - 模拟用户数据
+  - ~~`users.json`~~ - ~~模拟用户数据~~ (已替换为SQLite数据库)
 
 ## 技术亮点
 
 1. 使用Next.js的App Router进行路由管理
 2. 基于角色的访问控制（RBAC）系统
 3. 使用Zustand进行状态管理，每个功能模块有单独的状态存储，并在仪表盘动态显示
-4. API路由处理用户认证
-5. 使用Tailwind CSS和Shadcn UI构建现代化UI
-6. 采用React Hook Form和Zod进行表单验证
-7. 模块化的数据管理和组件设计
-8. 响应式布局适配各种设备尺寸
-9. 持久化存储用户状态和应用数据
-10. 使用Lucide React提供精美图标
+4. 使用Bun的内置SQLite驱动进行数据存储
+5. 健壮的SQLite数据库初始化和错误处理机制，确保数据一致性
+6. 清晰的客户端/服务端代码分离，遵循Next.js最佳实践
+7. RESTful API设计，每个实体有独立的API接口
+8. 完整的CRUD操作支持，包括外键关系处理
+9. API路由处理用户认证和数据验证
+10. 使用Tailwind CSS和Shadcn UI构建现代化UI
+11. 采用React Hook Form和Zod进行表单验证
+12. 模块化的数据管理和组件设计
+13. 响应式布局适配各种设备尺寸
+14. 持久化存储用户状态和应用数据
+15. 使用Lucide React提供精美图标
 
 ## Dependencies
 
@@ -74,6 +93,7 @@
 * TypeScript (5+): JavaScript的超集，添加静态类型
 * Tailwind CSS (4+): 实用优先的CSS框架
 * Zustand (5.0.3): 轻量级状态管理库
+* Bun:sqlite: Bun内置的SQLite驱动，用于数据库操作
 * Shadcn UI: 基于Radix UI的组件集合
 * Lucide React: 图标库
 * Sonner: Toast通知库
@@ -83,7 +103,7 @@
 
 开发环境需求:
 * Node.js 18.17.0或更高版本
-* Bun包管理器 (用于安装依赖)
+* Bun包管理器 (用于安装依赖和运行SQLite)
 
 开发命令:
 * `bun install` - 安装项目依赖
@@ -135,6 +155,14 @@ root
         - api/                      # API路由目录
             - auth/                 # 认证API目录
                 - route.ts          # 认证API处理程序
+            - staff/                # 人员API目录
+                - route.ts          # 人员API处理程序
+            - vehicles/             # 车辆API目录
+                - route.ts          # 车辆API处理程序
+            - customers/            # 客户API目录
+                - route.ts          # 客户API处理程序
+            - appointments/         # 预约API目录
+                - route.ts          # 预约API处理程序
         - favicon.ico               # 网站图标
         - globals.css               # 全局样式
         - layout.tsx                # 根布局组件
@@ -194,8 +222,13 @@ root
     - hooks/          # 自定义钩子目录
         - use-mobile.ts             # 移动设备检测钩子
     - lib/            # 工具库目录
+        - db.ts                     # SQLite数据库连接和初始化
+        - user.queries.ts           # 用户相关数据库查询
+        - staff.queries.ts          # 人员相关数据库查询
+        - vehicle.queries.ts        # 车辆相关数据库查询
+        - customer.queries.ts       # 客户相关数据库查询
+        - appointment.queries.ts    # 预约相关数据库查询
         - store.ts                  # Zustand状态库，包含所有模块的状态管理
         - utils.ts                  # 通用工具函数
-        - users.json                # 模拟用户数据
 - tsconfig.json       # TypeScript配置文件
 ```

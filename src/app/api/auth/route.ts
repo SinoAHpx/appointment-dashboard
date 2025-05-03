@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import users from '@/lib/users.json'
+import { findUserByUsernameWithPassword } from '@/lib/user.queries'
 
 // 登录API路由
 export async function POST(request: Request) {
@@ -16,13 +16,17 @@ export async function POST(request: Request) {
             )
         }
 
-        // 在用户列表中查找
-        const user = users.find(u =>
-            u.username === username && u.password === password
-        )
+        // 从数据库查找用户
+        const user = findUserByUsernameWithPassword(username);
 
-        // 如果未找到用户
-        if (!user) {
+        // 验证用户是否存在以及密码是否匹配
+        // !! IMPORTANT: Replace plain text password comparison with hash verification in production !!
+        // Example using Bun.password.verify (assuming stored hash):
+        // const isPasswordValid = user ? await Bun.password.verify(password, user.password) : false;
+        const isPasswordValid = user ? user.password === password : false;
+
+        // 如果未找到用户或密码不匹配
+        if (!user || !isPasswordValid) {
             return NextResponse.json(
                 { success: false, message: '用户名或密码错误' },
                 { status: 401 }
