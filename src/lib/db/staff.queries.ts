@@ -3,10 +3,25 @@ import { getDb } from "./db";
 // Define the Staff type based on the database schema
 export interface Staff {
 	id: number;
-	name: string;
+	name: string;      // 必填
+	phone: string;     // 必填
+	email?: string | null;
+	position?: string | null;
 	status: "active" | "inactive" | "on_leave";
 	createdAt: string;
 }
+
+// Type for creating a new staff member
+export type NewStaffData = {
+	name: string;      // 必填
+	phone: string;     // 必填
+	email?: string | null;
+	position?: string | null;
+	status?: Staff["status"];
+};
+
+// Type for updating a staff member
+export type UpdateStaffData = Partial<Omit<Staff, "id" | "createdAt">>;
 
 /**
  * Fetches all staff members from the database.
@@ -15,7 +30,7 @@ export const getAllStaff = (): Staff[] => {
 	try {
 		const db = getDb();
 		const query = db.query<Staff, []>(
-			"SELECT id, name, status, createdAt FROM staff ORDER BY createdAt DESC",
+			"SELECT id, name, phone, email, position, status, createdAt FROM staff ORDER BY createdAt DESC",
 		);
 		return query.all();
 	} catch (error) {
@@ -27,16 +42,16 @@ export const getAllStaff = (): Staff[] => {
 /**
  * Adds a new staff member to the database.
  */
-export const addStaff = (
-	name: string,
-	status: Staff["status"] = "active",
-): Staff | null => {
+export const addStaff = (data: NewStaffData): Staff | null => {
 	try {
 		const db = getDb();
-		const insertQuery = db.query<Staff, [string, Staff["status"]]>(
-			"INSERT INTO staff (name, status) VALUES (?, ?) RETURNING id, name, status, createdAt",
+		const { name, phone, email = null, position = null, status = "active" } = data;
+
+		const insertQuery = db.query<Staff, [string, string, string | null, string | null, Staff["status"]]>(
+			"INSERT INTO staff (name, phone, email, position, status) VALUES (?, ?, ?, ?, ?) RETURNING id, name, phone, email, position, status, createdAt",
 		);
-		const newStaff = insertQuery.get(name, status);
+
+		const newStaff = insertQuery.get(name, phone, email, position, status);
 		return newStaff;
 	} catch (error) {
 		console.error("Error adding staff:", error);
@@ -49,37 +64,29 @@ export const addStaff = (
  */
 export const updateStaff = (
 	id: number,
-	data: Partial<Pick<Staff, "name" | "status">>,
+	data: UpdateStaffData,
 ): Staff | null => {
 	try {
 		const db = getDb();
-		let updateClause = "";
-		const values: (string | number)[] = [];
+		const fields = Object.keys(data) as (keyof UpdateStaffData)[];
 
-		if (data.name !== undefined) {
-			updateClause += "name = ?, ";
-			values.push(data.name);
-		}
-		if (data.status !== undefined) {
-			updateClause += "status = ?, ";
-			values.push(data.status);
-		}
-
-		if (values.length === 0) {
+		if (fields.length === 0) {
 			// No fields to update, maybe fetch and return the existing one?
 			const currentStaffQuery = db.query<Staff, [number]>(
-				"SELECT id, name, status, createdAt FROM staff WHERE id = ?",
+				"SELECT id, name, phone, email, position, status, createdAt FROM staff WHERE id = ?",
 			);
 			return currentStaffQuery.get(id);
 		}
 
-		// Remove trailing comma and space
-		updateClause = updateClause.slice(0, -2);
-		values.push(id); // Add id for the WHERE clause
+		// Build the SET clause and values array
+		let setClause = fields.map((field) => `${field} = ?`).join(", ");
+		const values = fields.map((field) => data[field]);
+		values.push(id.toString()); // Add id for the WHERE clause
 
-		const updateQuery = db.query<Staff, (string | number)[]>(
-			`UPDATE staff SET ${updateClause} WHERE id = ? RETURNING id, name, status, createdAt`,
+		const updateQuery = db.query<Staff, any[]>(
+			`UPDATE staff SET ${setClause} WHERE id = ? RETURNING id, name, phone, email, position, status, createdAt`,
 		);
+
 		const updatedStaff = updateQuery.get(...values);
 		return updatedStaff;
 	} catch (error) {

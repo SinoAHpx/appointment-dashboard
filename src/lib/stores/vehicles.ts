@@ -6,8 +6,26 @@ import {
     type UpdateVehicleData as DbUpdateVehicleData,
 } from "../db/vehicle.queries";
 
-// 导出车辆类型
-export type Vehicle = DbVehicle;
+// 导出车辆类型（前端扩展版本）
+export interface Vehicle {
+    id: string;
+    plateNumber: string;
+    model: string;
+    status: "available" | "in_use" | "maintenance";
+    isAvailable: boolean; // 前端用于显示状态
+    capacity: number;    // 载重量
+    lastMaintenance: string; // 最近维护日期
+    createdAt: string;
+}
+
+// 车辆前端表单数据类型
+export interface VehicleFormData {
+    plateNumber: string;
+    model: string;
+    capacity?: number;
+    lastMaintenance?: string;
+    isAvailable?: boolean;
+}
 
 // 车辆管理状态类型定义
 interface VehicleState {
@@ -15,10 +33,10 @@ interface VehicleState {
     isLoading: boolean;
     error: string | null;
     fetchVehicles: () => Promise<void>;
-    addVehicle: (vehicleData: DbNewVehicleData) => Promise<boolean>;
-    updateVehicle: (id: number, data: DbUpdateVehicleData) => Promise<boolean>;
-    deleteVehicle: (id: number) => Promise<boolean>;
-    toggleAvailability: (id: number) => Promise<boolean>;
+    addVehicle: (vehicleData: VehicleFormData) => Promise<boolean>;
+    updateVehicle: (id: string, data: Partial<VehicleFormData>) => Promise<boolean>;
+    deleteVehicle: (id: string) => Promise<boolean>;
+    toggleAvailability: (id: string) => Promise<boolean>;
 }
 
 // Vehicle Management State Store
@@ -36,7 +54,18 @@ export const useVehicleStore = create<VehicleState>()(
                     const data = await response.json();
 
                     if (data.success) {
-                        set({ vehicles: data.vehicles, isLoading: false });
+                        // 将API返回的数据映射到前端模型
+                        const mappedVehicles = data.vehicles.map((v: DbVehicle) => ({
+                            id: v.id.toString(),
+                            plateNumber: v.plateNumber,
+                            model: v.model,
+                            status: v.status,
+                            isAvailable: v.status === 'available',
+                            capacity: 1, // 默认值
+                            lastMaintenance: '', // 默认值
+                            createdAt: v.createdAt,
+                        }));
+                        set({ vehicles: mappedVehicles, isLoading: false });
                     } else {
                         throw new Error(data.message || "获取车辆列表失败");
                     }
@@ -48,20 +77,39 @@ export const useVehicleStore = create<VehicleState>()(
             addVehicle: async (vehicleData) => {
                 set({ isLoading: true, error: null });
                 try {
+                    // 将前端表单数据映射到API模型
+                    const apiData: DbNewVehicleData = {
+                        plateNumber: vehicleData.plateNumber,
+                        model: vehicleData.model,
+                        status: vehicleData.isAvailable ? 'available' : 'in_use',
+                    };
+
                     // Use API endpoint
                     const response = await fetch("/api/vehicles", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify(vehicleData),
+                        body: JSON.stringify(apiData),
                     });
 
                     const data = await response.json();
 
                     if (data.success && data.vehicle) {
+                        // 将API返回数据映射到前端模型
+                        const newVehicle: Vehicle = {
+                            id: data.vehicle.id.toString(),
+                            plateNumber: data.vehicle.plateNumber,
+                            model: data.vehicle.model,
+                            status: data.vehicle.status,
+                            isAvailable: data.vehicle.status === 'available',
+                            capacity: vehicleData.capacity || 1,
+                            lastMaintenance: vehicleData.lastMaintenance || '',
+                            createdAt: data.vehicle.createdAt,
+                        };
+
                         set((state) => ({
-                            vehicles: [...state.vehicles, data.vehicle],
+                            vehicles: [...state.vehicles, newVehicle],
                             isLoading: false,
                         }));
                         return true;
@@ -77,21 +125,55 @@ export const useVehicleStore = create<VehicleState>()(
             updateVehicle: async (id, data) => {
                 set({ isLoading: true, error: null });
                 try {
+                    // 获取当前车辆数据
+                    const currentVehicle = get().vehicles.find(v => v.id === id);
+                    if (!currentVehicle) {
+                        throw new Error(`Vehicle with ID ${id} not found.`);
+                    }
+
+                    // 将前端表单数据映射到API模型
+                    const apiData: DbUpdateVehicleData = {};
+
+                    if (data.plateNumber !== undefined) {
+                        apiData.plateNumber = data.plateNumber;
+                    }
+
+                    if (data.model !== undefined) {
+                        apiData.model = data.model;
+                    }
+
+                    if (data.isAvailable !== undefined) {
+                        apiData.status = data.isAvailable ? 'available' : 'in_use';
+                    }
+
                     // Use API endpoint
                     const response = await fetch("/api/vehicles", {
                         method: "PUT",
                         headers: {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({ id, ...data }),
+                        body: JSON.stringify({ id: parseInt(id), ...apiData }),
                     });
 
                     const responseData = await response.json();
 
                     if (responseData.success && responseData.vehicle) {
+                        // 将API返回数据映射到前端模型
+                        const updatedVehicle: Vehicle = {
+                            id: responseData.vehicle.id.toString(),
+                            plateNumber: responseData.vehicle.plateNumber,
+                            model: responseData.vehicle.model,
+                            status: responseData.vehicle.status,
+                            isAvailable: responseData.vehicle.status === 'available',
+                            // 保留前端特有字段值
+                            capacity: data.capacity !== undefined ? data.capacity : currentVehicle.capacity,
+                            lastMaintenance: data.lastMaintenance !== undefined ? data.lastMaintenance : currentVehicle.lastMaintenance,
+                            createdAt: responseData.vehicle.createdAt,
+                        };
+
                         set((state) => ({
                             vehicles: state.vehicles.map((v) =>
-                                v.id === id ? responseData.vehicle : v,
+                                v.id === id ? updatedVehicle : v,
                             ),
                             isLoading: false,
                         }));
@@ -142,12 +224,8 @@ export const useVehicleStore = create<VehicleState>()(
                     );
                     return false;
                 }
-                // Simple toggle: available <-> in_use. Maintenance needs explicit update.
-                const newStatus =
-                    currentVehicle.status === "available" ? "in_use" : "available";
-
-                // Use the existing updateVehicle method through API
-                return get().updateVehicle(id, { status: newStatus });
+                // 切换可用状态
+                return get().updateVehicle(id, { isAvailable: !currentVehicle.isAvailable });
             },
         }),
         {

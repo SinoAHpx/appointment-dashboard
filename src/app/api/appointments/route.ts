@@ -9,45 +9,64 @@ import {
 	getAppointmentHistory,
 	updateAppointment,
 } from "@/lib/db/appointment.queries";
+import { verifyAdmin, verifyAuth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 // 获取所有预约
 export async function GET(request: NextRequest) {
 	try {
+		const auth = await verifyAuth(request);
+		if (!auth.isAuthenticated) {
+			return NextResponse.json(
+				{ success: false, message: "未授权访问" },
+				{ status: 401 }
+			);
+		}
+
+		// 管理员可以获取所有预约
+		// 普通用户只能获取自己创建的预约
 		const url = new URL(request.url);
 		const id = url.searchParams.get("id");
 		const includeHistory = url.searchParams.get("includeHistory") === "true";
 
-		// If an ID is provided, get a specific appointment with its history
+		let appointments = getAllAppointments();
+
+		// 如果不是管理员，只返回该用户创建的预约
+		if (!auth.isAdmin) {
+			appointments = appointments.filter(
+				app => app.createdBy === auth.userId
+			);
+		}
+
+		// 如果指定了ID，获取特定预约
 		if (id) {
-			const appointments = getAllAppointments().filter(
+			const filteredAppointments = appointments.filter(
 				(app) => app.id === parseInt(id)
 			);
 
-			if (appointments.length === 0) {
+			if (filteredAppointments.length === 0) {
 				return NextResponse.json(
-					{ success: false, message: "找不到指定的预约记录" },
+					{ success: false, message: "找不到指定的预约记录或无权访问该记录" },
 					{ status: 404 }
 				);
 			}
 
-			const appointment = appointments[0];
+			const appointment = filteredAppointments[0];
 			let history: AppointmentHistory[] = [];
 
-			// Include history if requested
-			if (includeHistory) {
+			// 只有管理员可以查看历史记录
+			if (includeHistory && auth.isAdmin) {
 				history = getAppointmentHistory(parseInt(id));
 			}
 
 			return NextResponse.json({
 				success: true,
 				appointment,
-				history: includeHistory ? history : undefined
+				history: includeHistory && auth.isAdmin ? history : undefined
 			});
 		}
 
-		// Otherwise return all appointments
-		const appointments = getAllAppointments();
+		// 返回所有可访问的预约
 		return NextResponse.json({ success: true, appointments });
 	} catch (error) {
 		console.error("获取预约列表失败:", error);
@@ -61,6 +80,14 @@ export async function GET(request: NextRequest) {
 // 创建新预约
 export async function POST(request: NextRequest) {
 	try {
+		const auth = await verifyAuth(request);
+		if (!auth.isAuthenticated) {
+			return NextResponse.json(
+				{ success: false, message: "未授权访问" },
+				{ status: 401 }
+			);
+		}
+
 		const body = await request.json();
 
 		// 验证必要字段
@@ -92,7 +119,8 @@ export async function POST(request: NextRequest) {
 				: "pending",
 			estimatedCompletionTime: body.estimatedCompletionTime || null,
 			processingNotes: body.processingNotes || null,
-			updatedBy: body.updatedBy ? parseInt(body.updatedBy) : null,
+			updatedBy: auth.userId,
+			createdBy: auth.userId, // 记录创建者ID
 		};
 
 		const newAppointment = addAppointment(appointmentData);
@@ -120,12 +148,39 @@ export async function POST(request: NextRequest) {
 // 更新预约
 export async function PUT(request: NextRequest) {
 	try {
+		const auth = await verifyAuth(request);
+		if (!auth.isAuthenticated) {
+			return NextResponse.json(
+				{ success: false, message: "未授权访问" },
+				{ status: 401 }
+			);
+		}
+
 		const body = await request.json();
 
 		if (!body.id) {
 			return NextResponse.json(
 				{ success: false, message: "预约ID必填" },
 				{ status: 400 },
+			);
+		}
+
+		// 获取预约详情以验证权限
+		const appointments = getAllAppointments();
+		const appointment = appointments.find(app => app.id === parseInt(body.id));
+
+		if (!appointment) {
+			return NextResponse.json(
+				{ success: false, message: "预约不存在" },
+				{ status: 404 }
+			);
+		}
+
+		// 验证访问权限
+		if (!auth.isAdmin && appointment.createdBy !== auth.userId) {
+			return NextResponse.json(
+				{ success: false, message: "无权操作此预约" },
+				{ status: 403 }
 			);
 		}
 
@@ -143,19 +198,19 @@ export async function PUT(request: NextRequest) {
 		if (body.processingNotes !== undefined)
 			updateData.processingNotes = body.processingNotes;
 
-		// 处理staff和vehicle ID
-		if (body.staffId !== undefined) {
-			updateData.staffId = body.staffId ? parseInt(body.staffId) : null;
-		}
+		// 处理staff和vehicle ID - 只有管理员可以分配
+		if (auth.isAdmin) {
+			if (body.staffId !== undefined) {
+				updateData.staffId = body.staffId ? parseInt(body.staffId) : null;
+			}
 
-		if (body.vehicleId !== undefined) {
-			updateData.vehicleId = body.vehicleId ? parseInt(body.vehicleId) : null;
+			if (body.vehicleId !== undefined) {
+				updateData.vehicleId = body.vehicleId ? parseInt(body.vehicleId) : null;
+			}
 		}
 
 		// 处理最后更新用户信息
-		if (body.updatedBy !== undefined) {
-			updateData.lastUpdatedBy = parseInt(body.updatedBy);
-		}
+		updateData.lastUpdatedBy = auth.userId;
 
 		// 验证状态值有效性
 		if (body.status !== undefined) {
@@ -169,6 +224,15 @@ export async function PUT(request: NextRequest) {
 					{ status: 400 },
 				);
 			}
+
+			// 状态相关权限控制：只有管理员可以将状态设置为in_progress
+			if (body.status === "in_progress" && !auth.isAdmin) {
+				return NextResponse.json(
+					{ success: false, message: "只有管理员可以将预约设置为处理中状态" },
+					{ status: 403 }
+				);
+			}
+
 			updateData.status = body.status as Appointment["status"];
 		}
 
@@ -197,6 +261,15 @@ export async function PUT(request: NextRequest) {
 // 获取预约历史记录
 export async function PATCH(request: NextRequest) {
 	try {
+		// 验证管理员权限
+		const isAdmin = await verifyAdmin(request);
+		if (!isAdmin) {
+			return NextResponse.json(
+				{ success: false, message: "只有管理员可以访问历史记录" },
+				{ status: 403 }
+			);
+		}
+
 		const body = await request.json();
 
 		if (!body.id) {
@@ -224,6 +297,14 @@ export async function PATCH(request: NextRequest) {
 // 删除预约
 export async function DELETE(request: NextRequest) {
 	try {
+		const auth = await verifyAuth(request);
+		if (!auth.isAuthenticated) {
+			return NextResponse.json(
+				{ success: false, message: "未授权访问" },
+				{ status: 401 }
+			);
+		}
+
 		// 从 URL 参数获取 ID
 		const url = new URL(request.url);
 		const id = url.searchParams.get("id");
@@ -232,6 +313,25 @@ export async function DELETE(request: NextRequest) {
 			return NextResponse.json(
 				{ success: false, message: "预约ID必填" },
 				{ status: 400 },
+			);
+		}
+
+		// 获取预约详情以验证权限
+		const appointments = getAllAppointments();
+		const appointment = appointments.find(app => app.id === parseInt(id));
+
+		if (!appointment) {
+			return NextResponse.json(
+				{ success: false, message: "预约不存在" },
+				{ status: 404 }
+			);
+		}
+
+		// 验证删除权限 - 只有管理员或创建者可以删除
+		if (!auth.isAdmin && appointment.createdBy !== auth.userId) {
+			return NextResponse.json(
+				{ success: false, message: "无权删除此预约" },
+				{ status: 403 }
 			);
 		}
 

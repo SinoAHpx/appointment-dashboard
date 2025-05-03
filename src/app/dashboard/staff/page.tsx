@@ -135,14 +135,9 @@ export default function StaffPage() {
 
 	// 处理新建员工提交
 	const handleSubmitNewStaff = async () => {
-		// 表单验证
-		if (
-			!newStaff.name ||
-			!newStaff.phone ||
-			!newStaff.email ||
-			!newStaff.position
-		) {
-			toast.error("请填写所有必填项");
+		// 表单验证 - 只验证必填字段：姓名和手机号
+		if (!newStaff.name || !newStaff.phone) {
+			toast.error("请填写必填项：姓名和手机号");
 			return;
 		}
 
@@ -177,14 +172,9 @@ export default function StaffPage() {
 	const handleUpdateStaff = async () => {
 		if (!editingStaff) return;
 
-		// 表单验证
-		if (
-			!editingStaff.name ||
-			!editingStaff.phone ||
-			!editingStaff.email ||
-			!editingStaff.position
-		) {
-			toast.error("请填写所有必填项");
+		// 表单验证 - 只验证必填字段：姓名和手机号
+		if (!editingStaff.name || !editingStaff.phone) {
+			toast.error("请填写必填项：姓名和手机号");
 			return;
 		}
 
@@ -280,7 +270,7 @@ export default function StaffPage() {
 								</div>
 							</div>
 							<div className="flex flex-col gap-2">
-								<Label htmlFor="email">邮箱 *</Label>
+								<Label htmlFor="email">邮箱</Label>
 								<Input
 									id="email"
 									name="email"
@@ -288,18 +278,16 @@ export default function StaffPage() {
 									value={newStaff.email}
 									onChange={handleNewStaffChange}
 									placeholder="请输入邮箱"
-									required
 								/>
 							</div>
 							<div className="flex flex-col gap-2">
-								<Label htmlFor="position">职位 *</Label>
+								<Label htmlFor="position">职位</Label>
 								<Input
 									id="position"
 									name="position"
 									value={newStaff.position}
 									onChange={handleNewStaffChange}
 									placeholder="请输入职位"
-									required
 								/>
 							</div>
 							<div className="flex items-center gap-2">
@@ -485,7 +473,7 @@ export default function StaffPage() {
 								</div>
 							</div>
 							<div className="flex flex-col gap-2">
-								<Label htmlFor="edit-email">邮箱 *</Label>
+								<Label htmlFor="edit-email">邮箱</Label>
 								<Input
 									id="edit-email"
 									name="email"
@@ -493,18 +481,16 @@ export default function StaffPage() {
 									value={editingStaff.email}
 									onChange={handleEditStaffChange}
 									placeholder="请输入邮箱"
-									required
 								/>
 							</div>
 							<div className="flex flex-col gap-2">
-								<Label htmlFor="edit-position">职位 *</Label>
+								<Label htmlFor="edit-position">职位</Label>
 								<Input
 									id="edit-position"
 									name="position"
 									value={editingStaff.position}
 									onChange={handleEditStaffChange}
 									placeholder="请输入职位"
-									required
 								/>
 							</div>
 							<div className="flex items-center gap-2">

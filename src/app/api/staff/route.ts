@@ -1,5 +1,7 @@
 import {
 	type Staff,
+	type NewStaffData,
+	type UpdateStaffData,
 	addStaff,
 	deleteStaff,
 	getAllStaff,
@@ -34,14 +36,25 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// 使用可选状态值，默认为'active'
-		const status: Staff["status"] = ["active", "inactive", "on_leave"].includes(
-			body.status,
-		)
-			? (body.status as Staff["status"])
-			: "active";
+		if (!body.phone) {
+			return NextResponse.json(
+				{ success: false, message: "员工手机号必填" },
+				{ status: 400 },
+			);
+		}
 
-		const newStaff = addStaff(body.name, status);
+		// 创建新员工数据对象
+		const newStaffData: NewStaffData = {
+			name: body.name,
+			phone: body.phone,
+			email: body.email || null,
+			position: body.position || null,
+			status: ["active", "inactive", "on_leave"].includes(body.status)
+				? (body.status as Staff["status"])
+				: "active",
+		};
+
+		const newStaff = addStaff(newStaffData);
 
 		if (!newStaff) {
 			return NextResponse.json(
@@ -75,10 +88,13 @@ export async function PUT(request: NextRequest) {
 			);
 		}
 
-		const updateData: Partial<Pick<Staff, "name" | "status">> = {};
+		const updateData: UpdateStaffData = {};
 
 		// 只包含要更新的字段
 		if (body.name !== undefined) updateData.name = body.name;
+		if (body.phone !== undefined) updateData.phone = body.phone;
+		if (body.email !== undefined) updateData.email = body.email;
+		if (body.position !== undefined) updateData.position = body.position;
 
 		// 验证状态值有效性
 		if (body.status !== undefined) {

@@ -139,9 +139,9 @@ export default function VehiclesPage() {
 
 	// 处理新建车辆提交
 	const handleSubmitNewVehicle = async () => {
-		// 表单验证
+		// 表单验证 - 只验证必填字段：车牌号和车型
 		if (!newVehicle.plateNumber || !newVehicle.model) {
-			toast.error("请填写所有必填项");
+			toast.error("请填写必填项：车牌号和车型");
 			return;
 		}
 
@@ -176,9 +176,9 @@ export default function VehiclesPage() {
 	const handleUpdateVehicle = async () => {
 		if (!editingVehicle) return;
 
-		// 表单验证
+		// 表单验证 - 只验证必填字段：车牌号和车型
 		if (!editingVehicle.plateNumber || !editingVehicle.model) {
-			toast.error("请填写所有必填项");
+			toast.error("请填写必填项：车牌号和车型");
 			return;
 		}
 

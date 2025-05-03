@@ -111,10 +111,54 @@ const initDb = (db: Database) => {
       CREATE TABLE IF NOT EXISTS staff (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        email TEXT,
+        position TEXT,
         status TEXT CHECK( status IN ('active', 'inactive', 'on_leave') ) NOT NULL DEFAULT 'active',
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // 检查staff表中是否存在phone字段
+    const phoneColumnExists = db.query<{ count: number }, []>(
+      "SELECT COUNT(*) as count FROM pragma_table_info('staff') WHERE name = 'phone'"
+    ).get();
+
+    // 如果phone列不存在，则进行表迁移
+    if (phoneColumnExists && phoneColumnExists.count === 0) {
+      console.log("Migrating staff table to add new columns...");
+
+      // 1. 创建临时表
+      db.run(`
+        CREATE TABLE staff_temp (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          phone TEXT NOT NULL,
+          email TEXT,
+          position TEXT,
+          status TEXT CHECK( status IN ('active', 'inactive', 'on_leave') ) NOT NULL DEFAULT 'active',
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // 2. 从老表中复制数据，设置默认电话号码
+      db.run(`
+        INSERT INTO staff_temp (
+          id, name, phone, status, createdAt
+        )
+        SELECT 
+          id, name, '未设置', status, createdAt
+        FROM staff;
+      `);
+
+      // 3. 删除旧表
+      db.run("DROP TABLE staff;");
+
+      // 4. 重命名临时表
+      db.run("ALTER TABLE staff_temp RENAME TO staff;");
+
+      console.log("Successfully migrated staff table with new columns");
+    }
 
     // Create vehicles table
     db.run(`
@@ -142,10 +186,12 @@ const initDb = (db: Database) => {
         processingNotes TEXT,  -- 处理备注
         lastUpdatedBy INTEGER,  -- 最后更新用户ID
         lastUpdatedAt DATETIME,  -- 最后更新时间
+        createdBy INTEGER,  -- 创建者用户ID
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL, -- Optional: Handle staff deletion
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL, -- Optional: Handle vehicle deletion
-        FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL -- Optional: Handle user deletion
+        FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL, -- Optional: Handle user deletion
+        FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE SET NULL -- Optional: Handle user deletion
       );
     `);
 
@@ -173,10 +219,12 @@ const initDb = (db: Database) => {
           processingNotes TEXT,
           lastUpdatedBy INTEGER,
           lastUpdatedAt DATETIME,
+          createdBy INTEGER,
           createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
           FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
-          FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL
+          FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL,
+          FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE SET NULL
         );
       `);
 
@@ -225,6 +273,60 @@ const initDb = (db: Database) => {
       db.run("ALTER TABLE appointments_temp RENAME TO appointments;");
 
       console.log("Successfully migrated appointments table with new columns");
+    }
+
+    // 检查appointments表中是否存在createdBy列
+    const createdByColumnExists = db.query<{ count: number }, []>(
+      "SELECT COUNT(*) as count FROM pragma_table_info('appointments') WHERE name = 'createdBy'"
+    ).get();
+
+    // 如果createdBy列不存在，则进行表迁移添加该列
+    if (createdByColumnExists && createdByColumnExists.count === 0) {
+      console.log("Migrating appointments table to add createdBy column...");
+
+      // 1. 创建临时表，包含所有现有列和新的createdBy列
+      db.run(`
+        CREATE TABLE appointments_temp (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          appointmentId TEXT UNIQUE NOT NULL,
+          customerName TEXT NOT NULL,
+          appointmentTime DATETIME NOT NULL,
+          serviceType TEXT,
+          staffId INTEGER,
+          vehicleId INTEGER,
+          status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
+          estimatedCompletionTime DATETIME,
+          processingNotes TEXT,
+          lastUpdatedBy INTEGER,
+          lastUpdatedAt DATETIME,
+          createdBy INTEGER,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
+          FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
+          FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL,
+          FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE SET NULL
+        );
+      `);
+
+      // 2. 从旧表复制数据到新表，设置createdBy为1（管理员ID）
+      db.run(`
+        INSERT INTO appointments_temp (
+          id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, 
+          status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt
+        )
+        SELECT 
+          id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, 
+          status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, 1, createdAt
+        FROM appointments;
+      `);
+
+      // 3. 删除旧表
+      db.run("DROP TABLE appointments;");
+
+      // 4. 重命名临时表
+      db.run("ALTER TABLE appointments_temp RENAME TO appointments;");
+
+      console.log("Successfully migrated appointments table with createdBy column");
     }
 
     // Create appointment history table for tracking status changes

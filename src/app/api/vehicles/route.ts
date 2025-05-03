@@ -36,10 +36,17 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// 准备车辆数据
+		if (!body.model) {
+			return NextResponse.json(
+				{ success: false, message: "车型必填" },
+				{ status: 400 },
+			);
+		}
+
+		// 创建新车辆数据对象
 		const vehicleData: NewVehicleData = {
 			plateNumber: body.plateNumber,
-			model: body.model || null,
+			model: body.model,
 			status: ["available", "in_use", "maintenance"].includes(body.status)
 				? (body.status as Vehicle["status"])
 				: "available",
@@ -49,10 +56,7 @@ export async function POST(request: NextRequest) {
 
 		if (!newVehicle) {
 			return NextResponse.json(
-				{
-					success: false,
-					message: "创建车辆失败，车牌号可能已存在",
-				},
+				{ success: false, message: "创建车辆失败，车牌号可能已存在" },
 				{ status: 400 },
 			);
 		}
@@ -85,9 +89,25 @@ export async function PUT(request: NextRequest) {
 		const updateData: UpdateVehicleData = {};
 
 		// 只包含要更新的字段
-		if (body.plateNumber !== undefined)
+		if (body.plateNumber !== undefined) {
+			if (body.plateNumber === "") {
+				return NextResponse.json(
+					{ success: false, message: "车牌号不能为空" },
+					{ status: 400 },
+				);
+			}
 			updateData.plateNumber = body.plateNumber;
-		if (body.model !== undefined) updateData.model = body.model;
+		}
+
+		if (body.model !== undefined) {
+			if (body.model === "") {
+				return NextResponse.json(
+					{ success: false, message: "车型不能为空" },
+					{ status: 400 },
+				);
+			}
+			updateData.model = body.model;
+		}
 
 		// 验证状态值有效性
 		if (body.status !== undefined) {

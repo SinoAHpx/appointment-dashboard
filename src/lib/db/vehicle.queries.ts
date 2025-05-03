@@ -3,14 +3,18 @@ import { getDb } from "./db";
 // Define the Vehicle type based on the database schema
 export interface Vehicle {
 	id: number;
-	plateNumber: string;
-	model: string | null;
+	plateNumber: string;  // 必填：车牌号
+	model: string;        // 必填：车型
 	status: "available" | "in_use" | "maintenance";
 	createdAt: string;
 }
 
 // Type for creating a new vehicle
-export type NewVehicleData = Omit<Vehicle, "id" | "createdAt">;
+export type NewVehicleData = {
+	plateNumber: string;  // 必填：车牌号 
+	model: string;        // 必填：车型
+	status?: Vehicle["status"];
+};
 
 // Type for updating an existing vehicle
 export type UpdateVehicleData = Partial<Omit<Vehicle, "id" | "createdAt">>;
@@ -37,10 +41,10 @@ export const getAllVehicles = (): Vehicle[] => {
 export const addVehicle = (data: NewVehicleData): Vehicle | null => {
 	try {
 		const db = getDb();
-		const { plateNumber, model = null, status = "available" } = data;
+		const { plateNumber, model, status = "available" } = data;
 		const insertQuery = db.query<
 			Vehicle,
-			[string, string | null, Vehicle["status"]]
+			[string, string, Vehicle["status"]]
 		>(
 			"INSERT INTO vehicles (plateNumber, model, status) VALUES (?, ?, ?) RETURNING id, plateNumber, model, status, createdAt",
 		);

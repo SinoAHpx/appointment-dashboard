@@ -14,6 +14,7 @@ export interface Appointment {
 	processingNotes: string | null; // Notes for processing
 	lastUpdatedBy: number | null; // User ID who last updated
 	lastUpdatedAt: string | null; // Timestamp of last update
+	createdBy: number | null; // User ID who created the appointment
 	createdAt: string;
 }
 
@@ -40,6 +41,7 @@ export type NewAppointmentData = Omit<
 	estimatedCompletionTime?: string | null;
 	processingNotes?: string | null;
 	updatedBy?: number | null;
+	createdBy: number; // Required - the user who created the appointment
 };
 
 // Type for updating an appointment (all fields optional)
@@ -64,7 +66,7 @@ export const getAllAppointments = (): Appointment[] => {
 	try {
 		const db = getDb();
 		const query = db.query<Appointment, []>(
-			"SELECT id, customerName, appointmentTime, serviceType, staffId, vehicleId, status, createdAt FROM appointments ORDER BY appointmentTime DESC",
+			"SELECT id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt FROM appointments ORDER BY appointmentTime DESC",
 		);
 		return query.all();
 	} catch (error) {
@@ -154,6 +156,7 @@ export const addAppointment = (
 			estimatedCompletionTime = null,
 			processingNotes = null,
 			updatedBy = null,
+			createdBy,
 		} = data;
 
 		// Generate unique appointment ID
@@ -173,12 +176,13 @@ export const addAppointment = (
 				string | null,
 				string | null,
 				number | null,
-				string | null
+				string | null,
+				number
 			]
 		>(
 			`INSERT INTO appointments 
-       (appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+       (appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
        RETURNING id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdAt`,
 		);
 
@@ -193,7 +197,8 @@ export const addAppointment = (
 			estimatedCompletionTime,
 			processingNotes,
 			updatedBy,
-			updatedBy ? now : null
+			updatedBy ? now : null,
+			createdBy
 		);
 
 		// Record initial status in history if there's an updatedBy value

@@ -1,9 +1,18 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { type Staff as DbStaff } from "../db/staff.queries";
+import { type Staff as DbStaff, type NewStaffData } from "../db/staff.queries";
 
 // 导出员工类型
-export type Staff = DbStaff;
+export interface Staff {
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+    position: string;
+    status: "active" | "inactive" | "on_leave";
+    isAvailable: boolean; // 前端用于显示状态
+    createdAt: string;
+}
 
 // 员工管理状态类型定义
 interface StaffState {
@@ -11,12 +20,19 @@ interface StaffState {
     isLoading: boolean;
     error: string | null;
     fetchStaff: () => Promise<void>;
-    addStaff: (name: string, status?: Staff["status"]) => Promise<boolean>;
+    addStaff: (data: {
+        name: string;
+        phone: string;
+        email?: string;
+        position?: string;
+        isAvailable?: boolean;
+    }) => Promise<boolean>;
     updateStaff: (
-        id: number,
-        data: Partial<Pick<Staff, "name" | "status">>,
+        id: string,
+        data: Partial<Staff>,
     ) => Promise<boolean>;
-    deleteStaff: (id: number) => Promise<boolean>;
+    deleteStaff: (id: string) => Promise<boolean>;
+    toggleAvailability: (id: string) => Promise<boolean>;
 }
 
 // Staff Management State Store
@@ -34,7 +50,18 @@ export const useStaffStore = create<StaffState>()(
                     const data = await response.json();
 
                     if (data.success) {
-                        set({ staffList: data.staffList, isLoading: false });
+                        // 将API返回的数据映射到前端模型
+                        const mappedStaffList = data.staffList.map((staff: DbStaff) => ({
+                            id: staff.id.toString(),
+                            name: staff.name,
+                            phone: staff.phone || '',
+                            email: staff.email || '',
+                            position: staff.position || '',
+                            status: staff.status,
+                            isAvailable: staff.status === 'active',
+                            createdAt: staff.createdAt,
+                        }));
+                        set({ staffList: mappedStaffList, isLoading: false });
                     } else {
                         throw new Error(data.message || "获取员工列表失败");
                     }
@@ -43,23 +70,44 @@ export const useStaffStore = create<StaffState>()(
                     set({ isLoading: false, error: (error as Error).message });
                 }
             },
-            addStaff: async (name, status) => {
+            addStaff: async (staffData) => {
                 set({ isLoading: true, error: null });
                 try {
+                    // Map frontend model to API model
+                    const apiData: NewStaffData = {
+                        name: staffData.name,
+                        phone: staffData.phone,
+                        email: staffData.email || null,
+                        position: staffData.position || null,
+                        status: staffData.isAvailable ? 'active' : 'inactive',
+                    };
+
                     // Use API endpoint
                     const response = await fetch("/api/staff", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({ name, status }),
+                        body: JSON.stringify(apiData),
                     });
 
                     const data = await response.json();
 
                     if (data.success && data.staff) {
+                        // Map the returned staff to our frontend format
+                        const newStaff: Staff = {
+                            id: data.staff.id.toString(),
+                            name: data.staff.name,
+                            phone: data.staff.phone || '',
+                            email: data.staff.email || '',
+                            position: data.staff.position || '',
+                            status: data.staff.status,
+                            isAvailable: data.staff.status === 'active',
+                            createdAt: data.staff.createdAt,
+                        };
+
                         set((state) => ({
-                            staffList: [...state.staffList, data.staff],
+                            staffList: [...state.staffList, newStaff],
                             isLoading: false,
                         }));
                         return true;
@@ -72,24 +120,49 @@ export const useStaffStore = create<StaffState>()(
                     return false;
                 }
             },
-            updateStaff: async (id, data) => {
+            updateStaff: async (id, staffData) => {
                 set({ isLoading: true, error: null });
                 try {
+                    // Map frontend model to API model
+                    const apiData: any = {};
+
+                    if (staffData.name !== undefined) apiData.name = staffData.name;
+                    if (staffData.phone !== undefined) apiData.phone = staffData.phone;
+                    if (staffData.email !== undefined) apiData.email = staffData.email;
+                    if (staffData.position !== undefined) apiData.position = staffData.position;
+                    if (staffData.isAvailable !== undefined) {
+                        apiData.status = staffData.isAvailable ? 'active' : 'inactive';
+                    } else if (staffData.status !== undefined) {
+                        apiData.status = staffData.status;
+                    }
+
                     // Use API endpoint
                     const response = await fetch("/api/staff", {
                         method: "PUT",
                         headers: {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({ id, ...data }),
+                        body: JSON.stringify({ id: parseInt(id), ...apiData }),
                     });
 
                     const responseData = await response.json();
 
                     if (responseData.success && responseData.staff) {
+                        // Map the returned staff to our frontend format
+                        const updatedStaff: Staff = {
+                            id: responseData.staff.id.toString(),
+                            name: responseData.staff.name,
+                            phone: responseData.staff.phone || '',
+                            email: responseData.staff.email || '',
+                            position: responseData.staff.position || '',
+                            status: responseData.staff.status,
+                            isAvailable: responseData.staff.status === 'active',
+                            createdAt: responseData.staff.createdAt,
+                        };
+
                         set((state) => ({
                             staffList: state.staffList.map((staff) =>
-                                staff.id === id ? responseData.staff : staff,
+                                staff.id === id ? updatedStaff : staff,
                             ),
                             isLoading: false,
                         }));
@@ -132,6 +205,13 @@ export const useStaffStore = create<StaffState>()(
                     set({ isLoading: false, error: (error as Error).message });
                     return false;
                 }
+            },
+            toggleAvailability: async (id) => {
+                const staff = get().staffList.find((s) => s.id === id);
+                if (!staff) return false;
+
+                const newAvailability = !staff.isAvailable;
+                return get().updateStaff(id, { isAvailable: newAvailability });
             },
         }),
         {
