@@ -81,16 +81,16 @@ interface AppointmentState {
 	fetchAppointments: () => Promise<void>;
 	addAppointment: (appointmentData: DbNewAppointmentData) => Promise<boolean>;
 	updateAppointment: (
-		id: number,
+		id: string,
 		data: DbUpdateAppointmentData,
 	) => Promise<boolean>;
-	deleteAppointment: (id: number) => Promise<boolean>;
+	deleteAppointment: (id: string) => Promise<boolean>;
 	assignStaff: (
-		appointmentId: number,
+		appointmentId: string,
 		staffId: number | null,
 	) => Promise<boolean>;
 	assignVehicle: (
-		appointmentId: number,
+		appointmentId: string,
 		vehicleId: number | null,
 	) => Promise<boolean>;
 }
@@ -141,34 +141,6 @@ interface VehicleState {
 	toggleAvailability: (id: number) => Promise<boolean>;
 }
 
-// 报表过滤条件类型定义
-export interface ReportFilters {
-	startDate?: string;
-	endDate?: string;
-	status?: string;
-	staffId?: string;
-	vehicleId?: string;
-}
-
-// 报表数据类型定义
-interface ReportData {
-	appointments: Appointment[];
-	totalAppointments: number;
-	completedAppointments: number;
-	cancelledAppointments: number;
-	pendingAppointments: number;
-}
-
-// 报表管理状态类型定义
-interface ReportState {
-	reportData: ReportData | null;
-	isLoading: boolean;
-	error: string | null;
-	fetchReportData: (filters: ReportFilters) => Promise<void>;
-	exportToCSV: (filters: ReportFilters) => Promise<boolean>;
-	exportToExcel: (filters: ReportFilters) => Promise<boolean>;
-}
-
 // 认证状态存储
 export const useAuthStore = create<AuthState>()(
 	persist(
@@ -214,9 +186,6 @@ export const useAuthStore = create<AuthState>()(
 		},
 	),
 );
-
-// 模拟API延迟
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // 创建UUID
 const createId = () => Math.random().toString(36).substring(2, 9);
@@ -299,7 +268,7 @@ export const useAppointmentStore = create<AppointmentState>()(
 					} else {
 						throw new Error(
 							responseData.message ||
-								`Failed to update appointment with ID ${id}.`,
+							`Failed to update appointment with ID ${id}.`,
 						);
 					}
 				} catch (error) {
@@ -427,7 +396,7 @@ export const useCustomerStore = create<CustomerState>()(
 					} else {
 						throw new Error(
 							responseData.message ||
-								`Failed to update customer with ID ${id}.`,
+							`Failed to update customer with ID ${id}.`,
 						);
 					}
 				} catch (error) {
@@ -548,7 +517,7 @@ export const useStaffStore = create<StaffState>()(
 					} else {
 						throw new Error(
 							responseData.message ||
-								`Failed to update staff member with ID ${id}.`,
+							`Failed to update staff member with ID ${id}.`,
 						);
 					}
 				} catch (error) {
@@ -725,54 +694,3 @@ export const useVehicleStore = create<VehicleState>()(
 		},
 	),
 );
-
-// 报表管理状态存储
-export const useReportStore = create<ReportState>()((set) => ({
-	reportData: null,
-	isLoading: false,
-	error: null,
-	fetchReportData: async (filters) => {
-		set({ isLoading: true, error: null });
-		try {
-			// 模拟API请求
-			await delay(800);
-			// 这里将来应该改为实际API调用，现在生成假数据
-			const mockData: ReportData = {
-				appointments: [],
-				totalAppointments: 0,
-				completedAppointments: 0,
-				cancelledAppointments: 0,
-				pendingAppointments: 0,
-			};
-			set({ reportData: mockData, isLoading: false });
-		} catch (error) {
-			set({ isLoading: false, error: (error as Error).message });
-		}
-	},
-	exportToCSV: async (filters) => {
-		set({ isLoading: true, error: null });
-		try {
-			// 模拟API请求
-			await delay(1000);
-			// 这里将来应该改为实际API调用
-			set({ isLoading: false });
-			return true;
-		} catch (error) {
-			set({ isLoading: false, error: (error as Error).message });
-			return false;
-		}
-	},
-	exportToExcel: async (filters) => {
-		set({ isLoading: true, error: null });
-		try {
-			// 模拟API请求
-			await delay(1000);
-			// 这里将来应该改为实际API调用
-			set({ isLoading: false });
-			return true;
-		} catch (error) {
-			set({ isLoading: false, error: (error as Error).message });
-			return false;
-		}
-	},
-}));
