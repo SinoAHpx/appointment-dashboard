@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
 	Dialog,
 	DialogClose,
@@ -39,25 +39,20 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { AuthGuard } from "@/components/AuthGuard";
-import { AdminUser, useAuthStore, useUserStore } from "@/lib/store";
+import { AdminUser, useUserStore } from "@/lib/store";
 import { format } from "date-fns";
 import {
-	Mail,
 	Pencil,
 	Plus,
 	Search,
 	ShieldAlert,
 	Trash,
 	User,
-	UserCog,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function UsersPage() {
-	const { isAuthenticated, isAdmin } = useAuthStore();
-	const router = useRouter();
 	const {
 		users,
 		isLoading,
