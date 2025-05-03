@@ -74,7 +74,7 @@ export default function DashboardLayout({
     return (
         <div className="flex min-h-screen flex-col">
             <header className="bg-white border-b border-gray-200 shadow-sm">
-                <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div className="w-full px-4 py-3 flex justify-between items-center">
                     <h1 className="text-xl font-bold">预约管理系统</h1>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
