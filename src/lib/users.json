@@ -1,42 +1,42 @@
 [
-  {
-    "id": "1",
-    "username": "admin",
-    "password": "admin123",
-    "name": "系统管理员",
-    "role": "admin",
-    "email": "admin@example.com"
-  },
-  {
-    "id": "2",
-    "username": "manager",
-    "password": "manager123",
-    "name": "部门经理",
-    "role": "admin",
-    "email": "manager@example.com"
-  },
-  {
-    "id": "3",
-    "username": "user1",
-    "password": "user123",
-    "name": "普通用户1",
-    "role": "user",
-    "email": "user1@example.com"
-  },
-  {
-    "id": "4",
-    "username": "user2",
-    "password": "user123",
-    "name": "普通用户2",
-    "role": "user",
-    "email": "user2@example.com"
-  },
-  {
-    "id": "5",
-    "username": "user3",
-    "password": "user123",
-    "name": "普通用户3",
-    "role": "user",
-    "email": "user3@example.com"
-  }
-] 
+	{
+		"id": "1",
+		"username": "admin",
+		"password": "admin123",
+		"name": "系统管理员",
+		"role": "admin",
+		"email": "admin@example.com"
+	},
+	{
+		"id": "2",
+		"username": "manager",
+		"password": "manager123",
+		"name": "部门经理",
+		"role": "admin",
+		"email": "manager@example.com"
+	},
+	{
+		"id": "3",
+		"username": "user1",
+		"password": "user123",
+		"name": "普通用户1",
+		"role": "user",
+		"email": "user1@example.com"
+	},
+	{
+		"id": "4",
+		"username": "user2",
+		"password": "user123",
+		"name": "普通用户2",
+		"role": "user",
+		"email": "user2@example.com"
+	},
+	{
+		"id": "5",
+		"username": "user3",
+		"password": "user123",
+		"name": "普通用户3",
+		"role": "user",
+		"email": "user3@example.com"
+	}
+]

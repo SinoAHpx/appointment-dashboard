@@ -26,6 +26,7 @@ appointment-dashboard/
 │   ├── lib/                # 工具库
 │   │   ├── store.ts        # Zustand状态库
 │   │   └── utils.ts        # 工具函数
+│   │   └── db.ts           # SQLite数据库连接管理、初始化及错误处理。提供 `getDb()` 单例访问。
 ├── .gitignore              # Git忽略文件
 ├── bun.lock                # Bun锁文件
 ├── components.json         # Shadcn UI配置
@@ -59,3 +60,4 @@ appointment-dashboard/
 ### 工具函数
 
 - `src/lib/utils.ts` - 常用工具函数 
+- `src/lib/db.ts` - SQLite数据库连接管理、初始化及错误处理。提供 `getDb()` 单例访问。 

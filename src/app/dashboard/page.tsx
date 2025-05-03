@@ -1,62 +1,78 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
 import {
-    useAuthStore,
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import {
     useAppointmentStore,
+    useAuthStore,
     useCustomerStore,
     useStaffStore,
-    useVehicleStore
-} from '@/lib/store'
-import { CalendarDays, Users, Car, UserCircle, Clock } from 'lucide-react'
+    useVehicleStore,
+} from "@/lib/store";
+import { CalendarDays, Car, Clock, UserCircle, Users } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function DashboardPage() {
-    const { isAuthenticated, user } = useAuthStore()
-    const router = useRouter()
+    const { isAuthenticated, user } = useAuthStore();
+    const router = useRouter();
 
     // Fetch data from stores
-    const { appointments } = useAppointmentStore()
-    const { customers } = useCustomerStore()
-    const { staffList } = useStaffStore()
-    const { vehicles } = useVehicleStore()
+    const { appointments } = useAppointmentStore();
+    const { customers } = useCustomerStore();
+    const { staffList } = useStaffStore();
+    const { vehicles } = useVehicleStore();
 
     // Calculate stats (example logic, replace with more robust logic if needed)
-    const today = new Date().toISOString().split('T')[0]
-    const todaysAppointments = appointments.filter(app => app.dateTime.startsWith(today))
-    const pendingAppointments = appointments.filter(app => app.status === 'pending')
-    const availableStaff = staffList.filter(staff => staff.isAvailable)
-    const availableVehicles = vehicles.filter(vehicle => vehicle.isAvailable)
+    const today = new Date().toISOString().split("T")[0];
+    const todaysAppointments = appointments.filter((app) =>
+        app.dateTime.startsWith(today),
+    );
+    const pendingAppointments = appointments.filter(
+        (app) => app.status === "pending",
+    );
+    const availableStaff = staffList.filter((staff) => staff.status === "active");
+    const availableVehicles = vehicles.filter((vehicle) => vehicle.status === "available");
 
     // Redirect if not authenticated
     useEffect(() => {
         if (!isAuthenticated) {
-            router.push('/login')
+            router.push("/login");
         }
-    }, [isAuthenticated, router])
+    }, [isAuthenticated, router]);
 
     if (!isAuthenticated) {
-        return null
+        return null;
     }
 
-    const isAdmin = user?.role === 'admin'
+    const isAdmin = user?.role === "admin";
 
     const handleCardClick = (path: string) => {
-        router.push(path)
-    }
+        router.push(path);
+    };
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold">欢迎回来, {user?.username || '用户'}</h1>
+                <h1 className="text-3xl font-bold">
+                    欢迎回来, {user?.username || "用户"}
+                </h1>
                 <p className="text-muted-foreground">查看并管理您的预约系统</p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick('/dashboard/appointments')}>
+                <Card
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleCardClick("/dashboard/appointments")}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">总预约数</CardTitle>
                         <CalendarDays className="h-4 w-4 text-muted-foreground" />
@@ -69,19 +85,33 @@ export default function DashboardPage() {
                         </p> */}
                     </CardContent>
                 </Card>
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick('/dashboard/appointments')}>
+                <Card
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleCardClick("/dashboard/appointments")}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">今日预约</CardTitle>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{todaysAppointments.length}</div>
+                        <div className="text-2xl font-bold">
+                            {todaysAppointments.length}
+                        </div>
                         <p className="text-xs text-muted-foreground">
-                            其中 {pendingAppointments.filter(app => app.dateTime.startsWith(today)).length} 个待确认
+                            其中{" "}
+                            {
+                                pendingAppointments.filter((app) =>
+                                    app.dateTime.startsWith(today),
+                                ).length
+                            }{" "}
+                            个待确认
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick('/dashboard/staff')}>
+                <Card
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleCardClick("/dashboard/staff")}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">工作人员</CardTitle>
                         <UserCircle className="h-4 w-4 text-muted-foreground" />
@@ -93,7 +123,10 @@ export default function DashboardPage() {
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick('/dashboard/vehicles')}>
+                <Card
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => handleCardClick("/dashboard/vehicles")}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">车辆</CardTitle>
                         <Car className="h-4 w-4 text-muted-foreground" />
@@ -111,9 +144,7 @@ export default function DashboardPage() {
                 <Card className="col-span-1">
                     <CardHeader>
                         <CardTitle>预约管理</CardTitle>
-                        <CardDescription>
-                            管理您的预约记录
-                        </CardDescription>
+                        <CardDescription>管理您的预约记录</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-col space-y-2">
@@ -123,7 +154,9 @@ export default function DashboardPage() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <span>待确认预约</span>
-                                <span className="font-medium">{pendingAppointments.length}</span>
+                                <span className="font-medium">
+                                    {pendingAppointments.length}
+                                </span>
                             </div>
                             {/* Add logic for upcoming appointments if needed */}
                             {/* <div className="flex items-center justify-between">
@@ -134,9 +167,7 @@ export default function DashboardPage() {
                     </CardContent>
                     <CardFooter>
                         <Button asChild className="w-full">
-                            <Link href="/dashboard/appointments">
-                                查看所有预约
-                            </Link>
+                            <Link href="/dashboard/appointments">查看所有预约</Link>
                         </Button>
                     </CardFooter>
                 </Card>
@@ -145,9 +176,7 @@ export default function DashboardPage() {
                     <Card className="col-span-1">
                         <CardHeader>
                             <CardTitle>人员管理</CardTitle>
-                            <CardDescription>
-                                管理您的员工信息
-                            </CardDescription>
+                            <CardDescription>管理您的员工信息</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="flex flex-col space-y-2">
@@ -168,9 +197,7 @@ export default function DashboardPage() {
                         </CardContent>
                         <CardFooter>
                             <Button asChild className="w-full">
-                                <Link href="/dashboard/staff">
-                                    查看所有员工
-                                </Link>
+                                <Link href="/dashboard/staff">查看所有员工</Link>
                             </Button>
                         </CardFooter>
                     </Card>
@@ -181,9 +208,7 @@ export default function DashboardPage() {
                         <Card className="col-span-1">
                             <CardHeader>
                                 <CardTitle>车辆管理</CardTitle>
-                                <CardDescription>
-                                    管理您的车辆信息
-                                </CardDescription>
+                                <CardDescription>管理您的车辆信息</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-col space-y-2">
@@ -193,15 +218,15 @@ export default function DashboardPage() {
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span>可用车辆</span>
-                                        <span className="font-medium">{availableVehicles.length}</span>
+                                        <span className="font-medium">
+                                            {availableVehicles.length}
+                                        </span>
                                     </div>
                                 </div>
                             </CardContent>
                             <CardFooter>
                                 <Button asChild className="w-full">
-                                    <Link href="/dashboard/vehicles">
-                                        查看所有车辆
-                                    </Link>
+                                    <Link href="/dashboard/vehicles">查看所有车辆</Link>
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -209,5 +234,5 @@ export default function DashboardPage() {
                 )}
             </div>
         </div>
-    )
-} 
+    );
+}

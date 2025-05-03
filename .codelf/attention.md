@@ -93,3 +93,6 @@ root
 - Access control mechanisms
 	* Implement role-based access control
 	...
+- Robust Database Connection:
+	* Utilize the singleton pattern (`getDb`) in `src/lib/db.ts` to manage the SQLite connection.
+	* Ensure proper error handling during database initialization and operations.
