@@ -5,6 +5,8 @@ export interface User {
     id: number;
     username: string;
     password: string;
+    name: string;
+    email?: string | null;
     role: "admin" | "user";
     createdAt: string;
 }
@@ -16,7 +18,7 @@ export const findUserByUsernameWithPassword = (username: string): User | null =>
     try {
         const db = getDb();
         const query = db.query<User, [string]>(
-            "SELECT id, username, password, role, createdAt FROM users WHERE username = ?",
+            "SELECT id, username, password, name, email, role, createdAt FROM users WHERE username = ?",
         );
         return query.get(username);
     } catch (error) {
@@ -32,7 +34,7 @@ export const findUserByUsername = (username: string): Omit<User, "password"> | n
     try {
         const db = getDb();
         const query = db.query<Omit<User, "password">, [string]>(
-            "SELECT id, username, role, createdAt FROM users WHERE username = ?",
+            "SELECT id, username, name, email, role, createdAt FROM users WHERE username = ?",
         );
         return query.get(username);
     } catch (error) {
@@ -48,7 +50,7 @@ export const getAllUsers = (): Omit<User, "password">[] => {
     try {
         const db = getDb();
         const query = db.query<Omit<User, "password">, []>(
-            "SELECT id, username, role, createdAt FROM users ORDER BY createdAt DESC",
+            "SELECT id, username, name, email, role, createdAt FROM users ORDER BY createdAt DESC",
         );
         return query.all();
     } catch (error) {
@@ -65,6 +67,8 @@ export const createUser = (
     username: string,
     password: string,
     role: User["role"] = "user",
+    name: string = "",
+    email: string | null = null
 ): Omit<User, "password"> | null => {
     try {
         const db = getDb();
@@ -76,12 +80,12 @@ export const createUser = (
         }
 
         // Insert new user
-        const insertQuery = db.query<User, [string, string, User["role"]]>(
-            "INSERT INTO users (username, password, role) VALUES (?, ?, ?) RETURNING id, username, role, createdAt",
+        const insertQuery = db.query<User, [string, string, User["role"], string, string | null]>(
+            "INSERT INTO users (username, password, role, name, email) VALUES (?, ?, ?, ?, ?) RETURNING id, username, role, name, email, createdAt",
         );
 
         // Return user without password
-        const newUser = insertQuery.get(username, password, role);
+        const newUser = insertQuery.get(username, password, role, name, email);
         if (!newUser) return null;
 
         // Omit password from the returned user
@@ -99,12 +103,12 @@ export const createUser = (
  */
 export const updateUser = (
     id: number,
-    data: Partial<Pick<User, "username" | "password" | "role">>,
+    data: Partial<Pick<User, "username" | "password" | "role" | "name" | "email">>,
 ): Omit<User, "password"> | null => {
     try {
         const db = getDb();
         let updateClause = "";
-        const values: (string | number)[] = [];
+        const values: (string | number | null)[] = [];
 
         if (data.username !== undefined) {
             updateClause += "username = ?, ";
@@ -118,11 +122,19 @@ export const updateUser = (
             updateClause += "role = ?, ";
             values.push(data.role);
         }
+        if (data.name !== undefined) {
+            updateClause += "name = ?, ";
+            values.push(data.name);
+        }
+        if (data.email !== undefined) {
+            updateClause += "email = ?, ";
+            values.push(data.email);
+        }
 
         if (values.length === 0) {
             // No fields to update
             const currentUserQuery = db.query<Omit<User, "password">, [number]>(
-                "SELECT id, username, role, createdAt FROM users WHERE id = ?",
+                "SELECT id, username, name, email, role, createdAt FROM users WHERE id = ?",
             );
             return currentUserQuery.get(id);
         }
@@ -131,8 +143,8 @@ export const updateUser = (
         updateClause = updateClause.slice(0, -2);
         values.push(id); // Add id for the WHERE clause
 
-        const updateQuery = db.query<User, (string | number)[]>(
-            `UPDATE users SET ${updateClause} WHERE id = ? RETURNING id, username, role, createdAt`,
+        const updateQuery = db.query<User, (string | number | null)[]>(
+            `UPDATE users SET ${updateClause} WHERE id = ? RETURNING id, username, name, email, role, createdAt`,
         );
 
         const updatedUser = updateQuery.get(...values);

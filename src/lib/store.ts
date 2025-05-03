@@ -7,9 +7,11 @@ export {
 	useCustomerStore,
 	useStaffStore,
 	useVehicleStore,
+	useUserStore,
 	type User,
 	type Appointment,
 	type CustomerUser,
 	type Staff,
 	type Vehicle,
+	type AdminUser,
 } from "./stores";

@@ -3,11 +3,11 @@ import { persist } from "zustand/middleware";
 
 // 用户类型定义
 export interface User {
-    id: string;
+    id: string | number;
     username: string;
     name: string;
     role: "admin" | "user";
-    email?: string;
+    email?: string | null;
 }
 
 // 认证状态类型定义
