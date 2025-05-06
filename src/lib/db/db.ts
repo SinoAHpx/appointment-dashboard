@@ -413,21 +413,58 @@ export const getDb = () => {
   return _db;
 };
 
+// Close the database connection
+export const closeDb = () => {
+  if (_db) {
+    try {
+      _db.close();
+      _db = null;
+      console.log("Database connection closed successfully");
+    } catch (error) {
+      console.error("Error closing database connection:", error);
+    }
+  }
+};
+
+// Helper to safely use database in API routes
+export const withDbConnection = async <T>(callback: (db: Database) => Promise<T> | T): Promise<T> => {
+  // During build, return mock data to avoid database operations
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    console.log('Skipping database operation during build');
+    return {} as T;
+  }
+  
+  const db = getDb();
+  try {
+    return await callback(db);
+  } finally {
+    // We don't actually close the connection here since SQLite is designed to be kept open
+    // But we could if we wanted to enforce strict connection management
+    // closeDb();
+  }
+};
+
 // Initialize the database on module import
 let db: Database;
 
-try {
-  console.log("Initializing database during module import...");
-  db = getDb();
-  console.log("Database initialized successfully and ready for use");
-} catch (error) {
-  console.error("Critical error during database initialization:", error);
-  // In a real app, you might want to handle this error more gracefully
-  throw new Error(
-    `Database initialization failed: ${error instanceof Error ? error.message : String(error)}`,
-  );
+// Only initialize database in development and when actually used
+if (process.env.NODE_ENV !== 'production' && process.env.NEXT_PHASE !== 'phase-production-build') {
+  try {
+    console.log("Initializing database during module import...");
+    db = getDb();
+    console.log("Database initialized successfully and ready for use");
+  } catch (error) {
+    console.error("Critical error during database initialization:", error);
+    // In a real app, you might want to handle this error more gracefully
+    throw new Error(
+      `Database initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+} else {
+  // In production or during build, we'll initialize lazily on first actual use
+  console.log("Skipping immediate database initialization during build/production");
 }
 
-// Export the database
+// Export the database getter function instead of the instance directly
 export { db };
-export default db;
+export default getDb; // Export the getter function as default

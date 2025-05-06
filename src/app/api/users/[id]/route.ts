@@ -4,10 +4,10 @@ import { NextResponse } from "next/server";
 // Update a user by ID
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = Number(params.id);
+        const id = Number((await params).id)
 
         if (isNaN(id)) {
             return NextResponse.json(
@@ -70,10 +70,10 @@ export async function PUT(
 // Delete a user by ID
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = Number(params.id);
+        const id = Number((await params).id);
 
         if (isNaN(id)) {
             return NextResponse.json(
