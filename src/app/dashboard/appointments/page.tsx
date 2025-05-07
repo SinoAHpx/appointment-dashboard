@@ -160,10 +160,20 @@ export default function AppointmentsPage() {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex justify-between items-center">
+			{/* <div className="flex justify-between items-center">
 				<h2 className="text-2xl font-bold tracking-tight">
 					{isAdmin() ? "预约管理" : "我的预约"}
 				</h2>
+				
+			</div> */}
+
+			{/* 搜索框 */}
+			<div className="flex justify-between items-center">
+				<AppointmentSearch
+					searchQuery={searchQuery}
+					onSearchChange={handleSearchChange}
+					placeholder={isAdmin() ? "搜索联系人、电话或地址" : "搜索预约记录..."}
+				/>
 				<Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
 					<DialogTrigger asChild>
 						<Button>
@@ -185,15 +195,6 @@ export default function AppointmentsPage() {
 						/>
 					</DialogContent>
 				</Dialog>
-			</div>
-
-			{/* 搜索框 */}
-			<div className="flex justify-between items-center">
-				<AppointmentSearch
-					searchQuery={searchQuery}
-					onSearchChange={handleSearchChange}
-					placeholder={isAdmin() ? "搜索联系人、电话或地址" : "搜索预约记录..."}
-				/>
 			</div>
 
 			{/* 不同用户角色展示不同的界面 */}

@@ -28,11 +28,11 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
 
     return (
         <Card className="mb-4 overflow-hidden">
-            <CardHeader className="bg-gray-50 pb-2">
-                <div className="flex justify-between items-center">
-                    <Badge variant="outline" className="font-mono font-medium">
+            <CardHeader className="py-2 flex justify-between items-center">
+                <div className="flex flex-1 justify-between items-center">
+                    <h1 className="text-xl font-bold">
                         {appointment.appointmentId || `APT-${appointment.id}`}
-                    </Badge>
+                    </h1>
                     <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusData.color}`}>
                         {getIconComponent(statusData.icon)}
                         <span>{statusData.label}</span>

@@ -64,7 +64,7 @@ export default function DashboardLayout({
         : [{ name: "我的预约", path: "/dashboard/appointments", icon: Calendar }];
 
     // 标题文本根据用户角色不同
-    const headerTitle = isAdmin() ? "预约管理系统" : "我的预约";
+    const headerTitle = isAdmin() ? "预约管理系统" : "预约系统";
 
     return (
         <>
@@ -117,7 +117,7 @@ export default function DashboardLayout({
                                     </nav>
                                 </aside>
                             ) : null}
-                            <main className={`flex-1 bg-gray-50 p-6 ${!isAdmin() ? 'max-w-5xl mx-auto w-full' : ''}`}>
+                            <main className={`flex-1 bg-gray-50 p-6 ${!isAdmin() ? 'w-full' : ''}`}>
                                 {children}
                             </main>
                         </div>

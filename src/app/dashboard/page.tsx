@@ -190,7 +190,7 @@ export default function DashboardPage() {
                         </CardFooter>
                     </Card>
 
-                    {isAdmin && (
+                    {isAdmin() && (
                         <Card className="col-span-1">
                             <CardHeader>
                                 <CardTitle>人员管理</CardTitle>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                             </CardFooter>
                         </Card>
                     )}
-                    {isAdmin && (
+                    {isAdmin() && (
                         <div className="grid gap-4 grid-cols-1">
                             {/* Vehicle Management Card - Adjusted grid for removal of Reports */}
                             <Card className="col-span-1">
