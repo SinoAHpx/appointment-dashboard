@@ -12,8 +12,7 @@ import {
     Users,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -37,6 +36,13 @@ export default function DashboardLayout({
         return () => clearTimeout(timer);
     }, []);
 
+    // 检查是否为常规用户，并且不在预约页面，如果是则重定向到预约页面
+    useEffect(() => {
+        if (isReady && isAuthenticated && !isAdmin() && pathname === "/dashboard") {
+            router.push("/dashboard/appointments");
+        }
+    }, [isReady, isAuthenticated, isAdmin, pathname, router]);
+
     const handleLogout = async () => {
         await logout();
         toast("已退出登录");
@@ -45,20 +51,20 @@ export default function DashboardLayout({
 
     // 所有可用的导航项目
     const allNavItems = [
-        { name: "仪表盘", path: "/dashboard", icon: Home },
+        { name: "系统概览", path: "/dashboard", icon: Home },
         { name: "预约管理", path: "/dashboard/appointments", icon: Calendar },
         { name: "用户管理", path: "/dashboard/users", icon: Users },
         { name: "人员管理", path: "/dashboard/staff", icon: Briefcase },
         { name: "车辆管理", path: "/dashboard/vehicles", icon: Car },
     ];
 
-    // 根据用户角色过滤导航项目
+    // 根据用户角色过滤导航项目 - 普通用户只能访问预约页面
     const navItems = isAdmin()
         ? allNavItems
-        : allNavItems.filter(
-            (item) =>
-                item.path === "/dashboard" || item.path === "/dashboard/appointments",
-        );
+        : [{ name: "我的预约", path: "/dashboard/appointments", icon: Calendar }];
+
+    // 标题文本根据用户角色不同
+    const headerTitle = isAdmin() ? "预约管理系统" : "我的预约";
 
     return (
         <>
@@ -68,7 +74,7 @@ export default function DashboardLayout({
                     <div className="flex min-h-screen flex-col">
                         <header className="bg-white border-b border-gray-200 shadow-sm">
                             <div className="w-full px-4 py-3 flex justify-between items-center">
-                                <h1 className="text-xl font-bold">预约管理系统</h1>
+                                <h1 className="text-xl font-bold">{headerTitle}</h1>
                                 <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2 text-sm text-gray-600">
                                         <User size={16} />
@@ -84,31 +90,36 @@ export default function DashboardLayout({
                             </div>
                         </header>
                         <div className="flex flex-1">
-                            <aside className="w-64 bg-white border-r border-gray-200 shadow-sm">
-                                <nav className="p-4">
-                                    <ul className="space-y-2">
-                                        {navItems.map((item) => {
-                                            const Icon = item.icon;
-                                            const isActive = pathname === item.path;
-                                            return (
-                                                <li key={item.path}>
-                                                    <Link
-                                                        href={item.path}
-                                                        className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${isActive
-                                                            ? "bg-primary/10 text-primary font-medium"
-                                                            : "hover:bg-gray-100"
-                                                            }`}
-                                                    >
-                                                        <Icon size={18} />
-                                                        <span>{item.name}</span>
-                                                    </Link>
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </nav>
-                            </aside>
-                            <main className="flex-1 bg-gray-50 p-6">{children}</main>
+                            {/* 只有管理员才显示侧边导航栏 */}
+                            {isAdmin() ? (
+                                <aside className="w-64 bg-white border-r border-gray-200 shadow-sm">
+                                    <nav className="p-4">
+                                        <ul className="space-y-2">
+                                            {navItems.map((item) => {
+                                                const Icon = item.icon;
+                                                const isActive = pathname === item.path;
+                                                return (
+                                                    <li key={item.path}>
+                                                        <Link
+                                                            href={item.path}
+                                                            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${isActive
+                                                                ? "bg-primary/10 text-primary font-medium"
+                                                                : "hover:bg-gray-100"
+                                                                }`}
+                                                        >
+                                                            <Icon size={18} />
+                                                            <span>{item.name}</span>
+                                                        </Link>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </nav>
+                                </aside>
+                            ) : null}
+                            <main className={`flex-1 bg-gray-50 p-6 ${!isAdmin() ? 'max-w-5xl mx-auto w-full' : ''}`}>
+                                {children}
+                            </main>
                         </div>
                     </div>
                 </AuthGuard>

@@ -93,6 +93,130 @@ const documentTypes = [
 	{ value: "small", label: "小型文件盒" },
 ];
 
+// 用户预约卡片组件 - 为普通用户设计的简化版视图
+function UserAppointmentCard({ appointment }: { appointment: Appointment }) {
+	const getStatusData = (status: string) => {
+		switch (status) {
+			case "pending":
+				return {
+					label: "待处理",
+					color: "bg-yellow-100 text-yellow-800 border-yellow-300",
+					icon: <Clock size={16} className="text-yellow-600" />,
+				};
+			case "confirmed":
+				return {
+					label: "已确认",
+					color: "bg-blue-100 text-blue-800 border-blue-300",
+					icon: <CheckCircle size={16} className="text-blue-600" />,
+				};
+			case "in_progress":
+				return {
+					label: "处理中",
+					color: "bg-purple-100 text-purple-800 border-purple-300",
+					icon: <RotateCcw size={16} className="text-purple-600" />,
+				};
+			case "completed":
+				return {
+					label: "已完成",
+					color: "bg-green-100 text-green-800 border-green-300",
+					icon: <CheckCircle size={16} className="text-green-600" />,
+				};
+			case "cancelled":
+				return {
+					label: "已取消",
+					color: "bg-red-100 text-red-800 border-red-300",
+					icon: <XCircle size={16} className="text-red-600" />,
+				};
+			default:
+				return {
+					label: "未知状态",
+					color: "bg-gray-100 text-gray-800 border-gray-300",
+					icon: <Clock size={16} className="text-gray-600" />,
+				};
+		}
+	};
+
+	const formatDateTime = (dateTimeStr: string) => {
+		try {
+			const date = new Date(dateTimeStr);
+			return new Intl.DateTimeFormat("zh-CN", {
+				year: "numeric",
+				month: "2-digit",
+				day: "2-digit",
+				hour: "2-digit",
+				minute: "2-digit",
+			}).format(date);
+		} catch (e) {
+			return dateTimeStr || "未设置时间";
+		}
+	};
+
+	const statusData = getStatusData(appointment.status);
+	const documentType = documentTypes.find(t => t.value === appointment.documentType)?.label || appointment.documentType;
+
+	return (
+		<Card className="mb-4 overflow-hidden">
+			<CardHeader className="bg-gray-50 pb-2">
+				<div className="flex justify-between items-center">
+					<Badge variant="outline" className="font-mono font-medium">
+						{appointment.appointmentId || `APT-${appointment.id}`}
+					</Badge>
+					<div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusData.color}`}>
+						{statusData.icon}
+						<span>{statusData.label}</span>
+					</div>
+				</div>
+			</CardHeader>
+			<CardContent className="pt-4">
+				<div className="grid gap-3">
+					<div className="flex items-center gap-2">
+						<Calendar size={16} className="text-gray-500" />
+						<span>预约时间：{formatDateTime(appointment.dateTime)}</span>
+					</div>
+					<div className="flex items-center gap-2">
+						<User size={16} className="text-gray-500" />
+						<span>联系人：{appointment.contactName}</span>
+					</div>
+					<div className="flex items-center gap-2">
+						<Phone size={16} className="text-gray-500" />
+						<span>联系电话：{appointment.contactPhone}</span>
+					</div>
+					<div className="flex items-center gap-2">
+						<MapPin size={16} className="text-gray-500" />
+						<span>联系地址：{appointment.contactAddress}</span>
+					</div>
+					<div className="flex items-center gap-2">
+						<FileText size={16} className="text-gray-500" />
+						<span>文件类型：{documentType}</span>
+					</div>
+					<div className="flex items-center gap-2">
+						<LayoutList size={16} className="text-gray-500" />
+						<span>文件数量：{appointment.documentCount}个</span>
+					</div>
+					{appointment.notes && (
+						<div className="flex items-start gap-2 mt-2 pt-2 border-t border-gray-100">
+							<span className="text-gray-500">备注：</span>
+							<p className="text-gray-700">{appointment.notes}</p>
+						</div>
+					)}
+					{appointment.processingNotes && (
+						<div className="flex items-start gap-2 mt-2 pt-2 border-t border-gray-100">
+							<span className="text-gray-500">处理备注：</span>
+							<p className="text-gray-700">{appointment.processingNotes}</p>
+						</div>
+					)}
+					{appointment.estimatedCompletionTime && (
+						<div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+							<Clock size={16} className="text-gray-500" />
+							<span>预计完成时间：{formatDateTime(appointment.estimatedCompletionTime)}</span>
+						</div>
+					)}
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
+
 export default function AppointmentsPage() {
 	const { isAuthenticated, isAdmin } = useAuthStore();
 	const router = useRouter();
@@ -461,15 +585,17 @@ export default function AppointmentsPage() {
 	return (
 		<div className="space-y-6">
 			<div className="flex justify-between items-center">
-				<h1 className="text-2xl font-bold">预约管理</h1>
+				<h2 className="text-2xl font-bold tracking-tight">
+					{isAdmin() ? "预约管理" : "我的预约"}
+				</h2>
 				<Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
 					<DialogTrigger asChild>
-						<Button className="flex items-center gap-1">
-							<Plus size={16} />
-							<span>新建预约</span>
+						<Button>
+							<Plus className="mr-2 h-4 w-4" />
+							新建预约
 						</Button>
 					</DialogTrigger>
-					<DialogContent className="sm:max-w-[500px]">
+					<DialogContent className="max-w-3xl">
 						<DialogHeader>
 							<DialogTitle>新建预约</DialogTitle>
 							<DialogDescription>
@@ -577,169 +703,271 @@ export default function AppointmentsPage() {
 				</Dialog>
 			</div>
 
-			<div className="flex justify-between items-center">
-				<div className="relative w-80">
-					<Search
-						className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400"
-						size={18}
-					/>
-					<Input
-						className="pl-8"
-						placeholder="搜索联系人、电话或地址"
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-					/>
-				</div>
-			</div>
+			{/* 不同用户角色展示不同的界面 */}
+			{isAdmin() ? (
+				<>
+					<div className="flex justify-between items-center">
+						<div className="relative w-80">
+							<Search
+								className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400"
+								size={18}
+							/>
+							<Input
+								className="pl-8"
+								placeholder="搜索联系人、电话或地址"
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+							/>
+						</div>
+					</div>
 
-			<Card>
-				<CardContent className="pt-6">
-					<Table>
-						<TableCaption>预约列表</TableCaption>
-						<TableHeader>
-							<TableRow>
-								<TableHead>预约编号</TableHead>
-								<TableHead>预约时间</TableHead>
-								<TableHead>联系人</TableHead>
-								<TableHead>联系电话</TableHead>
-								<TableHead>地址</TableHead>
-								<TableHead>文件数量</TableHead>
-								<TableHead>文件类型</TableHead>
-								<TableHead>状态</TableHead>
-								{isAdmin() && (
-									<TableHead className="text-right">操作</TableHead>
-								)}
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{isLoading ? (
-								<TableRow>
-									<TableCell
-										colSpan={isAdmin() ? 9 : 8}
-										className="text-center py-6"
-									>
-										加载中...
-									</TableCell>
-								</TableRow>
-							) : filteredAppointments.length === 0 ? (
-								<TableRow>
-									<TableCell
-										colSpan={isAdmin() ? 9 : 8}
-										className="text-center py-6"
-									>
-										{searchQuery ? "没有找到匹配的预约" : "暂无预约记录"}
-									</TableCell>
-								</TableRow>
-							) : (
-								filteredAppointments.map((appointment) => (
-									<TableRow key={appointment.id}>
-										<TableCell>
-											<Badge variant="outline" className="font-mono font-medium">
-												{appointment.appointmentId || `APT-${appointment.id}`}
-											</Badge>
-										</TableCell>
-										<TableCell>{formatDateTime(appointment.dateTime)}</TableCell>
-										<TableCell>{appointment.contactName}</TableCell>
-										<TableCell>{appointment.contactPhone}</TableCell>
-										<TableCell className="max-w-xs truncate">
-											{appointment.contactAddress}
-										</TableCell>
-										<TableCell>{appointment.documentCount}</TableCell>
-										<TableCell>
-											{documentTypes.find(
-												(t) => t.value === appointment.documentType,
-											)?.label || appointment.documentType}
-										</TableCell>
-										<TableCell>
-											{renderStatusCell(appointment)}
-										</TableCell>
-										{isAdmin() && (
-											<TableCell className="text-right">
-												<div className="flex justify-end gap-2">
-													<TooltipProvider>
-														<Tooltip>
-															<TooltipTrigger asChild>
-																<Button
-																	variant="outline"
-																	size="icon"
-																	onClick={() => handleStartEdit(appointment)}
-																>
-																	<Pencil size={16} />
-																</Button>
-															</TooltipTrigger>
-															<TooltipContent>
-																<p>编辑预约</p>
-															</TooltipContent>
-														</Tooltip>
-													</TooltipProvider>
-													<TooltipProvider>
-														<Tooltip>
-															<TooltipTrigger asChild>
-																<Button
-																	variant="outline"
-																	size="icon"
-																	onClick={() =>
-																		handleDeleteAppointment(appointment.id)
-																	}
-																>
-																	<Trash size={16} />
-																</Button>
-															</TooltipTrigger>
-															<TooltipContent>
-																<p>删除预约</p>
-															</TooltipContent>
-														</Tooltip>
-													</TooltipProvider>
-												</div>
-											</TableCell>
-										)}
+					<Card>
+						<CardContent className="pt-6">
+							<Table>
+								<TableCaption>预约列表</TableCaption>
+								<TableHeader>
+									<TableRow>
+										<TableHead>预约编号</TableHead>
+										<TableHead>预约时间</TableHead>
+										<TableHead>联系人</TableHead>
+										<TableHead>联系电话</TableHead>
+										<TableHead>地址</TableHead>
+										<TableHead>文件数量</TableHead>
+										<TableHead>文件类型</TableHead>
+										<TableHead>状态</TableHead>
+										<TableHead className="text-right">操作</TableHead>
 									</TableRow>
-								))
-							)}
-						</TableBody>
-					</Table>
-
-					{totalPages > 1 && (
-						<div className="mt-4">
-							<Pagination>
-								<PaginationContent>
-									<PaginationItem>
-										<PaginationPrevious
-											onClick={() => setPage((p) => Math.max(1, p - 1))}
-											isActive={page === 1}
-										/>
-									</PaginationItem>
-
-									{Array.from({ length: totalPages }).map((_, i) => (
-										<PaginationItem key={i}>
-											<PaginationLink
-												onClick={() => setPage(i + 1)}
-												isActive={page === i + 1}
-											>
-												{i + 1}
-											</PaginationLink>
+								</TableHeader>
+								<TableBody>
+									{isLoading ? (
+										<TableRow>
+											<TableCell colSpan={9} className="text-center py-6">
+												加载中...
+											</TableCell>
+										</TableRow>
+									) : filteredAppointments.length === 0 ? (
+										<TableRow>
+											<TableCell colSpan={9} className="text-center py-6">
+												{searchQuery ? "没有找到匹配的预约" : "暂无预约记录"}
+											</TableCell>
+										</TableRow>
+									) : (
+										filteredAppointments.map((appointment) => (
+											<TableRow key={appointment.id}>
+												<TableCell>
+													<Badge variant="outline" className="font-mono font-medium">
+														{appointment.appointmentId || `APT-${appointment.id}`}
+													</Badge>
+												</TableCell>
+												<TableCell>{formatDateTime(appointment.dateTime)}</TableCell>
+												<TableCell>{appointment.contactName}</TableCell>
+												<TableCell>{appointment.contactPhone}</TableCell>
+												<TableCell className="max-w-xs truncate">
+													{appointment.contactAddress}
+												</TableCell>
+												<TableCell>{appointment.documentCount}</TableCell>
+												<TableCell>
+													{documentTypes.find(
+														(t) => t.value === appointment.documentType,
+													)?.label || appointment.documentType}
+												</TableCell>
+												<TableCell>
+													{renderStatusCell(appointment)}
+												</TableCell>
+												<TableCell className="text-right">
+													<div className="flex justify-end gap-2">
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Button
+																		variant="outline"
+																		size="icon"
+																		onClick={() => handleStartEdit(appointment)}
+																	>
+																		<Pencil size={16} />
+																	</Button>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>编辑预约</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Button
+																		variant="outline"
+																		size="icon"
+																		onClick={() =>
+																			handleDeleteAppointment(appointment.id)
+																		}
+																	>
+																		<Trash size={16} />
+																	</Button>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>删除预约</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													</div>
+												</TableCell>
+											</TableRow>
+										))
+									)}
+								</TableBody>
+							</Table>
+						</CardContent>
+						{totalPages > 1 && (
+							<CardFooter>
+								<Pagination className="w-full justify-center">
+									<PaginationContent>
+										<PaginationItem>
+											<PaginationPrevious
+												href="#"
+												onClick={(e) => {
+													e.preventDefault();
+													if (page > 1) setPage(page - 1);
+												}}
+												className={page <= 1 ? "pointer-events-none opacity-50" : ""}
+											/>
 										</PaginationItem>
-									))}
+										{Array.from({ length: totalPages }).map((_, i) => (
+											<PaginationItem key={i}>
+												<PaginationLink
+													href="#"
+													onClick={(e) => {
+														e.preventDefault();
+														setPage(i + 1);
+													}}
+													isActive={page === i + 1}
+												>
+													{i + 1}
+												</PaginationLink>
+											</PaginationItem>
+										))}
+										<PaginationItem>
+											<PaginationNext
+												href="#"
+												onClick={(e) => {
+													e.preventDefault();
+													if (page < totalPages) setPage(page + 1);
+												}}
+												className={
+													page >= totalPages ? "pointer-events-none opacity-50" : ""
+												}
+											/>
+										</PaginationItem>
+									</PaginationContent>
+								</Pagination>
+							</CardFooter>
+						)}
+					</Card>
+				</>
+			) : (
+				// 普通用户的预约卡片视图
+				<div className="space-y-2">
+					<div className="flex justify-between items-center mb-4">
+						<div className="relative w-80">
+							<Search
+								className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400"
+								size={18}
+							/>
+							<Input
+								className="pl-8"
+								placeholder="搜索预约记录..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+							/>
+						</div>
+					</div>
 
-									<PaginationItem>
-										<PaginationNext
-											onClick={() =>
-												setPage((p) => Math.min(totalPages, p + 1))
-											}
-											isActive={page === totalPages}
-										/>
-									</PaginationItem>
-								</PaginationContent>
-							</Pagination>
+					{isLoading ? (
+						<div className="text-center py-12">
+							<p>加载中...</p>
+						</div>
+					) : filteredAppointments.length === 0 ? (
+						<div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+							<FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+							<h3 className="text-lg font-medium text-gray-900 mb-1">
+								{searchQuery ? "没有找到匹配的预约" : "暂无预约记录"}
+							</h3>
+							<p className="text-gray-500 mb-4">
+								{searchQuery
+									? "请尝试使用其他关键词搜索"
+									: "点击上方的「新建预约」按钮创建您的第一个预约"}
+							</p>
+							{searchQuery && (
+								<Button
+									variant="outline"
+									onClick={() => setSearchQuery("")}
+								>
+									清除搜索
+								</Button>
+							)}
+						</div>
+					) : (
+						<div>
+							{filteredAppointments.map((appointment) => (
+								<UserAppointmentCard
+									key={appointment.id}
+									appointment={appointment}
+								/>
+							))}
+
+							{totalPages > 1 && (
+								<div className="flex justify-center mt-6">
+									<Pagination>
+										<PaginationContent>
+											<PaginationItem>
+												<PaginationPrevious
+													href="#"
+													onClick={(e) => {
+														e.preventDefault();
+														if (page > 1) setPage(page - 1);
+													}}
+													className={page <= 1 ? "pointer-events-none opacity-50" : ""}
+												/>
+											</PaginationItem>
+											{Array.from({ length: totalPages }).map((_, i) => (
+												<PaginationItem key={i}>
+													<PaginationLink
+														href="#"
+														onClick={(e) => {
+															e.preventDefault();
+															setPage(i + 1);
+														}}
+														isActive={page === i + 1}
+													>
+														{i + 1}
+													</PaginationLink>
+												</PaginationItem>
+											))}
+											<PaginationItem>
+												<PaginationNext
+													href="#"
+													onClick={(e) => {
+														e.preventDefault();
+														if (page < totalPages) setPage(page + 1);
+													}}
+													className={
+														page >= totalPages ? "pointer-events-none opacity-50" : ""
+													}
+												/>
+											</PaginationItem>
+										</PaginationContent>
+									</Pagination>
+								</div>
+							)}
 						</div>
 					)}
-				</CardContent>
-			</Card>
+				</div>
+			)}
 
-			{/* 编辑预约对话框 - 只有管理员能访问 */}
+			{/* 编辑预约对话框 - 仅管理员可见和使用 */}
 			{isAdmin() && (
 				<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-					<DialogContent className="sm:max-w-[500px]">
+					<DialogContent className="max-w-3xl">
 						<DialogHeader>
 							<DialogTitle>编辑预约</DialogTitle>
 							<DialogDescription>修改预约信息</DialogDescription>
