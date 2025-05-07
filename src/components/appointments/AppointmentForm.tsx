@@ -214,7 +214,7 @@ export function AppointmentForm({
     };
 
     return (
-        <ScrollArea className="h-[70vh] pr-4">
+        <>
             <div className="grid gap-3 py-2">
                 <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
@@ -253,26 +253,25 @@ export function AppointmentForm({
                         />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="documentCount">文件数量 *</Label>
+                        <Label htmlFor="contactAddress">联系地址 *</Label>
                         <Input
-                            id="documentCount"
-                            name="documentCount"
-                            type="number"
-                            min="1"
-                            value={formData.documentCount}
+                            id="contactAddress"
+                            name="contactAddress"
+                            value={formData.contactAddress}
                             onChange={handleInputChange}
+                            placeholder="请输入联系地址"
                             required
                         />
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 w-full">
                         <Label htmlFor="documentType">文件类型 *</Label>
                         <Select
                             value={formData.documentType}
                             onValueChange={(value) => handleSelectChange("documentType", value)}
                         >
-                            <SelectTrigger id="documentType">
+                            <SelectTrigger id="documentType" className="w-full">
                                 <SelectValue placeholder="选择文件类型" />
                             </SelectTrigger>
                             <SelectContent>
@@ -284,15 +283,17 @@ export function AppointmentForm({
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="contactAddress">联系地址 *</Label>
+                    <div className="flex flex-col gap-1.5 w-full">
+                        <Label htmlFor="documentCount">文件数量 *</Label>
                         <Input
-                            id="contactAddress"
-                            name="contactAddress"
-                            value={formData.contactAddress}
+                            id="documentCount"
+                            name="documentCount"
+                            type="number"
+                            min="1"
+                            value={formData.documentCount}
                             onChange={handleInputChange}
-                            placeholder="请输入联系地址"
                             required
+                            className="w-full"
                         />
                     </div>
                 </div>
@@ -315,18 +316,18 @@ export function AppointmentForm({
                     <>
                         <Separator className="my-1" />
 
-                        <div className="flex justify-between">
+                        <div className="grid grid-cols-2 gap-3">
                             {/* 状态选择 */}
-                            <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-col gap-1.5 w-full">
                                 <Label htmlFor="status">状态 *</Label>
                                 <Select
                                     value={formData.status}
                                     onValueChange={(value) => handleSelectChange("status", value)}
                                 >
-                                    <SelectTrigger id="status">
+                                    <SelectTrigger id="status" className="w-full">
                                         <SelectValue placeholder="选择状态" />
                                     </SelectTrigger>
-                                    <SelectContent className="w-full">
+                                    <SelectContent>
                                         <SelectItem value="pending">待确认</SelectItem>
                                         <SelectItem value="confirmed">已确认</SelectItem>
                                         <SelectItem value="in_progress">处理中</SelectItem>
@@ -337,7 +338,7 @@ export function AppointmentForm({
                             </div>
 
                             {/* 预计完成时间 */}
-                            <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-col gap-1.5 w-full">
                                 <Label htmlFor="estimatedCompletionTime">预计完成时间</Label>
                                 <Input
                                     id="estimatedCompletionTime"
@@ -345,6 +346,7 @@ export function AppointmentForm({
                                     type="datetime-local"
                                     value={formData.estimatedCompletionTime || ""}
                                     onChange={handleInputChange}
+                                    className="w-full"
                                 />
                             </div>
                         </div>
@@ -483,23 +485,21 @@ export function AppointmentForm({
                         </div>
                     </>
                 )}
-
-                {/* Footer with actions */}
-                <DialogFooter className="pt-3">
-                    <DialogClose asChild>
-                        <Button type="button" variant="outline">
-                            取消
-                        </Button>
-                    </DialogClose>
-                    <Button
-                        type="submit"
-                        onClick={handleSubmit}
-                        disabled={!isFormValid()}
-                    >
-                        {submitLabel}
-                    </Button>
-                </DialogFooter>
             </div>
-        </ScrollArea>
+            <DialogFooter className="mt-6">
+                <DialogClose asChild>
+                    <Button type="button" variant="outline">
+                        取消
+                    </Button>
+                </DialogClose>
+                <Button
+                    type="submit"
+                    onClick={handleSubmit}
+                    disabled={!isFormValid()}
+                >
+                    {submitLabel}
+                </Button>
+            </DialogFooter>
+        </>
     );
 } 
