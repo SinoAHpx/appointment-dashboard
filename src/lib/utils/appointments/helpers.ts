@@ -6,6 +6,8 @@ export const documentTypes = [
     { value: "standard", label: "普通文件袋" },
     { value: "large", label: "大型文件盒" },
     { value: "small", label: "小型文件盒" },
+    { value: "electromagnetic", label: "电磁介质" },
+    { value: "other", label: "其他介质" },
 ];
 
 // Get status display data

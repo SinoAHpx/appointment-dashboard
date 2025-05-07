@@ -225,8 +225,8 @@ export default function AppointmentsPage() {
 			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
 				<DialogContent className="max-w-3xl">
 					<DialogHeader>
-						<DialogTitle>编辑预约</DialogTitle>
-						<DialogDescription>修改预约信息</DialogDescription>
+						<DialogTitle>处理预约</DialogTitle>
+						<DialogDescription>更新预约信息</DialogDescription>
 					</DialogHeader>
 					{editingAppointment && (
 						<AppointmentForm

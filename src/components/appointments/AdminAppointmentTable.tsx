@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/tooltip";
 import { type Appointment } from "@/lib/stores/appointments";
 import { documentTypes, formatDateTime, getStatusColor, getStatusLabel } from "@/lib/utils/appointments/helpers";
-import { CheckCircle, Clock, Pencil, RotateCcw, Trash, Truck, XCircle } from "lucide-react";
+import { CheckCircle, Clock, Pencil, RotateCcw, Trash, Truck, Users, Car, XCircle } from "lucide-react";
 import {
     Pagination,
     PaginationContent,
@@ -65,72 +65,6 @@ export function AdminAppointmentTable({
                 >
                     {getStatusLabel(appointment.status)}
                 </span>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="ml-2 h-7 px-2 text-xs"
-                        >
-                            处理
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-56 p-2">
-                        <div className="grid gap-1">
-                            <h4 className="text-sm font-semibold mb-1">更新状态</h4>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`justify-start text-xs ${appointment.status === "pending" ? "bg-secondary" : ""}`}
-                                onClick={() => onStatusUpdate(appointment.id, "pending")}
-                                disabled={appointment.status === "pending"}
-                            >
-                                <RotateCcw className="mr-2 h-4 w-4" />
-                                待确认
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`justify-start text-xs ${appointment.status === "confirmed" ? "bg-secondary" : ""}`}
-                                onClick={() => onStatusUpdate(appointment.id, "confirmed")}
-                                disabled={appointment.status === "confirmed"}
-                            >
-                                <Clock className="mr-2 h-4 w-4" />
-                                已确认
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`justify-start text-xs ${appointment.status === "in_progress" ? "bg-secondary" : ""}`}
-                                onClick={() => onStatusUpdate(appointment.id, "in_progress")}
-                                disabled={appointment.status === "in_progress"}
-                            >
-                                <Truck className="mr-2 h-4 w-4" />
-                                处理中
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`justify-start text-xs ${appointment.status === "completed" ? "bg-secondary" : ""}`}
-                                onClick={() => onStatusUpdate(appointment.id, "completed")}
-                                disabled={appointment.status === "completed"}
-                            >
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                已完成
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`justify-start text-xs ${appointment.status === "cancelled" ? "bg-secondary" : ""}`}
-                                onClick={() => onStatusUpdate(appointment.id, "cancelled")}
-                                disabled={appointment.status === "cancelled"}
-                            >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                已取消
-                            </Button>
-                        </div>
-                    </PopoverContent>
-                </Popover>
             </div>
         );
     };
@@ -203,7 +137,7 @@ export function AdminAppointmentTable({
                                                         </Button>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p>编辑预约</p>
+                                                        <p>处理</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </TooltipProvider>
