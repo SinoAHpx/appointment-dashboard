@@ -20,6 +20,7 @@ export interface Appointment {
 	lastUpdatedAt: string | null; // Timestamp of last update
 	createdBy: number | null; // User ID who created the appointment
 	createdAt: string;
+	assignedStaffJson: string | null; // JSON string of assigned staff IDs array
 }
 
 // History record for appointment status changes
@@ -37,7 +38,7 @@ export interface AppointmentHistory {
 // Type for creating a new appointment (omit id and createdAt)
 export type NewAppointmentData = Omit<
 	Appointment,
-	"id" | "appointmentId" | "createdAt" | "staffId" | "vehicleId" | "lastUpdatedBy" | "lastUpdatedAt" | "estimatedCompletionTime" | "processingNotes"
+	"id" | "appointmentId" | "createdAt" | "staffId" | "vehicleId" | "lastUpdatedBy" | "lastUpdatedAt" | "estimatedCompletionTime" | "processingNotes" | "assignedStaffJson"
 > & {
 	staffId?: number | null; // Optional in creation
 	vehicleId?: number | null; // Optional in creation
@@ -50,6 +51,7 @@ export type NewAppointmentData = Omit<
 	documentCount?: number;
 	updatedBy?: number | null;
 	createdBy: number; // Required - the user who created the appointment
+	assignedStaffJson?: string | null; // JSON string of assigned staff IDs array
 };
 
 // Type for updating an appointment (all fields optional)
@@ -65,6 +67,7 @@ export type AppointmentStatusChange = {
 	vehicleId?: number | null;
 	notes?: string | null;
 	updatedBy: number;
+	assignedStaffJson?: string | null; // JSON string of assigned staff IDs array
 };
 
 /**
@@ -74,7 +77,7 @@ export const getAllAppointments = (): Appointment[] => {
 	try {
 		const db = getDb();
 		const query = db.query<Appointment, []>(
-			"SELECT id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt FROM appointments ORDER BY appointmentTime DESC",
+			"SELECT id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson FROM appointments ORDER BY appointmentTime DESC",
 		);
 		return query.all();
 	} catch (error) {
@@ -101,13 +104,13 @@ export const recordAppointmentHistory = (
 ): boolean => {
 	try {
 		const db = getDb();
-		const { appointmentId, status, staffId, vehicleId, notes, updatedBy } = data;
+		const { appointmentId, status, staffId, vehicleId, notes, updatedBy, assignedStaffJson } = data;
 		const now = new Date().toISOString();
 
 		const insertQuery = db.query(
 			`INSERT INTO appointment_history 
-			(appointmentId, status, staffId, vehicleId, notes, updatedBy, updatedAt)
-			VALUES (?, ?, ?, ?, ?, ?, ?)`
+			(appointmentId, status, staffId, vehicleId, notes, updatedBy, updatedAt, assignedStaffJson)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 		);
 
 		const result = insertQuery.run(
@@ -117,7 +120,8 @@ export const recordAppointmentHistory = (
 			vehicleId || null,
 			notes || null,
 			updatedBy,
-			now
+			now,
+			assignedStaffJson || null
 		);
 
 		return result.changes > 0;
@@ -169,6 +173,7 @@ export const addAppointment = (
 			documentCount = 1,
 			updatedBy = null,
 			createdBy,
+			assignedStaffJson = null,
 		} = data;
 
 		// Generate unique appointment ID
@@ -193,13 +198,14 @@ export const addAppointment = (
 				string | null,
 				number | null,
 				string | null,
-				number
+				number,
+				string | null
 			]
 		>(
 			`INSERT INTO appointments 
-       (appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
-       RETURNING id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt`,
+       (appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, assignedStaffJson)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+       RETURNING id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson`,
 		);
 
 		const newAppointment = insertQuery.get(
@@ -218,7 +224,8 @@ export const addAppointment = (
 			processingNotes,
 			updatedBy,
 			updatedBy ? now : null,
-			createdBy
+			createdBy,
+			assignedStaffJson
 		);
 
 		// Record initial status in history if there's an updatedBy value
@@ -229,7 +236,8 @@ export const addAppointment = (
 				staffId,
 				vehicleId,
 				notes: processingNotes,
-				updatedBy
+				updatedBy,
+				assignedStaffJson
 			});
 		}
 
@@ -270,7 +278,7 @@ export const updateAppointment = (
 
 		const updateQuery = db.query<Appointment, any[]>(
 			`UPDATE appointments SET ${setClause} WHERE id = ? 
-       RETURNING id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdAt`,
+       RETURNING id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson`,
 		);
 
 		const updatedAppointment = updateQuery.get(...values);
@@ -283,7 +291,8 @@ export const updateAppointment = (
 				staffId: data.staffId !== undefined ? data.staffId : updatedAppointment.staffId,
 				vehicleId: data.vehicleId !== undefined ? data.vehicleId : updatedAppointment.vehicleId,
 				notes: data.processingNotes !== undefined ? data.processingNotes : updatedAppointment.processingNotes,
-				updatedBy: data.lastUpdatedBy
+				updatedBy: data.lastUpdatedBy,
+				assignedStaffJson: data.assignedStaffJson !== undefined ? data.assignedStaffJson : updatedAppointment.assignedStaffJson
 			});
 		}
 

@@ -59,15 +59,57 @@ export async function GET(request: NextRequest) {
 				history = getAppointmentHistory(parseInt(id));
 			}
 
+			// Parse assignedStaffJson to assignedStaff array if available
+			let assignedStaff: string[] = [];
+			if (appointment.assignedStaffJson) {
+				try {
+					assignedStaff = JSON.parse(appointment.assignedStaffJson);
+				} catch (e) {
+					console.error("Error parsing assignedStaffJson", e);
+				}
+			} else if (appointment.staffId) {
+				// Legacy: If no JSON array but there is a staffId, use it as a single element array
+				assignedStaff = [appointment.staffId.toString()];
+			}
+
+			// Add assignedStaff and assignedVehicle fields to the response
+			const responseAppointment = {
+				...appointment,
+				assignedStaff,
+				assignedVehicle: appointment.vehicleId ? appointment.vehicleId.toString() : null
+			};
+
 			return NextResponse.json({
 				success: true,
-				appointment,
+				appointment: responseAppointment,
 				history: includeHistory && auth.isAdmin ? history : undefined
 			});
 		}
 
+		// Transform appointments for the frontend
+		const transformedAppointments = appointments.map(app => {
+			// Parse assignedStaffJson to assignedStaff array if available
+			let assignedStaff: string[] = [];
+			if (app.assignedStaffJson) {
+				try {
+					assignedStaff = JSON.parse(app.assignedStaffJson);
+				} catch (e) {
+					console.error("Error parsing assignedStaffJson", e);
+				}
+			} else if (app.staffId) {
+				// Legacy: If no JSON array but there is a staffId, use it as a single element array
+				assignedStaff = [app.staffId.toString()];
+			}
+
+			return {
+				...app,
+				assignedStaff,
+				assignedVehicle: app.vehicleId ? app.vehicleId.toString() : null
+			};
+		});
+
 		// 返回所有可访问的预约
-		return NextResponse.json({ success: true, appointments });
+		return NextResponse.json({ success: true, appointments: transformedAppointments });
 	} catch (error) {
 		console.error("获取预约列表失败:", error);
 		return NextResponse.json(
@@ -126,6 +168,24 @@ export async function POST(request: NextRequest) {
 			updatedBy: auth.userId,
 			createdBy: auth.userId, // 记录创建者ID
 		};
+
+		// Handle assignedStaff array
+		if (body.assignedStaff) {
+			// Store as JSON string
+			appointmentData.assignedStaffJson = Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0
+				? JSON.stringify(body.assignedStaff)
+				: null;
+
+			// Use first staff as primary for backward compatibility
+			if (Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0) {
+				appointmentData.staffId = parseInt(body.assignedStaff[0]);
+			}
+		}
+
+		// Handle assignedVehicle
+		if (body.assignedVehicle) {
+			appointmentData.vehicleId = parseInt(body.assignedVehicle);
+		}
 
 		const newAppointment = addAppointment(appointmentData);
 
@@ -212,12 +272,34 @@ export async function PUT(request: NextRequest) {
 
 		// 处理staff和vehicle ID - 只有管理员可以分配
 		if (auth.isAdmin) {
+			// Handle single staffId (legacy) or assignedStaff array (new format)
 			if (body.staffId !== undefined) {
 				updateData.staffId = body.staffId ? parseInt(body.staffId) : null;
 			}
 
+			// Handle assignedStaff array from frontend
+			if (body.assignedStaff !== undefined) {
+				// For now, we still use staffId in the database for the primary staff
+				// If there's at least one staff assigned, use the first one as primary
+				if (Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0) {
+					updateData.staffId = parseInt(body.assignedStaff[0]);
+				} else {
+					updateData.staffId = null;
+				}
+
+				// Store the full staff array as JSON in a separate field for future use
+				updateData.assignedStaffJson = Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0
+					? JSON.stringify(body.assignedStaff)
+					: null;
+			}
+
 			if (body.vehicleId !== undefined) {
 				updateData.vehicleId = body.vehicleId ? parseInt(body.vehicleId) : null;
+			}
+
+			// Handle assignedVehicle from frontend
+			if (body.assignedVehicle !== undefined) {
+				updateData.vehicleId = body.assignedVehicle ? parseInt(body.assignedVehicle) : null;
 			}
 		}
 

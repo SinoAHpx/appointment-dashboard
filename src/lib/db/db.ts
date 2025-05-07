@@ -192,12 +192,24 @@ const initDb = (db: Database) => {
         lastUpdatedAt DATETIME,  -- 最后更新时间
         createdBy INTEGER,  -- 创建者用户ID
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        assignedStaffJson TEXT, -- 分配的员工ID数组的JSON字符串
         FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL, -- Optional: Handle staff deletion
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL, -- Optional: Handle vehicle deletion
         FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL, -- Optional: Handle user deletion
         FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE SET NULL -- Optional: Handle user deletion
       );
     `);
+
+    // Check if the assignedStaffJson column exists in the appointments table
+    const assignedStaffJsonColumnExists = db.query<{ count: number }, []>(
+      "SELECT COUNT(*) as count FROM pragma_table_info('appointments') WHERE name = 'assignedStaffJson'"
+    ).get();
+
+    // Add the assignedStaffJson column if it doesn't exist
+    if (assignedStaffJsonColumnExists && assignedStaffJsonColumnExists.count === 0) {
+      console.log("Adding assignedStaffJson column to appointments table");
+      db.run("ALTER TABLE appointments ADD COLUMN assignedStaffJson TEXT");
+    }
 
     // 检查appointments表中是否存在appointmentId列
     const appointmentIdColumnExists = db.query<{ count: number }, []>(
@@ -352,12 +364,24 @@ const initDb = (db: Database) => {
         notes TEXT,
         updatedBy INTEGER NOT NULL,
         updatedAt DATETIME NOT NULL,
+        assignedStaffJson TEXT,
         FOREIGN KEY (appointmentId) REFERENCES appointments (id) ON DELETE CASCADE,
         FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
         FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
         FOREIGN KEY (updatedBy) REFERENCES users (id) ON DELETE SET NULL
       );
     `);
+
+    // Check if the assignedStaffJson column exists in the appointment_history table
+    const historyAssignedStaffJsonColumnExists = db.query<{ count: number }, []>(
+      "SELECT COUNT(*) as count FROM pragma_table_info('appointment_history') WHERE name = 'assignedStaffJson'"
+    ).get();
+
+    // Add the assignedStaffJson column if it doesn't exist
+    if (historyAssignedStaffJsonColumnExists && historyAssignedStaffJsonColumnExists.count === 0) {
+      console.log("Adding assignedStaffJson column to appointment_history table");
+      db.run("ALTER TABLE appointment_history ADD COLUMN assignedStaffJson TEXT");
+    }
 
     // Create customers table
     db.run(`
@@ -399,6 +423,58 @@ const initDb = (db: Database) => {
     console.log("Database tables:", tables.map((t: any) => t.name).join(", "));
 
     console.log("Database schema initialized successfully");
+
+    // Migrate existing appointments to use assignedStaffJson
+    if (assignedStaffJsonColumnExists && assignedStaffJsonColumnExists.count > 0) {
+      // Check for appointments that have staffId but no assignedStaffJson
+      interface AppointmentToMigrate {
+        id: number;
+        staffId: number;
+      }
+
+      const appointmentsToMigrate = db.query<AppointmentToMigrate, []>(
+        "SELECT id, staffId FROM appointments WHERE staffId IS NOT NULL AND assignedStaffJson IS NULL"
+      ).all();
+
+      if (appointmentsToMigrate.length > 0) {
+        console.log(`Migrating ${appointmentsToMigrate.length} appointments to use assignedStaffJson`);
+
+        const updateQuery = db.query(
+          "UPDATE appointments SET assignedStaffJson = ? WHERE id = ?"
+        );
+
+        for (const app of appointmentsToMigrate) {
+          // Create a JSON array with the single staffId
+          const staffArray = JSON.stringify([app.staffId.toString()]);
+          updateQuery.run(staffArray, app.id);
+        }
+      }
+    }
+
+    // Similarly, migrate appointment history records
+    if (historyAssignedStaffJsonColumnExists && historyAssignedStaffJsonColumnExists.count > 0) {
+      interface HistoryToMigrate {
+        id: number;
+        staffId: number;
+      }
+
+      const historyToMigrate = db.query<HistoryToMigrate, []>(
+        "SELECT id, staffId FROM appointment_history WHERE staffId IS NOT NULL AND assignedStaffJson IS NULL"
+      ).all();
+
+      if (historyToMigrate.length > 0) {
+        console.log(`Migrating ${historyToMigrate.length} appointment history records to use assignedStaffJson`);
+
+        const updateQuery = db.query(
+          "UPDATE appointment_history SET assignedStaffJson = ? WHERE id = ?"
+        );
+
+        for (const record of historyToMigrate) {
+          const staffArray = JSON.stringify([record.staffId.toString()]);
+          updateQuery.run(staffArray, record.id);
+        }
+      }
+    }
   } catch (error) {
     console.error("Error initializing database schema:", error);
     throw error; // Re-throw to allow caller to handle it
