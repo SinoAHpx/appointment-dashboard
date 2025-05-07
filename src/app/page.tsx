@@ -12,15 +12,28 @@ import {
 } from "@/components/ui/card";
 import { useAuthStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
-	const { user, logout } = useAuthStore();
+	const { user, logout, isAuthenticated } = useAuthStore();
 	const router = useRouter();
+
+	// 添加自动重定向到 dashboard 的逻辑
+	useEffect(() => {
+		if (isAuthenticated) {
+			router.push("/dashboard");
+		}
+	}, [isAuthenticated, router]);
 
 	const handleLogout = () => {
 		logout();
 		router.push("/login");
 	};
+
+	// 如果已认证，显示加载状态（避免页面闪烁）
+	if (isAuthenticated) {
+		return null;
+	}
 
 	return (
 		<AuthWrapper>
