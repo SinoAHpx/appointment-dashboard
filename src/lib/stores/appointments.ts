@@ -179,9 +179,11 @@ export const useAppointmentStore = create<AppointmentState>()(
                         status: appointmentData.status,
                         estimatedCompletionTime: appointmentData.estimatedCompletionTime,
                         processingNotes: appointmentData.processingNotes,
-                        updatedBy: userId, // Set the current user as the updater
-                        // Add any other fields needed by the API
+                        contactPhone: appointmentData.contactPhone,
+                        contactAddress: appointmentData.contactAddress,
                         notes: appointmentData.notes,
+                        documentCount: appointmentData.documentCount,
+                        updatedBy: userId, // Set the current user as the updater
                     };
 
                     // Use API endpoint
@@ -247,6 +249,9 @@ export const useAppointmentStore = create<AppointmentState>()(
                     if (data.documentType !== undefined) apiData.serviceType = data.documentType;
                     if (data.status !== undefined) apiData.status = data.status;
                     if (data.notes !== undefined) apiData.notes = data.notes;
+                    if (data.contactPhone !== undefined) apiData.contactPhone = data.contactPhone;
+                    if (data.contactAddress !== undefined) apiData.contactAddress = data.contactAddress;
+                    if (data.documentCount !== undefined) apiData.documentCount = data.documentCount;
                     if (data.estimatedCompletionTime !== undefined) apiData.estimatedCompletionTime = data.estimatedCompletionTime;
                     if (data.processingNotes !== undefined) apiData.processingNotes = data.processingNotes;
                     if (data.assignedStaff !== undefined) apiData.staffId = data.assignedStaff && data.assignedStaff.length > 0 ? data.assignedStaff[0] : null;

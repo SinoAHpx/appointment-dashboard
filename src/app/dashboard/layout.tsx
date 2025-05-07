@@ -44,9 +44,17 @@ export default function DashboardLayout({
     }, [isReady, isAuthenticated, isAdmin, pathname, router]);
 
     const handleLogout = async () => {
-        await logout();
-        toast("已退出登录");
-        router.push("/login");
+        try {
+            await logout();
+            toast("已退出登录");
+            // 确保状态更新后再跳转
+            setTimeout(() => {
+                router.replace("/login");
+            }, 100);
+        } catch (error) {
+            console.error("登出失败:", error);
+            toast.error("登出失败，请重试");
+        }
     };
 
     // 所有可用的导航项目

@@ -5,6 +5,10 @@ export interface Appointment {
 	id: number;
 	appointmentId: string; // Unique appointment identifier for tracking
 	customerName: string;
+	contactPhone: string | null;
+	contactAddress: string | null;
+	notes: string | null;
+	documentCount: number;
 	appointmentTime: string; // Store as ISO 8601 string (DATETIME)
 	serviceType: string | null;
 	staffId: number | null;
@@ -40,6 +44,10 @@ export type NewAppointmentData = Omit<
 	appointmentTime: string; // Ensure time is provided
 	estimatedCompletionTime?: string | null;
 	processingNotes?: string | null;
+	contactPhone?: string | null;
+	contactAddress?: string | null;
+	notes?: string | null;
+	documentCount?: number;
 	updatedBy?: number | null;
 	createdBy: number; // Required - the user who created the appointment
 };
@@ -66,7 +74,7 @@ export const getAllAppointments = (): Appointment[] => {
 	try {
 		const db = getDb();
 		const query = db.query<Appointment, []>(
-			"SELECT id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt FROM appointments ORDER BY appointmentTime DESC",
+			"SELECT id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt FROM appointments ORDER BY appointmentTime DESC",
 		);
 		return query.all();
 	} catch (error) {
@@ -155,6 +163,10 @@ export const addAppointment = (
 			status = "pending",
 			estimatedCompletionTime = null,
 			processingNotes = null,
+			contactPhone = null,
+			contactAddress = null,
+			notes = null,
+			documentCount = 1,
 			updatedBy = null,
 			createdBy,
 		} = data;
@@ -168,6 +180,10 @@ export const addAppointment = (
 			[
 				string,
 				string,
+				string | null,
+				string | null,
+				string | null,
+				number,
 				string,
 				string | null,
 				number | null,
@@ -181,14 +197,18 @@ export const addAppointment = (
 			]
 		>(
 			`INSERT INTO appointments 
-       (appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
-       RETURNING id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdAt`,
+       (appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+       RETURNING id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt`,
 		);
 
 		const newAppointment = insertQuery.get(
 			appointmentId,
 			customerName,
+			contactPhone,
+			contactAddress,
+			notes,
+			documentCount,
 			appointmentTime,
 			serviceType,
 			staffId,

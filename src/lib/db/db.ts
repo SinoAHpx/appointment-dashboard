@@ -177,6 +177,10 @@ const initDb = (db: Database) => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         appointmentId TEXT UNIQUE NOT NULL, -- 预约唯一标识码
         customerName TEXT NOT NULL, -- Maybe link to customers table later? For now, keep simple.
+        contactPhone TEXT,  -- 联系电话
+        contactAddress TEXT,  -- 联系地址
+        notes TEXT,  -- 备注信息
+        documentCount INTEGER DEFAULT 1,  -- 文件数量
         appointmentTime DATETIME NOT NULL,
         serviceType TEXT,
         staffId INTEGER,
@@ -210,6 +214,10 @@ const initDb = (db: Database) => {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           appointmentId TEXT UNIQUE NOT NULL,
           customerName TEXT NOT NULL,
+          contactPhone TEXT,  -- 联系电话
+          contactAddress TEXT,  -- 联系地址
+          notes TEXT,  -- 备注信息
+          documentCount INTEGER DEFAULT 1,  -- 文件数量
           appointmentTime DATETIME NOT NULL,
           serviceType TEXT,
           staffId INTEGER,
@@ -290,6 +298,10 @@ const initDb = (db: Database) => {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           appointmentId TEXT UNIQUE NOT NULL,
           customerName TEXT NOT NULL,
+          contactPhone TEXT,  -- 联系电话
+          contactAddress TEXT,  -- 联系地址
+          notes TEXT,  -- 备注信息
+          documentCount INTEGER DEFAULT 1,  -- 文件数量
           appointmentTime DATETIME NOT NULL,
           serviceType TEXT,
           staffId INTEGER,
@@ -433,7 +445,7 @@ export const withDbConnection = async <T>(callback: (db: Database) => Promise<T>
     console.log('Skipping database operation during build');
     return {} as T;
   }
-  
+
   const db = getDb();
   try {
     return await callback(db);

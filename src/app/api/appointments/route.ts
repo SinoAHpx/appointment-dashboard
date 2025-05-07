@@ -119,6 +119,10 @@ export async function POST(request: NextRequest) {
 				: "pending",
 			estimatedCompletionTime: body.estimatedCompletionTime || null,
 			processingNotes: body.processingNotes || null,
+			contactPhone: body.contactPhone || null,
+			contactAddress: body.contactAddress || null,
+			notes: body.notes || null,
+			documentCount: body.documentCount || 1,
 			updatedBy: auth.userId,
 			createdBy: auth.userId, // 记录创建者ID
 		};
@@ -197,6 +201,14 @@ export async function PUT(request: NextRequest) {
 			updateData.estimatedCompletionTime = body.estimatedCompletionTime;
 		if (body.processingNotes !== undefined)
 			updateData.processingNotes = body.processingNotes;
+		if (body.contactPhone !== undefined)
+			updateData.contactPhone = body.contactPhone;
+		if (body.contactAddress !== undefined)
+			updateData.contactAddress = body.contactAddress;
+		if (body.notes !== undefined)
+			updateData.notes = body.notes;
+		if (body.documentCount !== undefined)
+			updateData.documentCount = body.documentCount;
 
 		// 处理staff和vehicle ID - 只有管理员可以分配
 		if (auth.isAdmin) {
