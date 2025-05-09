@@ -16,6 +16,7 @@ export interface Appointment {
     contactPhone: string;
     contactAddress: string;
     documentCount: number;
+    documentCategory?: string; // 新增：文件介质类别
     documentType: string;
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
     assignedStaff?: string[];
@@ -36,6 +37,7 @@ export interface AppointmentFormData {
     contactPhone: string;
     contactAddress: string;
     documentCount: number;
+    documentCategory: string; // 新增：文件介质类别
     documentType: string;
     notes?: string;
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
@@ -97,6 +99,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             contactPhone: app.contactPhone || '',
                             contactAddress: app.contactAddress || '',
                             documentCount: app.documentCount || 1,
+                            documentCategory: app.documentCategory || 'paper', // Default to paper
                             documentType: app.serviceType || 'confidential', // Map and default
                             status: app.status || 'pending',
                             assignedStaff: app.assignedStaff,
@@ -134,6 +137,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             contactPhone: data.appointment.contactPhone || '',
                             contactAddress: data.appointment.contactAddress || '',
                             documentCount: data.appointment.documentCount || 1,
+                            documentCategory: data.appointment.documentCategory || 'paper', // Default to paper
                             documentType: data.appointment.serviceType || 'confidential',
                             status: data.appointment.status || 'pending',
                             assignedStaff: data.appointment.assignedStaff,
@@ -176,6 +180,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                         customerName: appointmentData.contactName,
                         appointmentTime: appointmentData.dateTime,
                         serviceType: appointmentData.documentType,
+                        documentCategory: appointmentData.documentCategory, // Add document category
                         status: appointmentData.status,
                         estimatedCompletionTime: appointmentData.estimatedCompletionTime,
                         processingNotes: appointmentData.processingNotes,
@@ -207,6 +212,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             contactPhone: data.appointment.contactPhone || '',
                             contactAddress: data.appointment.contactAddress || '',
                             documentCount: data.appointment.documentCount || 1,
+                            documentCategory: data.appointment.documentCategory || 'paper', // Default to paper
                             documentType: data.appointment.serviceType || 'confidential',
                             status: data.appointment.status || 'pending',
                             assignedStaff: data.appointment.assignedStaff,
@@ -247,6 +253,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                     if (data.contactName !== undefined) apiData.customerName = data.contactName;
                     if (data.dateTime !== undefined) apiData.appointmentTime = data.dateTime;
                     if (data.documentType !== undefined) apiData.serviceType = data.documentType;
+                    if (data.documentCategory !== undefined) apiData.documentCategory = data.documentCategory;
                     if (data.status !== undefined) apiData.status = data.status;
                     if (data.notes !== undefined) apiData.notes = data.notes;
                     if (data.contactPhone !== undefined) apiData.contactPhone = data.contactPhone;
@@ -278,6 +285,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             contactPhone: responseData.appointment.contactPhone || '',
                             contactAddress: responseData.appointment.contactAddress || '',
                             documentCount: responseData.appointment.documentCount || 1,
+                            documentCategory: responseData.appointment.documentCategory || 'paper', // Default to paper
                             documentType: responseData.appointment.serviceType || 'confidential',
                             status: responseData.appointment.status || 'pending',
                             assignedStaff: responseData.appointment.assignedStaff,

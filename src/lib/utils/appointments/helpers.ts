@@ -1,6 +1,47 @@
 import { type Appointment } from "@/lib/stores/appointments";
 
-// 文件袋类型选项
+// 文件介质类别
+export const documentCategories = [
+    { value: "paper", label: "纸介质" },
+    { value: "magnetic", label: "磁介质" },
+    { value: "other", label: "其他介质" },
+];
+
+// 按类别分类的文件类型选项
+export const documentTypesByCategory = {
+    "paper": [
+        { value: "confidential", label: "保密文件袋" },
+        { value: "standard", label: "普通文件袋" },
+        { value: "large", label: "大型文件盒" },
+        { value: "small", label: "小型文件盒" },
+    ],
+    "magnetic": [
+        { value: "computer", label: "主机" },
+        { value: "laptop", label: "笔记本" },
+        { value: "printer", label: "打印机" },
+        { value: "videotape", label: "录像带" },
+        { value: "motherboard", label: "主板" },
+        { value: "server", label: "服务器" },
+        { value: "disc", label: "光盘" },
+        { value: "copier", label: "复印机" },
+        { value: "scanner", label: "扫描仪" },
+        { value: "monitor", label: "显示器" },
+        { value: "harddrive", label: "硬盘" },
+        { value: "fax", label: "传真机" },
+        { value: "shredder", label: "碎纸机" },
+        { value: "usb", label: "U盘" },
+        { value: "floppy", label: "软盘" },
+        { value: "toner", label: "硒鼓" },
+        { value: "cartridge", label: "墨盒" },
+        { value: "tape", label: "磁带" },
+    ],
+    "other": [
+        { value: "mixed", label: "混合介质" },
+        { value: "custom", label: "自定义" }
+    ]
+};
+
+// 保留原有的扁平文件类型列表以便向后兼容
 export const documentTypes = [
     { value: "confidential", label: "保密文件袋" },
     { value: "standard", label: "普通文件袋" },

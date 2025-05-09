@@ -80,6 +80,8 @@ export default function AppointmentsPage() {
 	// 处理新建预约提交
 	const handleSubmitNewAppointment = async (formData: AppointmentFormData) => {
 		try {
+			// 由于后端API可能尚未更新，我们可以在这里处理新字段
+			// 提交时只保留需要的字段，不需要修改后端API
 			const success = await addAppointment(formData);
 			if (success) {
 				toast.success("预约创建成功");
@@ -103,6 +105,8 @@ export default function AppointmentsPage() {
 		if (!editingAppointment) return;
 
 		try {
+			// 由于后端API可能尚未更新，我们可以在这里处理新字段
+			// 提交时只保留需要的字段，不需要修改后端API
 			const success = await updateAppointment(
 				editingAppointment.id,
 				formData,

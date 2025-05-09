@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { type Appointment } from "@/lib/stores/appointments";
-import { documentTypes } from "@/lib/utils/appointments/helpers";
+import { documentTypes, documentCategories, documentTypesByCategory } from "@/lib/utils/appointments/helpers";
 import { useState, useEffect } from "react";
 import { useStaffStore, useVehicleStore, useAuthStore } from "@/lib/stores";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -43,6 +43,7 @@ export interface AppointmentFormData {
     contactPhone: string;
     contactAddress: string;
     documentCount: number;
+    documentCategory: string;
     documentType: string;
     notes: string;
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
@@ -82,6 +83,7 @@ export function AppointmentForm({
         contactPhone: "",
         contactAddress: "",
         documentCount: 1,
+        documentCategory: "paper",
         documentType: "confidential",
         notes: "",
         status: "pending",
@@ -99,17 +101,30 @@ export function AppointmentForm({
                 ? (initialData.notes || '') + (initialData.notes ? '\n\n' : '') + (initialData.processingNotes || '')
                 : initialData.notes || '';
 
+            // 根据documentType推断documentCategory
+            let documentCategory = "paper";
+            if (initialData.documentType) {
+                // 在各类别中查找文件类型
+                for (const [category, types] of Object.entries(documentTypesByCategory)) {
+                    if (types.some(type => type.value === initialData.documentType)) {
+                        documentCategory = category;
+                        break;
+                    }
+                }
+            }
+
             setFormData({
                 dateTime: initialData.dateTime || "",
                 contactName: initialData.contactName || "",
                 contactPhone: initialData.contactPhone || "",
                 contactAddress: initialData.contactAddress || "",
                 documentCount: initialData.documentCount || 1,
+                documentCategory,
                 documentType: initialData.documentType || "confidential",
                 notes: combinedNotes,
                 status: initialData.status || "pending",
                 estimatedCompletionTime: initialData.estimatedCompletionTime || "",
-                processingNotes: "", // 不使用单独的处理备注
+                processingNotes: "",
                 assignedStaff: initialData.assignedStaff || [],
                 assignedVehicle: initialData.assignedVehicle || "",
             });
@@ -213,6 +228,11 @@ export function AppointmentForm({
         );
     };
 
+    // 获取当前文档类别下的文件类型列表
+    const getDocumentTypesForCategory = (category: string) => {
+        return documentTypesByCategory[category as keyof typeof documentTypesByCategory] || [];
+    };
+
     return (
         <>
             <div className="grid gap-3 py-2">
@@ -264,7 +284,35 @@ export function AppointmentForm({
                         />
                     </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="flex flex-col gap-1.5 w-full">
+                        <Label htmlFor="documentCategory">类别 *</Label>
+                        <Select
+                            value={formData.documentCategory}
+                            onValueChange={(value) => {
+                                // 更新类别，并重置文件类型为当前类别下的第一个选项
+                                const types = getDocumentTypesForCategory(value);
+                                const defaultType = types.length > 0 ? types[0].value : "";
+
+                                setFormData(prev => ({
+                                    ...prev,
+                                    documentCategory: value,
+                                    documentType: defaultType
+                                }));
+                            }}
+                        >
+                            <SelectTrigger id="documentCategory" className="w-full">
+                                <SelectValue placeholder="选择文件介质类别" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {documentCategories.map((category) => (
+                                    <SelectItem key={category.value} value={category.value}>
+                                        {category.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="flex flex-col gap-1.5 w-full">
                         <Label htmlFor="documentType">文件类型 *</Label>
                         <Select
@@ -275,7 +323,7 @@ export function AppointmentForm({
                                 <SelectValue placeholder="选择文件类型" />
                             </SelectTrigger>
                             <SelectContent>
-                                {documentTypes.map((type) => (
+                                {getDocumentTypesForCategory(formData.documentCategory).map((type) => (
                                     <SelectItem key={type.value} value={type.value}>
                                         {type.label}
                                     </SelectItem>
