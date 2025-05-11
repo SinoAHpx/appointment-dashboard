@@ -15,9 +15,17 @@ export interface Appointment {
     contactName: string;
     contactPhone: string;
     contactAddress: string;
-    documentCount: number;
-    documentCategory?: string; // 新增：文件介质类别
+    documentCount: number; // 总文档数量
+    documentCategory?: string; // 文件介质类别
     documentType: string;
+    // 新增多选文件类型结构
+    documentTypes?: {
+        [category: string]: string[]; // 每个类别包含多个文件类型
+    };
+    // 新增每个类别的文档数量
+    documentCounts?: {
+        [category: string]: number; // 每个类别的文档数量
+    };
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
     assignedStaff?: string[];
     assignedVehicle?: string;
@@ -36,9 +44,17 @@ export interface AppointmentFormData {
     contactName: string;
     contactPhone: string;
     contactAddress: string;
-    documentCount: number;
-    documentCategory: string; // 新增：文件介质类别
+    documentCount?: number; // 总文档数量
+    documentCategory: string; // 文件介质类别
     documentType: string;
+    // 新增多选文件类型结构
+    documentTypes?: {
+        [category: string]: string[]; // 每个类别包含多个文件类型
+    };
+    // 新增每个类别的文档数量
+    documentCounts?: {
+        [category: string]: number; // 每个类别的文档数量
+    };
     notes?: string;
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
     assignedStaff?: string[];
@@ -91,26 +107,56 @@ export const useAppointmentStore = create<AppointmentState>()(
 
                     if (data.success && Array.isArray(data.appointments)) {
                         // Map fetched appointments to ensure consistency and defaults
-                        const formattedAppointments = data.appointments.map((app: any): Appointment => ({
-                            id: app.id?.toString() ?? '',
-                            appointmentId: app.appointmentId || `APT-${app.id}`, // Fallback if no appointmentId
-                            dateTime: app.appointmentTime || '', // Map and default
-                            contactName: app.customerName || '', // Map and default
-                            contactPhone: app.contactPhone || '',
-                            contactAddress: app.contactAddress || '',
-                            documentCount: app.documentCount || 1,
-                            documentCategory: app.documentCategory || 'paper', // Default to paper
-                            documentType: app.serviceType || 'confidential', // Map and default
-                            status: app.status || 'pending',
-                            assignedStaff: app.assignedStaff,
-                            assignedVehicle: app.assignedVehicle,
-                            estimatedCompletionTime: app.estimatedCompletionTime || '',
-                            processingNotes: app.processingNotes || '',
-                            lastUpdatedBy: app.lastUpdatedBy?.toString() || '',
-                            lastUpdatedAt: app.lastUpdatedAt || '',
-                            notes: app.notes || '',
-                            createdAt: app.createdAt || '',
-                        }));
+                        const formattedAppointments = data.appointments.map((app: any): Appointment => {
+                            // 处理文件类型
+                            let documentTypes: { [key: string]: string[] } = {
+                                paper: [],
+                                magnetic: [],
+                                other: []
+                            };
+
+                            // 如果有 documentTypes 字段，直接使用
+                            if (app.documentTypes && typeof app.documentTypes === 'object') {
+                                documentTypes = app.documentTypes;
+                            }
+                            // 否则，根据 documentType 和 documentCategory 推断
+                            else if (app.serviceType) {
+                                const documentType = app.serviceType;
+                                const category = app.documentCategory || 'paper';
+
+                                // 确保类别存在
+                                if (!documentTypes[category]) {
+                                    documentTypes[category] = [];
+                                }
+
+                                // 添加类型（如果不存在）
+                                if (!documentTypes[category].includes(documentType)) {
+                                    documentTypes[category] = [...documentTypes[category], documentType];
+                                }
+                            }
+
+                            return {
+                                id: app.id?.toString() ?? '',
+                                appointmentId: app.appointmentId || `APT-${app.id}`, // Fallback if no appointmentId
+                                dateTime: app.appointmentTime || '', // Map and default
+                                contactName: app.customerName || '', // Map and default
+                                contactPhone: app.contactPhone || '',
+                                contactAddress: app.contactAddress || '',
+                                documentCount: app.documentCount || 1,
+                                documentCategory: app.documentCategory || 'paper', // Default to paper
+                                documentType: app.serviceType || 'confidential', // Map and default
+                                documentTypes: documentTypes, // 新增多选文件类型结构
+                                status: app.status || 'pending',
+                                assignedStaff: app.assignedStaff,
+                                assignedVehicle: app.assignedVehicle,
+                                estimatedCompletionTime: app.estimatedCompletionTime || '',
+                                processingNotes: app.processingNotes || '',
+                                lastUpdatedBy: app.lastUpdatedBy?.toString() || '',
+                                lastUpdatedAt: app.lastUpdatedAt || '',
+                                notes: app.notes || '',
+                                createdAt: app.createdAt || '',
+                            };
+                        });
                         set({ appointments: formattedAppointments, isLoading: false });
                     } else {
                         throw new Error(data.message || "获取预约列表失败或数据格式错误");
@@ -128,6 +174,33 @@ export const useAppointmentStore = create<AppointmentState>()(
                     const data = await response.json();
 
                     if (data.success && data.appointment) {
+                        // 处理文件类型
+                        let documentTypes: { [key: string]: string[] } = {
+                            paper: [],
+                            magnetic: [],
+                            other: []
+                        };
+
+                        // 如果有 documentTypes 字段，直接使用
+                        if (data.appointment.documentTypes && typeof data.appointment.documentTypes === 'object') {
+                            documentTypes = data.appointment.documentTypes;
+                        }
+                        // 否则，根据 documentType 和 documentCategory 推断
+                        else if (data.appointment.serviceType) {
+                            const documentType = data.appointment.serviceType;
+                            const category = data.appointment.documentCategory || 'paper';
+
+                            // 确保类别存在
+                            if (!documentTypes[category]) {
+                                documentTypes[category] = [];
+                            }
+
+                            // 添加类型（如果不存在）
+                            if (!documentTypes[category].includes(documentType)) {
+                                documentTypes[category] = [...documentTypes[category], documentType];
+                            }
+                        }
+
                         // Format appointment data
                         const appointment: Appointment = {
                             id: data.appointment.id?.toString() ?? '',
@@ -139,6 +212,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             documentCount: data.appointment.documentCount || 1,
                             documentCategory: data.appointment.documentCategory || 'paper', // Default to paper
                             documentType: data.appointment.serviceType || 'confidential',
+                            documentTypes: documentTypes, // 新增多选文件类型结构
                             status: data.appointment.status || 'pending',
                             assignedStaff: data.appointment.assignedStaff,
                             assignedVehicle: data.appointment.assignedVehicle,
@@ -175,12 +249,16 @@ export const useAppointmentStore = create<AppointmentState>()(
                     const auth = useAuthStore.getState();
                     const userId = auth.user?.id;
 
+                    // 转换文件类型数据
+                    let documentTypes = appointmentData.documentTypes || {};
+
                     // Map frontend form fields to backend API expected fields
                     const apiData = {
                         customerName: appointmentData.contactName,
                         appointmentTime: appointmentData.dateTime,
                         serviceType: appointmentData.documentType,
-                        documentCategory: appointmentData.documentCategory, // Add document category
+                        documentCategory: appointmentData.documentCategory,
+                        documentTypes: documentTypes, // 传递多选文件类型结构
                         status: appointmentData.status,
                         estimatedCompletionTime: appointmentData.estimatedCompletionTime,
                         processingNotes: appointmentData.processingNotes,
@@ -214,6 +292,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             documentCount: data.appointment.documentCount || 1,
                             documentCategory: data.appointment.documentCategory || 'paper', // Default to paper
                             documentType: data.appointment.serviceType || 'confidential',
+                            documentTypes: data.appointment.documentTypes || { paper: [], magnetic: [], other: [] },
                             status: data.appointment.status || 'pending',
                             assignedStaff: data.appointment.assignedStaff,
                             assignedVehicle: data.appointment.assignedVehicle,
@@ -287,6 +366,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             documentCount: responseData.appointment.documentCount || 1,
                             documentCategory: responseData.appointment.documentCategory || 'paper', // Default to paper
                             documentType: responseData.appointment.serviceType || 'confidential',
+                            documentTypes: responseData.appointment.documentTypes || { paper: [], magnetic: [], other: [] },
                             status: responseData.appointment.status || 'pending',
                             assignedStaff: responseData.appointment.assignedStaff,
                             assignedVehicle: responseData.appointment.assignedVehicle,

@@ -72,9 +72,31 @@ export async function GET(request: NextRequest) {
 				assignedStaff = [appointment.staffId.toString()];
 			}
 
+			// Parse documentTypesJson to documentTypes object if available
+			let documentTypes = null;
+			if (appointment.documentTypesJson) {
+				try {
+					documentTypes = JSON.parse(appointment.documentTypesJson);
+				} catch (e) {
+					console.error("Error parsing documentTypesJson", e);
+				}
+			}
+
+			// Parse documentCountsJson to documentCounts object if available
+			let documentCounts = null;
+			if (appointment.documentCountsJson) {
+				try {
+					documentCounts = JSON.parse(appointment.documentCountsJson);
+				} catch (e) {
+					console.error("Error parsing documentCountsJson", e);
+				}
+			}
+
 			// Add assignedStaff and assignedVehicle fields to the response
 			const responseAppointment = {
 				...appointment,
+				documentTypes,
+				documentCounts,
 				assignedStaff,
 				assignedVehicle: appointment.vehicleId ? appointment.vehicleId.toString() : null
 			};
@@ -101,8 +123,30 @@ export async function GET(request: NextRequest) {
 				assignedStaff = [app.staffId.toString()];
 			}
 
+			// Parse documentTypesJson to documentTypes object if available
+			let documentTypes = null;
+			if (app.documentTypesJson) {
+				try {
+					documentTypes = JSON.parse(app.documentTypesJson);
+				} catch (e) {
+					console.error("Error parsing documentTypesJson", e);
+				}
+			}
+
+			// Parse documentCountsJson to documentCounts object if available
+			let documentCounts = null;
+			if (app.documentCountsJson) {
+				try {
+					documentCounts = JSON.parse(app.documentCountsJson);
+				} catch (e) {
+					console.error("Error parsing documentCountsJson", e);
+				}
+			}
+
 			return {
 				...app,
+				documentTypes,
+				documentCounts,
 				assignedStaff,
 				assignedVehicle: app.vehicleId ? app.vehicleId.toString() : null
 			};
@@ -152,6 +196,7 @@ export async function POST(request: NextRequest) {
 			customerName: body.customerName,
 			appointmentTime: body.appointmentTime,
 			serviceType: body.serviceType || null,
+			documentCategory: body.documentCategory || null,
 			staffId: body.staffId ? parseInt(body.staffId) : null,
 			vehicleId: body.vehicleId ? parseInt(body.vehicleId) : null,
 			status: ["pending", "confirmed", "in_progress", "completed", "cancelled"].includes(
@@ -168,6 +213,16 @@ export async function POST(request: NextRequest) {
 			updatedBy: auth.userId,
 			createdBy: auth.userId, // 记录创建者ID
 		};
+
+		// 处理文件类型多选结构
+		if (body.documentTypes && typeof body.documentTypes === 'object') {
+			appointmentData.documentTypesJson = JSON.stringify(body.documentTypes);
+		}
+
+		// 处理文件数量多选结构
+		if (body.documentCounts && typeof body.documentCounts === 'object') {
+			appointmentData.documentCountsJson = JSON.stringify(body.documentCounts);
+		}
 
 		// Handle assignedStaff array
 		if (body.assignedStaff) {
@@ -196,9 +251,50 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// 准备响应数据并包含文件类型结构
+		let documentTypes = null;
+		if (newAppointment.documentTypesJson) {
+			try {
+				documentTypes = JSON.parse(newAppointment.documentTypesJson);
+			} catch (e) {
+				console.error("Error parsing documentTypesJson", e);
+			}
+		}
+
+		// 准备响应数据并包含文件数量结构
+		let documentCounts = null;
+		if (newAppointment.documentCountsJson) {
+			try {
+				documentCounts = JSON.parse(newAppointment.documentCountsJson);
+			} catch (e) {
+				console.error("Error parsing documentCountsJson", e);
+			}
+		}
+
+		// Parse assignedStaffJson to assignedStaff array if available
+		let assignedStaff: string[] = [];
+		if (newAppointment.assignedStaffJson) {
+			try {
+				assignedStaff = JSON.parse(newAppointment.assignedStaffJson);
+			} catch (e) {
+				console.error("Error parsing assignedStaffJson", e);
+			}
+		} else if (newAppointment.staffId) {
+			// Legacy: If no JSON array but there is a staffId, use it as a single element array
+			assignedStaff = [newAppointment.staffId.toString()];
+		}
+
+		const responseAppointment = {
+			...newAppointment,
+			documentTypes,
+			documentCounts,
+			assignedStaff,
+			assignedVehicle: newAppointment.vehicleId ? newAppointment.vehicleId.toString() : null
+		};
+
 		return NextResponse.json({
 			success: true,
-			appointment: newAppointment,
+			appointment: responseAppointment,
 		});
 	} catch (error) {
 		console.error("创建预约失败:", error);
@@ -248,100 +344,110 @@ export async function PUT(request: NextRequest) {
 			);
 		}
 
-		const updateData: UpdateAppointmentData = {};
+		// 准备更新数据
+		const updateData: UpdateAppointmentData = {
+			customerName: body.customerName !== undefined ? body.customerName : undefined,
+			appointmentTime: body.appointmentTime !== undefined ? body.appointmentTime : undefined,
+			serviceType: body.serviceType !== undefined ? body.serviceType : undefined,
+			documentCategory: body.documentCategory !== undefined ? body.documentCategory : undefined,
+			staffId: body.staffId !== undefined ? parseInt(body.staffId) : undefined,
+			vehicleId: body.vehicleId !== undefined ? parseInt(body.vehicleId) : undefined,
+			status: ["pending", "confirmed", "in_progress", "completed", "cancelled"].includes(body.status)
+				? (body.status as Appointment["status"])
+				: undefined,
+			estimatedCompletionTime:
+				body.estimatedCompletionTime !== undefined ? body.estimatedCompletionTime : undefined,
+			processingNotes: body.processingNotes !== undefined ? body.processingNotes : undefined,
+			contactPhone: body.contactPhone !== undefined ? body.contactPhone : undefined,
+			contactAddress: body.contactAddress !== undefined ? body.contactAddress : undefined,
+			notes: body.notes !== undefined ? body.notes : undefined,
+			documentCount: body.documentCount !== undefined ? body.documentCount : undefined,
+			lastUpdatedBy: auth.userId,
+			lastUpdatedAt: new Date().toISOString(),
+		};
 
-		// 只包含要更新的字段
-		if (body.customerName !== undefined)
-			updateData.customerName = body.customerName;
-		if (body.appointmentTime !== undefined)
-			updateData.appointmentTime = body.appointmentTime;
-		if (body.serviceType !== undefined)
-			updateData.serviceType = body.serviceType;
-		if (body.estimatedCompletionTime !== undefined)
-			updateData.estimatedCompletionTime = body.estimatedCompletionTime;
-		if (body.processingNotes !== undefined)
-			updateData.processingNotes = body.processingNotes;
-		if (body.contactPhone !== undefined)
-			updateData.contactPhone = body.contactPhone;
-		if (body.contactAddress !== undefined)
-			updateData.contactAddress = body.contactAddress;
-		if (body.notes !== undefined)
-			updateData.notes = body.notes;
-		if (body.documentCount !== undefined)
-			updateData.documentCount = body.documentCount;
+		// 处理文件类型多选结构
+		if (body.documentTypes !== undefined) {
+			updateData.documentTypesJson = typeof body.documentTypes === 'object'
+				? JSON.stringify(body.documentTypes)
+				: null;
+		}
 
-		// 处理staff和vehicle ID - 只有管理员可以分配
-		if (auth.isAdmin) {
-			// Handle single staffId (legacy) or assignedStaff array (new format)
-			if (body.staffId !== undefined) {
-				updateData.staffId = body.staffId ? parseInt(body.staffId) : null;
-			}
+		// 处理文件数量多选结构
+		if (body.documentCounts !== undefined) {
+			updateData.documentCountsJson = typeof body.documentCounts === 'object'
+				? JSON.stringify(body.documentCounts)
+				: null;
+		}
 
-			// Handle assignedStaff array from frontend
-			if (body.assignedStaff !== undefined) {
-				// For now, we still use staffId in the database for the primary staff
-				// If there's at least one staff assigned, use the first one as primary
-				if (Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0) {
-					updateData.staffId = parseInt(body.assignedStaff[0]);
-				} else {
-					updateData.staffId = null;
-				}
+		// Handle assignedStaff array
+		if (body.assignedStaff !== undefined) {
+			// Store as JSON string
+			updateData.assignedStaffJson = Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0
+				? JSON.stringify(body.assignedStaff)
+				: null;
 
-				// Store the full staff array as JSON in a separate field for future use
-				updateData.assignedStaffJson = Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0
-					? JSON.stringify(body.assignedStaff)
-					: null;
-			}
-
-			if (body.vehicleId !== undefined) {
-				updateData.vehicleId = body.vehicleId ? parseInt(body.vehicleId) : null;
-			}
-
-			// Handle assignedVehicle from frontend
-			if (body.assignedVehicle !== undefined) {
-				updateData.vehicleId = body.assignedVehicle ? parseInt(body.assignedVehicle) : null;
+			// Use first staff as primary for backward compatibility
+			if (Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0) {
+				updateData.staffId = parseInt(body.assignedStaff[0]);
+			} else {
+				updateData.staffId = null;
 			}
 		}
 
-		// 处理最后更新用户信息
-		updateData.lastUpdatedBy = auth.userId;
+		const updated = updateAppointment(parseInt(body.id), updateData);
 
-		// 验证状态值有效性
-		if (body.status !== undefined) {
-			if (
-				!["pending", "confirmed", "in_progress", "completed", "cancelled"].includes(
-					body.status,
-				)
-			) {
-				return NextResponse.json(
-					{ success: false, message: "无效的状态值" },
-					{ status: 400 },
-				);
-			}
-
-			// 状态相关权限控制：只有管理员可以将状态设置为in_progress
-			if (body.status === "in_progress" && !auth.isAdmin) {
-				return NextResponse.json(
-					{ success: false, message: "只有管理员可以将预约设置为处理中状态" },
-					{ status: 403 }
-				);
-			}
-
-			updateData.status = body.status as Appointment["status"];
-		}
-
-		const updatedAppointment = updateAppointment(parseInt(body.id), updateData);
-
-		if (!updatedAppointment) {
+		if (!updated) {
 			return NextResponse.json(
-				{ success: false, message: "更新预约失败，预约可能不存在" },
-				{ status: 400 },
+				{ success: false, message: "更新预约失败" },
+				{ status: 400 }
 			);
 		}
 
+		// 准备响应数据并包含文件类型结构
+		let documentTypes = null;
+		if (updated.documentTypesJson) {
+			try {
+				documentTypes = JSON.parse(updated.documentTypesJson);
+			} catch (e) {
+				console.error("Error parsing documentTypesJson", e);
+			}
+		}
+
+		// 准备响应数据并包含文件数量结构
+		let documentCounts = null;
+		if (updated.documentCountsJson) {
+			try {
+				documentCounts = JSON.parse(updated.documentCountsJson);
+			} catch (e) {
+				console.error("Error parsing documentCountsJson", e);
+			}
+		}
+
+		// Parse assignedStaffJson to assignedStaff array if available
+		let assignedStaff: string[] = [];
+		if (updated.assignedStaffJson) {
+			try {
+				assignedStaff = JSON.parse(updated.assignedStaffJson);
+			} catch (e) {
+				console.error("Error parsing assignedStaffJson", e);
+			}
+		} else if (updated.staffId) {
+			// Legacy: If no JSON array but there is a staffId, use it as a single element array
+			assignedStaff = [updated.staffId.toString()];
+		}
+
+		const responseAppointment = {
+			...updated,
+			documentTypes,
+			documentCounts,
+			assignedStaff,
+			assignedVehicle: updated.vehicleId ? updated.vehicleId.toString() : null
+		};
+
 		return NextResponse.json({
 			success: true,
-			appointment: updatedAppointment,
+			appointment: responseAppointment,
 		});
 	} catch (error) {
 		console.error("更新预约失败:", error);

@@ -120,7 +120,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                     {appointment.estimatedCompletionTime && (
                         <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
                             <Clock size={16} className="text-gray-500" />
-                            <span>预计完成时间：{formatDateTime(appointment.estimatedCompletionTime)}</span>
+                            <span>预计上门时间：{formatDateTime(appointment.estimatedCompletionTime)}</span>
                         </div>
                     )}
                 </div>
