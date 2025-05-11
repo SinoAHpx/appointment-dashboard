@@ -12,7 +12,6 @@ import {
 import {
     useAppointmentStore,
     useAuthStore,
-    useCustomerStore,
     useStaffStore,
     useVehicleStore,
 } from "@/lib/store";
@@ -29,7 +28,6 @@ export default function DashboardPage() {
 
     // Fetch data from stores
     const { appointments, fetchAppointments } = useAppointmentStore();
-    const { customers } = useCustomerStore();
     const { staffList } = useStaffStore();
     const { vehicles } = useVehicleStore();
 

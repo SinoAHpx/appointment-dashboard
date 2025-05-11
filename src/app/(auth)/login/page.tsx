@@ -2,8 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -14,7 +12,6 @@ import {
 	Card,
 	CardContent,
 	CardDescription,
-	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
@@ -43,7 +40,6 @@ const loginSchema = z.object({
 export default function LoginPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	const { login } = useAuthStore();
-	const router = useRouter();
 
 	const form = useForm<z.infer<typeof loginSchema>>({
 		resolver: zodResolver(loginSchema),
@@ -161,17 +157,6 @@ export default function LoginPage() {
 						</form>
 					</Form>
 				</CardContent>
-				<CardFooter className="flex justify-center">
-					<p className="text-sm text-gray-600">
-						还没有账号？{" "}
-						<Link
-							href="/register"
-							className="font-medium text-primary hover:underline"
-						>
-							立即注册
-						</Link>
-					</p>
-				</CardFooter>
 			</Card>
 		</div>
 	);
