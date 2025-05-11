@@ -1,73 +1,105 @@
 import { getDb } from "./db";
 
 // Define the Appointment type based on the database schema
+/**
+ * Represents an appointment record in the database
+ * @interface Appointment
+ */
 export interface Appointment {
-	id: number;
-	appointmentId: string; // Unique appointment identifier for tracking
-	customerName: string;
-	contactPhone: string | null;
-	contactAddress: string | null;
-	notes: string | null;
-	documentCount: number;
-	appointmentTime: string; // Store as ISO 8601 string (DATETIME)
-	serviceType: string | null;
-	staffId: number | null;
-	vehicleId: number | null;
-	status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+	id: number;                          // Primary key
+	appointmentId: string;               // Unique appointment identifier for tracking
+	customerName: string;                // Customer's full name
+	contactPhone: string | null;         // Customer's contact phone number
+	contactAddress: string | null;       // Customer's address
+	notes: string | null;                // General notes about the appointment
+	documentCount: number;               // Number of documents for this appointment
+	documentTypesJson: string | null;    // JSON string containing types of documents
+	documentCountsJson: string | null;   // JSON string containing counts for each document type
+	appointmentTime: string;             // Scheduled appointment time (ISO 8601 string / DATETIME)
+	serviceType: string | null;          // Type of service requested
+	documentCategory: string | null;     // Category of document being processed
+	staffId: number | null;              // ID of primary staff assigned (legacy)
+	vehicleId: number | null;            // ID of assigned vehicle
+	status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled"; // Current status
 	estimatedCompletionTime: string | null; // Estimated completion time
-	processingNotes: string | null; // Notes for processing
-	lastUpdatedBy: number | null; // User ID who last updated
-	lastUpdatedAt: string | null; // Timestamp of last update
-	createdBy: number | null; // User ID who created the appointment
-	createdAt: string;
-	assignedStaffJson: string | null; // JSON string of assigned staff IDs array
+	processingNotes: string | null;      // Notes for internal processing
+	lastUpdatedBy: number | null;        // User ID who last updated the appointment
+	lastUpdatedAt: string | null;        // Timestamp of last update
+	createdBy: number | null;            // User ID who created the appointment
+	createdAt: string;                   // Timestamp when appointment was created
+	assignedStaffJson: string | null;    // JSON string of assigned staff IDs array
 }
 
 // History record for appointment status changes
+/**
+ * Represents a history record for appointment status changes
+ * @interface AppointmentHistory
+ */
 export interface AppointmentHistory {
-	id: number;
-	appointmentId: number;
-	status: Appointment["status"];
-	staffId: number | null;
-	vehicleId: number | null;
-	notes: string | null;
-	updatedBy: number;
-	updatedAt: string;
+	id: number;                          // Primary key
+	appointmentId: number;               // Foreign key to the appointment
+	status: Appointment["status"];       // Status at this history point
+	staffId: number | null;              // Staff assigned at this history point
+	vehicleId: number | null;            // Vehicle assigned at this history point
+	notes: string | null;                // Notes added during this status change
+	updatedBy: number;                   // User who made this status change
+	updatedAt: string;                   // Timestamp of the status change
+	assignedStaffJson: string | null;    // JSON string of assigned staff IDs at this point
+	documentTypesJson: string | null;    // JSON string of document types at this point
+	documentCountsJson: string | null;   // JSON string of document counts at this point
 }
 
 // Type for creating a new appointment (omit id and createdAt)
+/**
+ * Data required to create a new appointment
+ * Omits system-generated fields and makes some fields optional
+ * @type NewAppointmentData
+ */
 export type NewAppointmentData = Omit<
 	Appointment,
 	"id" | "appointmentId" | "createdAt" | "staffId" | "vehicleId" | "lastUpdatedBy" | "lastUpdatedAt" | "estimatedCompletionTime" | "processingNotes" | "assignedStaffJson"
 > & {
-	staffId?: number | null; // Optional in creation
-	vehicleId?: number | null; // Optional in creation
-	appointmentTime: string; // Ensure time is provided
-	estimatedCompletionTime?: string | null;
-	processingNotes?: string | null;
-	contactPhone?: string | null;
-	contactAddress?: string | null;
-	notes?: string | null;
-	documentCount?: number;
-	updatedBy?: number | null;
-	createdBy: number; // Required - the user who created the appointment
-	assignedStaffJson?: string | null; // JSON string of assigned staff IDs array
+	staffId?: number | null;              // Optional in creation
+	vehicleId?: number | null;            // Optional in creation
+	appointmentTime: string;              // Ensure time is provided
+	estimatedCompletionTime?: string | null; // Optional estimated completion time
+	processingNotes?: string | null;      // Optional processing notes
+	contactPhone?: string | null;         // Optional contact phone
+	contactAddress?: string | null;       // Optional contact address
+	notes?: string | null;                // Optional general notes
+	documentCount?: number;               // Optional document count, defaults to 1
+	documentTypesJson?: string | null;    // Optional JSON string of document types
+	documentCountsJson?: string | null;   // Optional JSON string of document counts
+	updatedBy?: number | null;            // Optional ID of user updating record
+	createdBy: number;                    // Required - the user who created the appointment
+	assignedStaffJson?: string | null;    // Optional JSON string of assigned staff IDs
 };
 
 // Type for updating an appointment (all fields optional)
+/**
+ * Data structure for updating an existing appointment
+ * All fields are optional since partial updates are allowed
+ * @type UpdateAppointmentData
+ */
 export type UpdateAppointmentData = Partial<
 	Omit<Appointment, "id" | "appointmentId" | "createdAt">
 >;
 
 // Type for recording a status change
+/**
+ * Data required to record a status change in appointment history
+ * @type AppointmentStatusChange
+ */
 export type AppointmentStatusChange = {
-	appointmentId: number;
-	status: Appointment["status"];
-	staffId?: number | null;
-	vehicleId?: number | null;
-	notes?: string | null;
-	updatedBy: number;
-	assignedStaffJson?: string | null; // JSON string of assigned staff IDs array
+	appointmentId: number;                // ID of the appointment being updated
+	status: Appointment["status"];        // New status
+	staffId?: number | null;              // Optional staff assignment
+	vehicleId?: number | null;            // Optional vehicle assignment
+	notes?: string | null;                // Optional notes about the change
+	updatedBy: number;                    // User making the change
+	assignedStaffJson?: string | null;    // Optional JSON string of assigned staff IDs
+	documentTypesJson?: string | null;    // Optional JSON string of document types
+	documentCountsJson?: string | null;   // Optional JSON string of document counts
 };
 
 /**
@@ -77,7 +109,7 @@ export const getAllAppointments = (): Appointment[] => {
 	try {
 		const db = getDb();
 		const query = db.query<Appointment, []>(
-			"SELECT id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson FROM appointments ORDER BY appointmentTime DESC",
+			"SELECT id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, documentTypesJson, documentCountsJson, appointmentTime, serviceType, documentCategory, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson FROM appointments ORDER BY appointmentTime DESC",
 		);
 		return query.all();
 	} catch (error) {
@@ -104,13 +136,23 @@ export const recordAppointmentHistory = (
 ): boolean => {
 	try {
 		const db = getDb();
-		const { appointmentId, status, staffId, vehicleId, notes, updatedBy, assignedStaffJson } = data;
+		const {
+			appointmentId,
+			status,
+			staffId,
+			vehicleId,
+			notes,
+			updatedBy,
+			assignedStaffJson,
+			documentTypesJson,
+			documentCountsJson
+		} = data;
 		const now = new Date().toISOString();
 
 		const insertQuery = db.query(
 			`INSERT INTO appointment_history 
-			(appointmentId, status, staffId, vehicleId, notes, updatedBy, updatedAt, assignedStaffJson)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+			(appointmentId, status, staffId, vehicleId, notes, updatedBy, updatedAt, assignedStaffJson, documentTypesJson, documentCountsJson)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		);
 
 		const result = insertQuery.run(
@@ -121,7 +163,9 @@ export const recordAppointmentHistory = (
 			notes || null,
 			updatedBy,
 			now,
-			assignedStaffJson || null
+			assignedStaffJson || null,
+			documentTypesJson || null,
+			documentCountsJson || null
 		);
 
 		return result.changes > 0;
@@ -162,6 +206,7 @@ export const addAppointment = (
 			customerName,
 			appointmentTime,
 			serviceType = null,
+			documentCategory = null,
 			staffId = null,
 			vehicleId = null,
 			status = "pending",
@@ -171,6 +216,8 @@ export const addAppointment = (
 			contactAddress = null,
 			notes = null,
 			documentCount = 1,
+			documentTypesJson = null,
+			documentCountsJson = null,
 			updatedBy = null,
 			createdBy,
 			assignedStaffJson = null,
@@ -189,7 +236,10 @@ export const addAppointment = (
 				string | null,
 				string | null,
 				number,
+				string | null,
+				string | null,
 				string,
+				string | null,
 				string | null,
 				number | null,
 				number | null,
@@ -203,9 +253,9 @@ export const addAppointment = (
 			]
 		>(
 			`INSERT INTO appointments 
-       (appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, assignedStaffJson)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
-       RETURNING id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson`,
+       (appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, documentTypesJson, documentCountsJson, appointmentTime, serviceType, documentCategory, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, assignedStaffJson)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+       RETURNING id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, documentTypesJson, documentCountsJson, appointmentTime, serviceType, documentCategory, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson`,
 		);
 
 		const newAppointment = insertQuery.get(
@@ -215,8 +265,11 @@ export const addAppointment = (
 			contactAddress,
 			notes,
 			documentCount,
+			documentTypesJson,
+			documentCountsJson,
 			appointmentTime,
 			serviceType,
+			documentCategory,
 			staffId,
 			vehicleId,
 			status,
@@ -237,7 +290,9 @@ export const addAppointment = (
 				vehicleId,
 				notes: processingNotes,
 				updatedBy,
-				assignedStaffJson
+				assignedStaffJson,
+				documentTypesJson,
+				documentCountsJson
 			});
 		}
 
@@ -278,7 +333,7 @@ export const updateAppointment = (
 
 		const updateQuery = db.query<Appointment, any[]>(
 			`UPDATE appointments SET ${setClause} WHERE id = ? 
-       RETURNING id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson`,
+       RETURNING id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, documentTypesJson, documentCountsJson, appointmentTime, serviceType, documentCategory, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson`,
 		);
 
 		const updatedAppointment = updateQuery.get(...values);
@@ -292,7 +347,9 @@ export const updateAppointment = (
 				vehicleId: data.vehicleId !== undefined ? data.vehicleId : updatedAppointment.vehicleId,
 				notes: data.processingNotes !== undefined ? data.processingNotes : updatedAppointment.processingNotes,
 				updatedBy: data.lastUpdatedBy,
-				assignedStaffJson: data.assignedStaffJson !== undefined ? data.assignedStaffJson : updatedAppointment.assignedStaffJson
+				assignedStaffJson: data.assignedStaffJson !== undefined ? data.assignedStaffJson : updatedAppointment.assignedStaffJson,
+				documentTypesJson: data.documentTypesJson !== undefined ? data.documentTypesJson : updatedAppointment.documentTypesJson,
+				documentCountsJson: data.documentCountsJson !== undefined ? data.documentCountsJson : updatedAppointment.documentCountsJson
 			});
 		}
 

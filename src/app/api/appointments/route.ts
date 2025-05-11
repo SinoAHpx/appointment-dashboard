@@ -212,6 +212,8 @@ export async function POST(request: NextRequest) {
 			documentCount: body.documentCount || 1,
 			updatedBy: auth.userId,
 			createdBy: auth.userId, // 记录创建者ID
+			documentTypesJson: null, // 默认为null
+			documentCountsJson: null, // 默认为null
 		};
 
 		// 处理文件类型多选结构

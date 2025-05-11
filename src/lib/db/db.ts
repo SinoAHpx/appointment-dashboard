@@ -181,8 +181,11 @@ const initDb = (db: Database) => {
         contactAddress TEXT,  -- 联系地址
         notes TEXT,  -- 备注信息
         documentCount INTEGER DEFAULT 1,  -- 文件数量
+        documentTypesJson TEXT, -- 文件类型的JSON字符串
+        documentCountsJson TEXT, -- 每种类型文件数量的JSON字符串
         appointmentTime DATETIME NOT NULL,
         serviceType TEXT,
+        documentCategory TEXT, -- 文件类别
         staffId INTEGER,
         vehicleId INTEGER,
         status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
@@ -230,8 +233,11 @@ const initDb = (db: Database) => {
           contactAddress TEXT,  -- 联系地址
           notes TEXT,  -- 备注信息
           documentCount INTEGER DEFAULT 1,  -- 文件数量
+          documentTypesJson TEXT, -- 文件类型的JSON字符串
+          documentCountsJson TEXT, -- 每种类型文件数量的JSON字符串
           appointmentTime DATETIME NOT NULL,
           serviceType TEXT,
+          documentCategory TEXT, -- 文件类别
           staffId INTEGER,
           vehicleId INTEGER,
           status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
@@ -241,6 +247,7 @@ const initDb = (db: Database) => {
           lastUpdatedAt DATETIME,
           createdBy INTEGER,
           createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          assignedStaffJson TEXT, -- 分配的员工ID数组的JSON字符串
           FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
           FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
           FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL,
@@ -314,8 +321,11 @@ const initDb = (db: Database) => {
           contactAddress TEXT,  -- 联系地址
           notes TEXT,  -- 备注信息
           documentCount INTEGER DEFAULT 1,  -- 文件数量
+          documentTypesJson TEXT, -- 文件类型的JSON字符串
+          documentCountsJson TEXT, -- 每种类型文件数量的JSON字符串
           appointmentTime DATETIME NOT NULL,
           serviceType TEXT,
+          documentCategory TEXT, -- 文件类别
           staffId INTEGER,
           vehicleId INTEGER,
           status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
@@ -325,6 +335,7 @@ const initDb = (db: Database) => {
           lastUpdatedAt DATETIME,
           createdBy INTEGER,
           createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          assignedStaffJson TEXT, -- 分配的员工ID数组的JSON字符串
           FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
           FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
           FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL,
@@ -353,7 +364,7 @@ const initDb = (db: Database) => {
       console.log("Successfully migrated appointments table with createdBy column");
     }
 
-    // Create appointment history table for tracking status changes
+    // Create appointment_history table
     db.run(`
       CREATE TABLE IF NOT EXISTS appointment_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -361,26 +372,76 @@ const initDb = (db: Database) => {
         status TEXT NOT NULL,
         staffId INTEGER,
         vehicleId INTEGER,
+        documentTypesJson TEXT,
+        documentCountsJson TEXT,
         notes TEXT,
         updatedBy INTEGER NOT NULL,
         updatedAt DATETIME NOT NULL,
         assignedStaffJson TEXT,
         FOREIGN KEY (appointmentId) REFERENCES appointments (id) ON DELETE CASCADE,
-        FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
-        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
         FOREIGN KEY (updatedBy) REFERENCES users (id) ON DELETE SET NULL
       );
     `);
+
+    // Check if the documentTypesJson column exists in the appointment_history table
+    const docTypesColumnHistoryExists = db.query<{ count: number }, []>(
+      "SELECT COUNT(*) as count FROM pragma_table_info('appointment_history') WHERE name = 'documentTypesJson'"
+    ).get();
+
+    // Check if the documentCountsJson column exists in the appointment_history table
+    const docCountsColumnHistoryExists = db.query<{ count: number }, []>(
+      "SELECT COUNT(*) as count FROM pragma_table_info('appointment_history') WHERE name = 'documentCountsJson'"
+    ).get();
 
     // Check if the assignedStaffJson column exists in the appointment_history table
     const historyAssignedStaffJsonColumnExists = db.query<{ count: number }, []>(
       "SELECT COUNT(*) as count FROM pragma_table_info('appointment_history') WHERE name = 'assignedStaffJson'"
     ).get();
 
+    // Add the document fields columns if they don't exist
+    if (docTypesColumnHistoryExists && docTypesColumnHistoryExists.count === 0) {
+      console.log("Adding document type fields to appointment_history table");
+      db.run("ALTER TABLE appointment_history ADD COLUMN documentTypesJson TEXT");
+    }
+
+    if (docCountsColumnHistoryExists && docCountsColumnHistoryExists.count === 0) {
+      console.log("Adding document count fields to appointment_history table");
+      db.run("ALTER TABLE appointment_history ADD COLUMN documentCountsJson TEXT");
+    }
+
     // Add the assignedStaffJson column if it doesn't exist
     if (historyAssignedStaffJsonColumnExists && historyAssignedStaffJsonColumnExists.count === 0) {
       console.log("Adding assignedStaffJson column to appointment_history table");
       db.run("ALTER TABLE appointment_history ADD COLUMN assignedStaffJson TEXT");
+    }
+
+    // Check for the documentTypesJson and documentCountsJson columns in the appointments table
+    const docTypesColumnExists = db.query<{ count: number }, []>(
+      "SELECT COUNT(*) as count FROM pragma_table_info('appointments') WHERE name = 'documentTypesJson'"
+    ).get();
+
+    const docCountsColumnExists = db.query<{ count: number }, []>(
+      "SELECT COUNT(*) as count FROM pragma_table_info('appointments') WHERE name = 'documentCountsJson'"
+    ).get();
+
+    const docCategoryColumnExists = db.query<{ count: number }, []>(
+      "SELECT COUNT(*) as count FROM pragma_table_info('appointments') WHERE name = 'documentCategory'"
+    ).get();
+
+    // Add the document fields columns if they don't exist
+    if (docTypesColumnExists && docTypesColumnExists.count === 0) {
+      console.log("Adding documentTypesJson column to appointments table");
+      db.run("ALTER TABLE appointments ADD COLUMN documentTypesJson TEXT");
+    }
+
+    if (docCountsColumnExists && docCountsColumnExists.count === 0) {
+      console.log("Adding documentCountsJson column to appointments table");
+      db.run("ALTER TABLE appointments ADD COLUMN documentCountsJson TEXT");
+    }
+
+    if (docCategoryColumnExists && docCategoryColumnExists.count === 0) {
+      console.log("Adding documentCategory column to appointments table");
+      db.run("ALTER TABLE appointments ADD COLUMN documentCategory TEXT");
     }
 
     // Create customers table
@@ -463,16 +524,18 @@ const initDb = (db: Database) => {
       ).all();
 
       if (historyToMigrate.length > 0) {
-        console.log(`Migrating ${historyToMigrate.length} appointment history records to use assignedStaffJson`);
-
-        const updateQuery = db.query(
-          "UPDATE appointment_history SET assignedStaffJson = ? WHERE id = ?"
-        );
+        console.log(`Migrating ${historyToMigrate.length} appointment history records with new assignedStaffJson field...`);
 
         for (const record of historyToMigrate) {
-          const staffArray = JSON.stringify([record.staffId.toString()]);
-          updateQuery.run(staffArray, record.id);
+          const staffIdArray = [record.staffId.toString()];
+          const staffJson = JSON.stringify(staffIdArray);
+
+          db.query(
+            "UPDATE appointment_history SET assignedStaffJson = ? WHERE id = ?"
+          ).run(staffJson, record.id);
         }
+
+        console.log("Successfully migrated appointment history records with assignedStaffJson");
       }
     }
   } catch (error) {
