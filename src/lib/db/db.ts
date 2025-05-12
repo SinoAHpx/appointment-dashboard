@@ -41,6 +41,8 @@ function initDb(db: Database) {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         plateNumber TEXT UNIQUE NOT NULL,
         model TEXT,
+        vehicleType TEXT CHECK( vehicleType IN ('electric', 'fuel') ) NOT NULL DEFAULT 'fuel',
+        length REAL DEFAULT 0,
         status TEXT CHECK( status IN ('available', 'in_use', 'maintenance') ) NOT NULL DEFAULT 'available',
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
       );
