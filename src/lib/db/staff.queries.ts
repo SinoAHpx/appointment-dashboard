@@ -5,7 +5,7 @@ export interface Staff {
 	id: number;
 	name: string;      // 必填
 	phone: string;     // 必填
-	email?: string | null;
+	idCard: string;    // 必填，身份证号码
 	position?: string | null;
 	status: "active" | "inactive" | "on_leave";
 	createdAt: string;
@@ -15,7 +15,7 @@ export interface Staff {
 export type NewStaffData = {
 	name: string;      // 必填
 	phone: string;     // 必填
-	email?: string | null;
+	idCard: string;    // 必填，身份证号码
 	position?: string | null;
 	status?: Staff["status"];
 };
@@ -30,7 +30,7 @@ export const getAllStaff = (): Staff[] => {
 	try {
 		const db = getDb();
 		const query = db.query<Staff, []>(
-			"SELECT id, name, phone, email, position, status, createdAt FROM staff ORDER BY createdAt DESC",
+			"SELECT id, name, phone, idCard, position, status, createdAt FROM staff ORDER BY createdAt DESC",
 		);
 		return query.all();
 	} catch (error) {
@@ -45,13 +45,13 @@ export const getAllStaff = (): Staff[] => {
 export const addStaff = (data: NewStaffData): Staff | null => {
 	try {
 		const db = getDb();
-		const { name, phone, email = null, position = null, status = "active" } = data;
+		const { name, phone, idCard, position = null, status = "active" } = data;
 
-		const insertQuery = db.query<Staff, [string, string, string | null, string | null, Staff["status"]]>(
-			"INSERT INTO staff (name, phone, email, position, status) VALUES (?, ?, ?, ?, ?) RETURNING id, name, phone, email, position, status, createdAt",
+		const insertQuery = db.query<Staff, [string, string, string, string | null, Staff["status"]]>(
+			"INSERT INTO staff (name, phone, idCard, position, status) VALUES (?, ?, ?, ?, ?) RETURNING id, name, phone, idCard, position, status, createdAt",
 		);
 
-		const newStaff = insertQuery.get(name, phone, email, position, status);
+		const newStaff = insertQuery.get(name, phone, idCard, position, status);
 		return newStaff;
 	} catch (error) {
 		console.error("Error adding staff:", error);
@@ -73,7 +73,7 @@ export const updateStaff = (
 		if (fields.length === 0) {
 			// No fields to update, maybe fetch and return the existing one?
 			const currentStaffQuery = db.query<Staff, [number]>(
-				"SELECT id, name, phone, email, position, status, createdAt FROM staff WHERE id = ?",
+				"SELECT id, name, phone, idCard, position, status, createdAt FROM staff WHERE id = ?",
 			);
 			return currentStaffQuery.get(id);
 		}
@@ -84,7 +84,7 @@ export const updateStaff = (
 		values.push(id.toString()); // Add id for the WHERE clause
 
 		const updateQuery = db.query<Staff, any[]>(
-			`UPDATE staff SET ${setClause} WHERE id = ? RETURNING id, name, phone, email, position, status, createdAt`,
+			`UPDATE staff SET ${setClause} WHERE id = ? RETURNING id, name, phone, idCard, position, status, createdAt`,
 		);
 
 		const updatedStaff = updateQuery.get(...values);

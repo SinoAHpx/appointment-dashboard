@@ -7,7 +7,7 @@ export interface Staff {
     id: string;
     name: string;
     phone: string;
-    email: string;
+    idCard: string;
     position: string;
     status: "active" | "inactive" | "on_leave";
     isAvailable: boolean; // 前端用于显示状态
@@ -23,7 +23,7 @@ interface StaffState {
     addStaff: (data: {
         name: string;
         phone: string;
-        email?: string;
+        idCard: string;
         position?: string;
         isAvailable?: boolean;
     }) => Promise<boolean>;
@@ -55,7 +55,7 @@ export const useStaffStore = create<StaffState>()(
                             id: staff.id.toString(),
                             name: staff.name,
                             phone: staff.phone || '',
-                            email: staff.email || '',
+                            idCard: staff.idCard,
                             position: staff.position || '',
                             status: staff.status,
                             isAvailable: staff.status === 'active',
@@ -77,7 +77,7 @@ export const useStaffStore = create<StaffState>()(
                     const apiData: NewStaffData = {
                         name: staffData.name,
                         phone: staffData.phone,
-                        email: staffData.email || null,
+                        idCard: staffData.idCard,
                         position: staffData.position || null,
                         status: staffData.isAvailable ? 'active' : 'inactive',
                     };
@@ -99,7 +99,7 @@ export const useStaffStore = create<StaffState>()(
                             id: data.staff.id.toString(),
                             name: data.staff.name,
                             phone: data.staff.phone || '',
-                            email: data.staff.email || '',
+                            idCard: data.staff.idCard,
                             position: data.staff.position || '',
                             status: data.staff.status,
                             isAvailable: data.staff.status === 'active',
@@ -128,7 +128,7 @@ export const useStaffStore = create<StaffState>()(
 
                     if (staffData.name !== undefined) apiData.name = staffData.name;
                     if (staffData.phone !== undefined) apiData.phone = staffData.phone;
-                    if (staffData.email !== undefined) apiData.email = staffData.email;
+                    if (staffData.idCard !== undefined) apiData.idCard = staffData.idCard;
                     if (staffData.position !== undefined) apiData.position = staffData.position;
                     if (staffData.isAvailable !== undefined) {
                         apiData.status = staffData.isAvailable ? 'active' : 'inactive';
@@ -153,7 +153,7 @@ export const useStaffStore = create<StaffState>()(
                             id: responseData.staff.id.toString(),
                             name: responseData.staff.name,
                             phone: responseData.staff.phone || '',
-                            email: responseData.staff.email || '',
+                            idCard: responseData.staff.idCard,
                             position: responseData.staff.position || '',
                             status: responseData.staff.status,
                             isAvailable: responseData.staff.status === 'active',

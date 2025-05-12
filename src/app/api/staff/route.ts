@@ -43,11 +43,18 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		if (!body.idCard) {
+			return NextResponse.json(
+				{ success: false, message: "员工身份证号码必填" },
+				{ status: 400 },
+			);
+		}
+
 		// 创建新员工数据对象
 		const newStaffData: NewStaffData = {
 			name: body.name,
 			phone: body.phone,
-			email: body.email || null,
+			idCard: body.idCard,
 			position: body.position || null,
 			status: ["active", "inactive", "on_leave"].includes(body.status)
 				? (body.status as Staff["status"])
@@ -93,7 +100,7 @@ export async function PUT(request: NextRequest) {
 		// 只包含要更新的字段
 		if (body.name !== undefined) updateData.name = body.name;
 		if (body.phone !== undefined) updateData.phone = body.phone;
-		if (body.email !== undefined) updateData.email = body.email;
+		if (body.idCard !== undefined) updateData.idCard = body.idCard;
 		if (body.position !== undefined) updateData.position = body.position;
 
 		// 验证状态值有效性

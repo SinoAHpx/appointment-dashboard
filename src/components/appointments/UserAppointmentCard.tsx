@@ -23,11 +23,15 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
         }
     }, [appointment.assignedStaff, appointment.assignedVehicle, fetchStaff, fetchVehicles]);
 
-    // Get assigned staff names
-    const assignedStaffNames = appointment.assignedStaff?.map(staffId => {
+    // Get assigned staff names and info
+    const assignedStaffInfo = appointment.assignedStaff?.map(staffId => {
         const staff = staffList.find(s => s.id === staffId);
-        return staff ? staff.name : '未知人员';
-    }).join(', ');
+        if (!staff) return null;
+        return {
+            name: staff.name,
+            idCard: staff.idCard,
+        };
+    }).filter((staff): staff is { name: string; idCard: string; } => staff !== null);
 
     // Get assigned vehicle info
     const assignedVehicle = vehicles.find(v => v.id === appointment.assignedVehicle);
@@ -166,10 +170,21 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                     </div>
 
                     {/* Show assigned staff if available */}
-                    {appointment.assignedStaff && appointment.assignedStaff.length > 0 && assignedStaffNames && (
-                        <div className="flex items-center gap-2">
-                            <Users size={16} className="text-gray-500" />
-                            <span>处理人员：{assignedStaffNames}</span>
+                    {appointment.assignedStaff && appointment.assignedStaff.length > 0 && assignedStaffInfo && (
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                                <Users size={16} className="text-gray-500" />
+                                <span className="font-medium">处理人员：</span>
+                            </div>
+                            <div className="ml-6 space-y-1">
+                                {assignedStaffInfo.map((staff, index) => (
+                                    <div key={index} className="text-sm text-gray-600">
+                                        <span>{staff.name}</span>
+                                        <span className="mx-2">|</span>
+                                        <span className="font-mono">{staff.idCard}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 

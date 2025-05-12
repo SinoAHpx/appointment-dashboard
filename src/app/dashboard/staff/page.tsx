@@ -72,7 +72,7 @@ export default function StaffPage() {
 	const [newStaff, setNewStaff] = useState({
 		name: "",
 		phone: "",
-		email: "",
+		idCard: "",
 		position: "",
 		isAvailable: true,
 	});
@@ -88,7 +88,7 @@ export default function StaffPage() {
 			(staff) =>
 				staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				staff.phone.includes(searchQuery) ||
-				staff.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				staff.idCard.includes(searchQuery) ||
 				staff.position.toLowerCase().includes(searchQuery.toLowerCase()),
 		).length / perPage,
 	);
@@ -99,7 +99,7 @@ export default function StaffPage() {
 			(staff) =>
 				staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				staff.phone.includes(searchQuery) ||
-				staff.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				staff.idCard.includes(searchQuery) ||
 				staff.position.toLowerCase().includes(searchQuery.toLowerCase()),
 		)
 		.sort((a, b) => a.name.localeCompare(b.name))
@@ -136,9 +136,9 @@ export default function StaffPage() {
 
 	// 处理新建员工提交
 	const handleSubmitNewStaff = async () => {
-		// 表单验证 - 只验证必填字段：姓名和手机号
-		if (!newStaff.name || !newStaff.phone) {
-			toast.error("请填写必填项：姓名和手机号");
+		// 表单验证 - 验证必填字段：姓名、手机号和身份证
+		if (!newStaff.name || !newStaff.phone || !newStaff.idCard) {
+			toast.error("请填写必填项：姓名、手机号和身份证");
 			return;
 		}
 
@@ -151,7 +151,7 @@ export default function StaffPage() {
 				setNewStaff({
 					name: "",
 					phone: "",
-					email: "",
+					idCard: "",
 					position: "",
 					isAvailable: true,
 				});
@@ -173,9 +173,9 @@ export default function StaffPage() {
 	const handleUpdateStaff = async () => {
 		if (!editingStaff) return;
 
-		// 表单验证 - 只验证必填字段：姓名和手机号
-		if (!editingStaff.name || !editingStaff.phone) {
-			toast.error("请填写必填项：姓名和手机号");
+		// 表单验证 - 验证必填字段：姓名、手机号和身份证
+		if (!editingStaff.name || !editingStaff.phone || !editingStaff.idCard) {
+			toast.error("请填写必填项：姓名、手机号和身份证");
 			return;
 		}
 
@@ -272,14 +272,14 @@ export default function StaffPage() {
 									</div>
 								</div>
 								<div className="flex flex-col gap-2">
-									<Label htmlFor="email">邮箱</Label>
+									<Label htmlFor="idCard">身份证 *</Label>
 									<Input
-										id="email"
-										name="email"
-										type="email"
-										value={newStaff.email}
+										id="idCard"
+										name="idCard"
+										value={newStaff.idCard}
 										onChange={handleNewStaffChange}
-										placeholder="请输入邮箱"
+										placeholder="请输入身份证号码"
+										required
 									/>
 								</div>
 								<div className="flex flex-col gap-2">
@@ -322,7 +322,7 @@ export default function StaffPage() {
 						/>
 						<Input
 							className="pl-8"
-							placeholder="搜索员工姓名、电话、邮箱或职位"
+							placeholder="搜索员工姓名、电话、身份证或职位"
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 						/>
@@ -337,7 +337,7 @@ export default function StaffPage() {
 								<TableRow>
 									<TableHead>姓名</TableHead>
 									<TableHead>电话</TableHead>
-									<TableHead>邮箱</TableHead>
+									<TableHead>身份证</TableHead>
 									<TableHead>职位</TableHead>
 									<TableHead>状态</TableHead>
 									<TableHead className="text-right">操作</TableHead>
@@ -361,7 +361,7 @@ export default function StaffPage() {
 										<TableRow key={staff.id}>
 											<TableCell className="font-medium">{staff.name}</TableCell>
 											<TableCell>{staff.phone}</TableCell>
-											<TableCell>{staff.email}</TableCell>
+											<TableCell>{staff.idCard}</TableCell>
 											<TableCell>{staff.position}</TableCell>
 											<TableCell>
 												<Badge
@@ -475,14 +475,14 @@ export default function StaffPage() {
 									</div>
 								</div>
 								<div className="flex flex-col gap-2">
-									<Label htmlFor="edit-email">邮箱</Label>
+									<Label htmlFor="edit-idCard">身份证 *</Label>
 									<Input
-										id="edit-email"
-										name="email"
-										type="email"
-										value={editingStaff.email}
+										id="edit-idCard"
+										name="idCard"
+										value={editingStaff.idCard}
 										onChange={handleEditStaffChange}
-										placeholder="请输入邮箱"
+										placeholder="请输入身份证号码"
+										required
 									/>
 								</div>
 								<div className="flex flex-col gap-2">

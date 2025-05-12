@@ -28,7 +28,7 @@ function initDb(db: Database) {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         phone TEXT NOT NULL,
-        email TEXT,
+        idCard TEXT NOT NULL,
         position TEXT,
         status TEXT CHECK( status IN ('active', 'inactive', 'on_leave') ) NOT NULL DEFAULT 'active',
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
