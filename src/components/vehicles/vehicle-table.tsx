@@ -19,7 +19,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { type Vehicle } from "@/lib/store";
-import { Check, Pencil, Trash, X } from "lucide-react";
+import { Check, Edit, Trash, X } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 
 interface VehicleTableProps {
     vehicles: Vehicle[];
@@ -121,15 +122,14 @@ export function VehicleTable({
                                             size="icon"
                                             onClick={() => handleStartEdit(vehicle)}
                                         >
-                                            <Pencil size={16} />
+                                            <Edit size={16} />
                                         </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => handleDeleteVehicle(vehicle.id)}
-                                        >
-                                            <Trash size={16} />
-                                        </Button>
+                                        <ConfirmDeleteDialog
+                                            title="删除车辆"
+                                            description="确定要删除这个车辆吗？删除后无法恢复。"
+                                            onConfirm={() => handleDeleteVehicle(vehicle.id)}
+                                            trigger={<Trash size={16} />}
+                                        />
                                     </div>
                                 </TableCell>
                             </TableRow>

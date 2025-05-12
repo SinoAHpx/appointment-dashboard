@@ -48,9 +48,11 @@ import {
 	ShieldAlert,
 	Trash,
 	User,
+	Edit,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 
 export default function UsersPage() {
 	const {
@@ -262,8 +264,6 @@ export default function UsersPage() {
 
 	// 处理删除用户
 	const handleDeleteUser = async (id: number) => {
-		if (!confirm("确定要删除这个用户吗？删除后无法恢复。")) return;
-
 		try {
 			const success = await deleteUser(id);
 			if (success) {
@@ -451,17 +451,15 @@ export default function UsersPage() {
 														disabled={user.id === 1}
 														title={user.id === 1 ? "不能编辑管理员账户" : "编辑用户"}
 													>
-														<Pencil size={16} />
+														<Edit size={16} />
 													</Button>
-													<Button
-														variant="outline"
-														size="icon"
-														onClick={() => handleDeleteUser(user.id)}
+													<ConfirmDeleteDialog
+														title="删除用户"
+														description="确定要删除这个用户吗？删除后无法恢复。"
+														onConfirm={() => handleDeleteUser(user.id)}
+														trigger={<Trash size={16} />}
 														disabled={user.id === 1}
-														title={user.id === 1 ? "不能删除管理员账户" : "删除用户"}
-													>
-														<Trash size={16} />
-													</Button>
+													/>
 												</div>
 											</TableCell>
 										</TableRow>

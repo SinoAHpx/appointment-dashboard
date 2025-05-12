@@ -59,11 +59,6 @@ export default function AppointmentsPage() {
 		setSearchQuery(query);
 	};
 
-	// 处理清除搜索
-	const handleClearSearch = () => {
-		setSearchQuery("");
-	};
-
 	// 处理新建预约提交
 	const handleSubmitNewAppointment = async (formData: AppointmentFormData) => {
 		try {
@@ -154,8 +149,6 @@ export default function AppointmentsPage() {
 
 	// 处理删除预约
 	const handleDeleteAppointment = async (id: string) => {
-		if (!confirm("确定要删除这个预约吗？")) return;
-
 		try {
 			const success = await deleteAppointment(id);
 			if (success) {

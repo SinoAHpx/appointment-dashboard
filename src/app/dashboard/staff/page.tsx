@@ -44,11 +44,13 @@ import {
 	Trash,
 	User,
 	X,
+	Edit,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 
 export default function StaffPage() {
 	const { isAuthenticated } = useAuthStore();
@@ -67,6 +69,7 @@ export default function StaffPage() {
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [deleteId, setDeleteId] = useState<string | null>(null);
 
 	// 新建员工表单状态
 	const [newStaff, setNewStaff] = useState({
@@ -195,8 +198,6 @@ export default function StaffPage() {
 
 	// 处理删除员工
 	const handleDeleteStaff = async (id: string) => {
-		if (!confirm("确定要删除这个员工吗？删除后无法恢复。")) return;
-
 		try {
 			const success = await deleteStaff(id);
 			if (success) {
@@ -387,15 +388,14 @@ export default function StaffPage() {
 														size="icon"
 														onClick={() => handleStartEdit(staff)}
 													>
-														<Pencil size={16} />
+														<Edit size={16} />
 													</Button>
-													<Button
-														variant="outline"
-														size="icon"
-														onClick={() => handleDeleteStaff(staff.id)}
-													>
-														<Trash size={16} />
-													</Button>
+													<ConfirmDeleteDialog
+														title="删除员工"
+														description="确定要删除这个员工吗？删除后无法恢复。"
+														onConfirm={() => handleDeleteStaff(staff.id)}
+														trigger={<Trash size={16} />}
+													/>
 												</div>
 											</TableCell>
 										</TableRow>

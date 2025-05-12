@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { type Appointment } from "@/lib/stores/appointments";
 import { documentTypes, formatDateTime, getStatusColor, getStatusLabel } from "@/lib/utils/appointments/helpers";
-import { Pencil, Trash } from "lucide-react";
+import { Edit, Trash } from "lucide-react";
 import {
     Pagination,
     PaginationContent,
@@ -29,6 +29,7 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
+import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 
 interface AdminAppointmentTableProps {
     appointments: Appointment[];
@@ -128,7 +129,7 @@ export function AdminAppointmentTable({
                                                             size="icon"
                                                             onClick={() => onEdit(appointment)}
                                                         >
-                                                            <Pencil size={16} />
+                                                            <Edit size={16} />
                                                         </Button>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -139,13 +140,12 @@ export function AdminAppointmentTable({
                                             <TooltipProvider>
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            onClick={() => onDelete(appointment.id)}
-                                                        >
-                                                            <Trash size={16} />
-                                                        </Button>
+                                                        <ConfirmDeleteDialog
+                                                            title="删除预约"
+                                                            description="确定要删除这个预约吗？"
+                                                            onConfirm={() => onDelete(appointment.id)}
+                                                            trigger={<Trash size={16} />}
+                                                        />
                                                     </TooltipTrigger>
                                                     <TooltipContent>
                                                         <p>删除预约</p>
