@@ -37,7 +37,7 @@ export function UserAppointmentActions({
     const canCancel = ["pending", "confirmed"].includes(appointment.status);
 
     // 判断预约是否可以被编辑（已完成或已取消的预约不能编辑）
-    const canEdit = !["completed", "cancelled"].includes(appointment.status);
+    const canEdit = appointment.status === "pending";
 
     // 取消预约
     const handleCancelAppointment = async () => {

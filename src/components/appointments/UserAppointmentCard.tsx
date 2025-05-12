@@ -217,7 +217,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                     )}
 
                     {/* 添加操作按钮区域 */}
-                    <div className="flex justify-end mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex justify-end mt-4 pt-4">
                         <UserAppointmentActions appointment={appointment} />
                     </div>
                 </div>
