@@ -79,7 +79,7 @@ export function EditVehicleDialog({
                                 value={editingVehicle.vehicleType}
                                 onValueChange={(value) => handleEditVehicleTypeChange(value as "electric" | "fuel")}
                             >
-                                <SelectTrigger id="edit-vehicleType">
+                                <SelectTrigger className="w-full" id="edit-vehicleType">
                                     <SelectValue placeholder="选择车辆类型" />
                                 </SelectTrigger>
                                 <SelectContent>

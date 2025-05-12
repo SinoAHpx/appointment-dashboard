@@ -86,7 +86,7 @@ export function AddVehicleDialog({
                                 value={newVehicle.vehicleType}
                                 onValueChange={(value) => handleVehicleTypeChange(value as "electric" | "fuel")}
                             >
-                                <SelectTrigger id="vehicleType">
+                                <SelectTrigger id="vehicleType" className="w-full">
                                     <SelectValue placeholder="选择车辆类型" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -116,6 +116,7 @@ export function AddVehicleDialog({
                                 value={newVehicle.capacity}
                                 onChange={handleNewVehicleChange}
                                 required
+                                className="w-full"
                             />
                         </div>
                         <div className="flex flex-col gap-2">
@@ -129,6 +130,7 @@ export function AddVehicleDialog({
                                 value={newVehicle.length}
                                 onChange={handleNewVehicleChange}
                                 required
+                                className="w-full"
                             />
                         </div>
                     </div>
