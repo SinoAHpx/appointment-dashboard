@@ -10,7 +10,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { AdminAppointmentTable } from "@/components/appointments/AdminAppointmentTable";
-import { AppointmentForm, type AppointmentFormData } from "@/components/appointments/AppointmentForm";
+import { AppointmentForm, type AppointmentFormData } from "@/components/appointments/form/AppointmentForm";
 import { AppointmentSearch } from "@/components/appointments/AppointmentSearch";
 import { UserAppointmentsList } from "@/components/appointments/UserAppointmentsList";
 import {

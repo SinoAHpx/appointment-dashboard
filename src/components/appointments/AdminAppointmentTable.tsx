@@ -4,11 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import {
     Table,
     TableBody,
     TableCaption,
@@ -25,7 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { type Appointment } from "@/lib/stores/appointments";
 import { documentTypes, formatDateTime, getStatusColor, getStatusLabel } from "@/lib/utils/appointments/helpers";
-import { CheckCircle, Clock, Pencil, RotateCcw, Trash, Truck, Users, Car, XCircle } from "lucide-react";
+import { Pencil, Trash } from "lucide-react";
 import {
     Pagination,
     PaginationContent,
