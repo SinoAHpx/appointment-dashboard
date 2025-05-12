@@ -11,9 +11,11 @@ export interface Vehicle {
     id: string;
     plateNumber: string;
     model: string;
+    vehicleType: "electric" | "fuel"; // 车辆类型：电车或油车
+    length: number; // 车长（米）
     status: "available" | "in_use" | "maintenance";
     isAvailable: boolean; // 前端用于显示状态
-    capacity: number;    // 载重量
+    capacity: number;    // 载重量（吨，允许小数）
     lastMaintenance: string; // 最近维护日期
     createdAt: string;
 }
@@ -22,7 +24,9 @@ export interface Vehicle {
 export interface VehicleFormData {
     plateNumber: string;
     model: string;
-    capacity?: number;
+    vehicleType: "electric" | "fuel";
+    length: number;
+    capacity: number;
     lastMaintenance?: string;
     isAvailable?: boolean;
 }
@@ -59,6 +63,8 @@ export const useVehicleStore = create<VehicleState>()(
                             id: v.id.toString(),
                             plateNumber: v.plateNumber,
                             model: v.model,
+                            vehicleType: v.vehicleType || "fuel", // 默认为油车
+                            length: v.length || 0, // 默认为0
                             status: v.status,
                             isAvailable: v.status === 'available',
                             capacity: 1, // 默认值
@@ -81,6 +87,8 @@ export const useVehicleStore = create<VehicleState>()(
                     const apiData: DbNewVehicleData = {
                         plateNumber: vehicleData.plateNumber,
                         model: vehicleData.model,
+                        vehicleType: vehicleData.vehicleType,
+                        length: vehicleData.length,
                         status: vehicleData.isAvailable ? 'available' : 'in_use',
                     };
 
@@ -101,9 +109,11 @@ export const useVehicleStore = create<VehicleState>()(
                             id: data.vehicle.id.toString(),
                             plateNumber: data.vehicle.plateNumber,
                             model: data.vehicle.model,
+                            vehicleType: data.vehicle.vehicleType,
+                            length: data.vehicle.length || 0,
                             status: data.vehicle.status,
                             isAvailable: data.vehicle.status === 'available',
-                            capacity: vehicleData.capacity || 1,
+                            capacity: vehicleData.capacity,
                             lastMaintenance: vehicleData.lastMaintenance || '',
                             createdAt: data.vehicle.createdAt,
                         };
@@ -142,6 +152,14 @@ export const useVehicleStore = create<VehicleState>()(
                         apiData.model = data.model;
                     }
 
+                    if (data.vehicleType !== undefined) {
+                        apiData.vehicleType = data.vehicleType;
+                    }
+
+                    if (data.length !== undefined) {
+                        apiData.length = data.length;
+                    }
+
                     if (data.isAvailable !== undefined) {
                         apiData.status = data.isAvailable ? 'available' : 'in_use';
                     }
@@ -163,6 +181,8 @@ export const useVehicleStore = create<VehicleState>()(
                             id: responseData.vehicle.id.toString(),
                             plateNumber: responseData.vehicle.plateNumber,
                             model: responseData.vehicle.model,
+                            vehicleType: responseData.vehicle.vehicleType,
+                            length: responseData.vehicle.length || 0,
                             status: responseData.vehicle.status,
                             isAvailable: responseData.vehicle.status === 'available',
                             // 保留前端特有字段值

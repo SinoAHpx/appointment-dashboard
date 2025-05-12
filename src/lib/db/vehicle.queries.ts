@@ -5,6 +5,8 @@ export interface Vehicle {
 	id: number;
 	plateNumber: string;  // 必填：车牌号
 	model: string;        // 必填：车型
+	vehicleType: "electric" | "fuel"; // 必填：车辆类型 - 电车或油车
+	length: number;       // 车长（米）
 	status: "available" | "in_use" | "maintenance";
 	createdAt: string;
 }
@@ -13,6 +15,8 @@ export interface Vehicle {
 export type NewVehicleData = {
 	plateNumber: string;  // 必填：车牌号 
 	model: string;        // 必填：车型
+	vehicleType: Vehicle["vehicleType"]; // 必填：车辆类型
+	length?: number;      // 可选：车长（米）
 	status?: Vehicle["status"];
 };
 
@@ -41,14 +45,14 @@ export const getAllVehicles = (): Vehicle[] => {
 export const addVehicle = (data: NewVehicleData): Vehicle | null => {
 	try {
 		const db = getDb();
-		const { plateNumber, model, status = "available" } = data;
+		const { plateNumber, model, vehicleType, length = 0, status = "available" } = data;
 		const insertQuery = db.query<
 			Vehicle,
-			[string, string, Vehicle["status"]]
+			[string, string, Vehicle["vehicleType"], number, Vehicle["status"]]
 		>(
-			"INSERT INTO vehicles (plateNumber, model, status) VALUES (?, ?, ?) RETURNING id, plateNumber, model, status, createdAt",
+			"INSERT INTO vehicles (plateNumber, model, vehicleType, length, status) VALUES (?, ?, ?, ?, ?) RETURNING id, plateNumber, model, vehicleType, length, status, createdAt",
 		);
-		const newVehicle = insertQuery.get(plateNumber, model, status);
+		const newVehicle = insertQuery.get(plateNumber, model, vehicleType, length, status);
 		return newVehicle;
 	} catch (error) {
 		// Check for unique constraint violation (plateNumber)
@@ -86,7 +90,7 @@ export const updateVehicle = (
 		values.push(id.toString());
 
 		const updateQuery = db.query<Vehicle, any[]>(
-			`UPDATE vehicles SET ${setClause} WHERE id = ? RETURNING id, plateNumber, model, status, createdAt`,
+			`UPDATE vehicles SET ${setClause} WHERE id = ? RETURNING id, plateNumber, model, vehicleType, length, status, createdAt`,
 		);
 		const updatedVehicle = updateQuery.get(...values);
 		return updatedVehicle;

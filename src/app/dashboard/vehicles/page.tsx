@@ -1,52 +1,28 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-	Pagination,
-	PaginationContent,
-	PaginationItem,
-	PaginationLink,
-	PaginationNext,
-	PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
-	Table,
-	TableBody,
-	TableCaption,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@/components/ui/tabs";
 import { type Vehicle, useAuthStore, useVehicleStore } from "@/lib/store";
-import {
-	Calendar,
-	Car,
-	Check,
-	Pencil,
-	Plus,
-	Search,
-	Trash,
-	X,
-} from "lucide-react";
+import { Droplets, Plus, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
+import {
+	AddVehicleDialog,
+	EditVehicleDialog,
+	SearchBar,
+	VehicleTable,
+	formatDate,
+	getVehicleTypeIcon,
+	getVehicleTypeLabel
+} from "@/components/vehicles";
 
 export default function VehiclesPage() {
 	const { isAuthenticated } = useAuthStore();
@@ -65,11 +41,14 @@ export default function VehiclesPage() {
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [activeTab, setActiveTab] = useState("all");
 
 	// 新建车辆表单状态
 	const [newVehicle, setNewVehicle] = useState({
 		plateNumber: "",
 		model: "",
+		vehicleType: "fuel" as "electric" | "fuel",
+		length: 0,
 		capacity: 1,
 		isAvailable: true,
 		lastMaintenance: "",
@@ -80,24 +59,37 @@ export default function VehiclesPage() {
 
 	// 每页数量
 	const perPage = 10;
+
+	// 获取当前分类下的过滤后车辆列表
+	const getFilteredVehicles = () => {
+		return vehicles
+			.filter(
+				(vehicle) =>
+					vehicle.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					vehicle.model.toLowerCase().includes(searchQuery.toLowerCase())
+			)
+			.filter(vehicle => {
+				if (activeTab === "all") return true;
+				return vehicle.vehicleType === activeTab;
+			})
+			.sort((a, b) => a.plateNumber.localeCompare(b.plateNumber))
+			.slice((page - 1) * perPage, page * perPage);
+	};
+
 	// 总页数
 	const totalPages = Math.ceil(
 		vehicles.filter(
 			(vehicle) =>
 				vehicle.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				vehicle.model.toLowerCase().includes(searchQuery.toLowerCase()),
-		).length / perPage,
+				vehicle.model.toLowerCase().includes(searchQuery.toLowerCase())
+		).filter(vehicle => {
+			if (activeTab === "all") return true;
+			return vehicle.vehicleType === activeTab;
+		}).length / perPage,
 	);
 
 	// 过滤并分页车辆数据
-	const filteredVehicles = vehicles
-		.filter(
-			(vehicle) =>
-				vehicle.plateNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				vehicle.model.toLowerCase().includes(searchQuery.toLowerCase()),
-		)
-		.sort((a, b) => a.plateNumber.localeCompare(b.plateNumber))
-		.slice((page - 1) * perPage, page * perPage);
+	const filteredVehicles = getFilteredVehicles();
 
 	// 如果用户未登录，重定向到登录页面
 	useEffect(() => {
@@ -116,9 +108,17 @@ export default function VehiclesPage() {
 			[name]:
 				type === "checkbox"
 					? checked
-					: name === "capacity"
-						? Number.parseInt(value) || 1
+					: name === "capacity" || name === "length"
+						? parseFloat(value) || 0
 						: value,
+		}));
+	};
+
+	// 处理车辆类型选择
+	const handleVehicleTypeChange = (value: "electric" | "fuel") => {
+		setNewVehicle(prev => ({
+			...prev,
+			vehicleType: value
 		}));
 	};
 
@@ -131,16 +131,26 @@ export default function VehiclesPage() {
 				[name]:
 					type === "checkbox"
 						? checked
-						: name === "capacity"
-							? Number.parseInt(value) || 1
+						: name === "capacity" || name === "length"
+							? parseFloat(value) || 0
 							: value,
+			});
+		}
+	};
+
+	// 处理编辑车辆类型选择
+	const handleEditVehicleTypeChange = (value: "electric" | "fuel") => {
+		if (editingVehicle) {
+			setEditingVehicle({
+				...editingVehicle,
+				vehicleType: value
 			});
 		}
 	};
 
 	// 处理新建车辆提交
 	const handleSubmitNewVehicle = async () => {
-		// 表单验证 - 只验证必填字段：车牌号和车型
+		// 表单验证 - 验证必填字段：车牌号、车型和车辆类型
 		if (!newVehicle.plateNumber || !newVehicle.model) {
 			toast.error("请填写必填项：车牌号和车型");
 			return;
@@ -155,6 +165,8 @@ export default function VehiclesPage() {
 				setNewVehicle({
 					plateNumber: "",
 					model: "",
+					vehicleType: "fuel",
+					length: 0,
 					capacity: 1,
 					isAvailable: true,
 					lastMaintenance: "",
@@ -227,15 +239,10 @@ export default function VehiclesPage() {
 		}
 	};
 
-	// 格式化日期
-	const formatDate = (dateString?: string) => {
-		if (!dateString) return "-";
-		const date = new Date(dateString);
-		return new Intl.DateTimeFormat("zh-CN", {
-			year: "numeric",
-			month: "2-digit",
-			day: "2-digit",
-		}).format(date);
+	// 切换标签页
+	const handleTabChange = (tabValue: string) => {
+		setActiveTab(tabValue);
+		setPage(1);
 	};
 
 	if (!isAuthenticated) {
@@ -247,296 +254,112 @@ export default function VehiclesPage() {
 			<div className="space-y-6">
 				<div className="flex justify-between items-center">
 					<h1 className="text-2xl font-bold">车辆管理</h1>
-					<Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-						<DialogTrigger asChild>
-							<Button className="flex items-center gap-1">
-								<Plus size={16} />
-								<span>添加车辆</span>
-							</Button>
-						</DialogTrigger>
-						<DialogContent className="sm:max-w-[500px]">
-							<DialogHeader>
-								<DialogTitle>添加车辆</DialogTitle>
-								<DialogDescription>
-									填写以下信息添加新的车辆记录
-								</DialogDescription>
-							</DialogHeader>
-							<div className="grid gap-4 py-4">
-								<div className="grid grid-cols-2 gap-4">
-									<div className="flex flex-col gap-2">
-										<Label htmlFor="plateNumber">车牌号 *</Label>
-										<Input
-											id="plateNumber"
-											name="plateNumber"
-											value={newVehicle.plateNumber}
-											onChange={handleNewVehicleChange}
-											placeholder="请输入车牌号"
-											required
-										/>
-									</div>
-									<div className="flex flex-col gap-2">
-										<Label htmlFor="model">车型 *</Label>
-										<Input
-											id="model"
-											name="model"
-											value={newVehicle.model}
-											onChange={handleNewVehicleChange}
-											placeholder="请输入车型"
-											required
-										/>
-									</div>
-								</div>
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="capacity">载重量（吨）*</Label>
-									<Input
-										id="capacity"
-										name="capacity"
-										type="number"
-										min="1"
-										value={newVehicle.capacity}
-										onChange={handleNewVehicleChange}
-										required
-									/>
-								</div>
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="lastMaintenance">最近一次维护日期</Label>
-									<Input
-										id="lastMaintenance"
-										name="lastMaintenance"
-										type="date"
-										value={newVehicle.lastMaintenance}
-										onChange={handleNewVehicleChange}
-									/>
-								</div>
-								<div className="flex items-center gap-2">
-									<input
-										id="isAvailable"
-										name="isAvailable"
-										type="checkbox"
-										className="h-4 w-4 rounded border-gray-300 text-primary"
-										checked={newVehicle.isAvailable}
-										onChange={handleNewVehicleChange}
-									/>
-									<Label htmlFor="isAvailable">可用状态</Label>
-								</div>
-							</div>
-							<DialogFooter>
-								<DialogClose asChild>
-									<Button variant="outline">取消</Button>
-								</DialogClose>
-								<Button onClick={handleSubmitNewVehicle}>创建</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
+					<Button className="flex items-center gap-1" onClick={() => setIsAddDialogOpen(true)}>
+						<Plus size={16} />
+						<span>添加车辆</span>
+					</Button>
 				</div>
 
 				<div className="flex justify-between items-center">
-					<div className="relative w-80">
-						<Search
-							className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400"
-							size={18}
-						/>
-						<Input
-							className="pl-8"
-							placeholder="搜索车牌号或车型"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-						/>
-					</div>
+					<SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 				</div>
 
-				<Card>
-					<CardContent className="pt-6">
-						<Table>
-							<TableCaption>车辆列表</TableCaption>
-							<TableHeader>
-								<TableRow>
-									<TableHead>车牌号</TableHead>
-									<TableHead>车型</TableHead>
-									<TableHead>载重量（吨）</TableHead>
-									<TableHead>最近维护日期</TableHead>
-									<TableHead>状态</TableHead>
-									<TableHead className="text-right">操作</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{isLoading ? (
-									<TableRow>
-										<TableCell colSpan={6} className="text-center py-6">
-											加载中...
-										</TableCell>
-									</TableRow>
-								) : filteredVehicles.length === 0 ? (
-									<TableRow>
-										<TableCell colSpan={6} className="text-center py-6">
-											{searchQuery ? "没有找到匹配的车辆" : "暂无车辆记录"}
-										</TableCell>
-									</TableRow>
-								) : (
-									filteredVehicles.map((vehicle) => (
-										<TableRow key={vehicle.id}>
-											<TableCell className="font-medium">
-												{vehicle.plateNumber}
-											</TableCell>
-											<TableCell>{vehicle.model}</TableCell>
-											<TableCell>{vehicle.capacity}</TableCell>
-											<TableCell>{formatDate(vehicle.lastMaintenance)}</TableCell>
-											<TableCell>
-												<Badge
-													variant={
-														vehicle.isAvailable ? "default" : "destructive"
-													}
-													className="flex items-center gap-1 cursor-pointer"
-													onClick={() => handleToggleAvailability(vehicle.id)}
-												>
-													{vehicle.isAvailable ? (
-														<>
-															<Check size={12} /> 可用
-														</>
-													) : (
-														<>
-															<X size={12} /> 不可用
-														</>
-													)}
-												</Badge>
-											</TableCell>
-											<TableCell className="text-right">
-												<div className="flex justify-end gap-2">
-													<Button
-														variant="outline"
-														size="icon"
-														onClick={() => handleStartEdit(vehicle)}
-													>
-														<Pencil size={16} />
-													</Button>
-													<Button
-														variant="outline"
-														size="icon"
-														onClick={() => handleDeleteVehicle(vehicle.id)}
-													>
-														<Trash size={16} />
-													</Button>
-												</div>
-											</TableCell>
-										</TableRow>
-									))
-								)}
-							</TableBody>
-						</Table>
+				<Tabs defaultValue="all" value={activeTab} onValueChange={handleTabChange}>
+					<TabsList>
+						<TabsTrigger value="all">全部车辆</TabsTrigger>
+						<TabsTrigger value="electric" className="flex items-center gap-1">
+							<Zap size={14} />
+							<span>电车</span>
+						</TabsTrigger>
+						<TabsTrigger value="fuel" className="flex items-center gap-1">
+							<Droplets size={14} />
+							<span>油车</span>
+						</TabsTrigger>
+					</TabsList>
 
-						{totalPages > 1 && (
-							<div className="mt-4">
-								<Pagination>
-									<PaginationContent>
-										<PaginationItem>
-											<PaginationPrevious
-												onClick={() => setPage((p) => Math.max(1, p - 1))}
-												isActive={page === 1}
-											/>
-										</PaginationItem>
+					<TabsContent value="all" className="mt-6">
+						<Card>
+							<CardContent className="pt-6">
+								<VehicleTable
+									vehicles={filteredVehicles}
+									isLoading={isLoading}
+									searchQuery={searchQuery}
+									formatDate={formatDate}
+									getVehicleTypeIcon={getVehicleTypeIcon}
+									getVehicleTypeLabel={getVehicleTypeLabel}
+									handleToggleAvailability={handleToggleAvailability}
+									handleStartEdit={handleStartEdit}
+									handleDeleteVehicle={handleDeleteVehicle}
+									page={page}
+									setPage={setPage}
+									totalPages={totalPages}
+								/>
+							</CardContent>
+						</Card>
+					</TabsContent>
 
-										{Array.from({ length: totalPages }).map((_, i) => (
-											<PaginationItem key={`vehicle-page-${i}`}>
-												<PaginationLink
-													onClick={() => setPage(i + 1)}
-													isActive={page === i + 1}
-												>
-													{i + 1}
-												</PaginationLink>
-											</PaginationItem>
-										))}
+					<TabsContent value="electric" className="mt-6">
+						<Card>
+							<CardContent className="pt-6">
+								<VehicleTable
+									vehicles={filteredVehicles}
+									isLoading={isLoading}
+									searchQuery={searchQuery}
+									formatDate={formatDate}
+									getVehicleTypeIcon={getVehicleTypeIcon}
+									getVehicleTypeLabel={getVehicleTypeLabel}
+									handleToggleAvailability={handleToggleAvailability}
+									handleStartEdit={handleStartEdit}
+									handleDeleteVehicle={handleDeleteVehicle}
+									page={page}
+									setPage={setPage}
+									totalPages={totalPages}
+								/>
+							</CardContent>
+						</Card>
+					</TabsContent>
 
-										<PaginationItem>
-											<PaginationNext
-												onClick={() =>
-													setPage((p) => Math.min(totalPages, p + 1))
-												}
-												isActive={page === totalPages}
-											/>
-										</PaginationItem>
-									</PaginationContent>
-								</Pagination>
-							</div>
-						)}
-					</CardContent>
-				</Card>
+					<TabsContent value="fuel" className="mt-6">
+						<Card>
+							<CardContent className="pt-6">
+								<VehicleTable
+									vehicles={filteredVehicles}
+									isLoading={isLoading}
+									searchQuery={searchQuery}
+									formatDate={formatDate}
+									getVehicleTypeIcon={getVehicleTypeIcon}
+									getVehicleTypeLabel={getVehicleTypeLabel}
+									handleToggleAvailability={handleToggleAvailability}
+									handleStartEdit={handleStartEdit}
+									handleDeleteVehicle={handleDeleteVehicle}
+									page={page}
+									setPage={setPage}
+									totalPages={totalPages}
+								/>
+							</CardContent>
+						</Card>
+					</TabsContent>
+				</Tabs>
+
+				{/* 添加车辆对话框 */}
+				<AddVehicleDialog
+					isOpen={isAddDialogOpen}
+					onOpenChange={setIsAddDialogOpen}
+					newVehicle={newVehicle}
+					handleNewVehicleChange={handleNewVehicleChange}
+					handleVehicleTypeChange={handleVehicleTypeChange}
+					handleSubmitNewVehicle={handleSubmitNewVehicle}
+				/>
 
 				{/* 编辑车辆对话框 */}
-				<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-					<DialogContent className="sm:max-w-[500px]">
-						<DialogHeader>
-							<DialogTitle>编辑车辆信息</DialogTitle>
-							<DialogDescription>修改车辆信息</DialogDescription>
-						</DialogHeader>
-						{editingVehicle && (
-							<div className="grid gap-4 py-4">
-								<div className="grid grid-cols-2 gap-4">
-									<div className="flex flex-col gap-2">
-										<Label htmlFor="edit-plateNumber">车牌号 *</Label>
-										<Input
-											id="edit-plateNumber"
-											name="plateNumber"
-											value={editingVehicle.plateNumber}
-											onChange={handleEditVehicleChange}
-											placeholder="请输入车牌号"
-											required
-										/>
-									</div>
-									<div className="flex flex-col gap-2">
-										<Label htmlFor="edit-model">车型 *</Label>
-										<Input
-											id="edit-model"
-											name="model"
-											value={editingVehicle.model}
-											onChange={handleEditVehicleChange}
-											placeholder="请输入车型"
-											required
-										/>
-									</div>
-								</div>
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="edit-capacity">载重量（吨）*</Label>
-									<Input
-										id="edit-capacity"
-										name="capacity"
-										type="number"
-										min="1"
-										value={editingVehicle.capacity}
-										onChange={handleEditVehicleChange}
-										required
-									/>
-								</div>
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="edit-lastMaintenance">最近一次维护日期</Label>
-									<Input
-										id="edit-lastMaintenance"
-										name="lastMaintenance"
-										type="date"
-										value={editingVehicle.lastMaintenance || ""}
-										onChange={handleEditVehicleChange}
-									/>
-								</div>
-								<div className="flex items-center gap-2">
-									<input
-										id="edit-isAvailable"
-										name="isAvailable"
-										type="checkbox"
-										className="h-4 w-4 rounded border-gray-300 text-primary"
-										checked={editingVehicle.isAvailable}
-										onChange={handleEditVehicleChange}
-									/>
-									<Label htmlFor="edit-isAvailable">可用状态</Label>
-								</div>
-							</div>
-						)}
-						<DialogFooter>
-							<DialogClose asChild>
-								<Button variant="outline">取消</Button>
-							</DialogClose>
-							<Button onClick={handleUpdateVehicle}>更新</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+				<EditVehicleDialog
+					isOpen={isEditDialogOpen}
+					onOpenChange={setIsEditDialogOpen}
+					editingVehicle={editingVehicle}
+					handleEditVehicleChange={handleEditVehicleChange}
+					handleEditVehicleTypeChange={handleEditVehicleTypeChange}
+					handleUpdateVehicle={handleUpdateVehicle}
+				/>
 			</div>
 		</AuthGuard>
 	);

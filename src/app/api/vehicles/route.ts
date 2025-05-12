@@ -43,10 +43,19 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		if (!body.vehicleType || !["electric", "fuel"].includes(body.vehicleType)) {
+			return NextResponse.json(
+				{ success: false, message: "请选择有效的车辆类型（电车或油车）" },
+				{ status: 400 },
+			);
+		}
+
 		// 创建新车辆数据对象
 		const vehicleData: NewVehicleData = {
 			plateNumber: body.plateNumber,
 			model: body.model,
+			vehicleType: body.vehicleType,
+			length: parseFloat(body.length) || 0,
 			status: ["available", "in_use", "maintenance"].includes(body.status)
 				? (body.status as Vehicle["status"])
 				: "available",
@@ -107,6 +116,22 @@ export async function PUT(request: NextRequest) {
 				);
 			}
 			updateData.model = body.model;
+		}
+
+		// 验证车辆类型有效性
+		if (body.vehicleType !== undefined) {
+			if (!["electric", "fuel"].includes(body.vehicleType)) {
+				return NextResponse.json(
+					{ success: false, message: "无效的车辆类型" },
+					{ status: 400 },
+				);
+			}
+			updateData.vehicleType = body.vehicleType;
+		}
+
+		// 处理车长更新
+		if (body.length !== undefined) {
+			updateData.length = parseFloat(body.length) || 0;
 		}
 
 		// 验证状态值有效性
