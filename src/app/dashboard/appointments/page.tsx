@@ -82,7 +82,28 @@ export default function AppointmentsPage() {
 		try {
 			// 由于后端API可能尚未更新，我们可以在这里处理新字段
 			// 提交时只保留需要的字段，不需要修改后端API
-			const success = await addAppointment(formData);
+
+			// 从 documentTypes 中获取 documentCategory 和 documentType
+			let documentCategory = 'paper'; // 默认值
+			let documentType = 'confidential'; // 默认值
+
+			// 遍历所有类别找到第一个有选中类型的类别作为主类别
+			for (const [category, data] of Object.entries(formData.documentTypes)) {
+				if (data.types.length > 0) {
+					documentCategory = category;
+					documentType = data.types[0]; // 使用第一个选择的类型
+					break;
+				}
+			}
+
+			// 添加缺失的字段
+			const enrichedFormData = {
+				...formData,
+				documentCategory,
+				documentType
+			};
+
+			const success = await addAppointment(enrichedFormData);
 			if (success) {
 				toast.success("预约创建成功");
 				setIsAddDialogOpen(false);
@@ -107,9 +128,30 @@ export default function AppointmentsPage() {
 		try {
 			// 由于后端API可能尚未更新，我们可以在这里处理新字段
 			// 提交时只保留需要的字段，不需要修改后端API
+
+			// 从 documentTypes 中获取 documentCategory 和 documentType
+			let documentCategory = 'paper'; // 默认值
+			let documentType = 'confidential'; // 默认值
+
+			// 遍历所有类别找到第一个有选中类型的类别作为主类别
+			for (const [category, data] of Object.entries(formData.documentTypes)) {
+				if (data.types.length > 0) {
+					documentCategory = category;
+					documentType = data.types[0]; // 使用第一个选择的类型
+					break;
+				}
+			}
+
+			// 添加缺失的字段
+			const enrichedFormData = {
+				...formData,
+				documentCategory,
+				documentType
+			};
+
 			const success = await updateAppointment(
 				editingAppointment.id,
-				formData,
+				enrichedFormData,
 			);
 			if (success) {
 				toast.success("预约更新成功");
@@ -164,12 +206,6 @@ export default function AppointmentsPage() {
 
 	return (
 		<div className="space-y-6">
-			{/* <div className="flex justify-between items-center">
-				<h2 className="text-2xl font-bold tracking-tight">
-					{isAdmin() ? "预约管理" : "我的预约"}
-				</h2>
-				
-			</div> */}
 
 			{/* 搜索框 */}
 			<div className="flex justify-between items-center">
