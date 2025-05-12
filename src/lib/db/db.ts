@@ -1,112 +1,28 @@
 import { Database } from "bun:sqlite";
 
-// Create a singleton database connection
+// 数据库单例连接
 let _db: Database | null = null;
 
-// Initialize database schema
-const initDb = (db: Database) => {
-  console.log("Initializing SQLite database schema...");
+/**
+ * 初始化数据库表结构
+ */
+function initDb(db: Database) {
+  console.log("正在初始化 SQLite 数据库表结构...");
   try {
-    // 检查是否存在users表
-    const userTableExists = db.query<{ count: number }, []>(
-      "SELECT COUNT(*) as count FROM sqlite_master WHERE type = 'table' AND name = 'users'"
-    ).get();
+    // 创建用户表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        name TEXT DEFAULT '',
+        email TEXT UNIQUE,
+        role TEXT CHECK( role IN ('admin', 'user') ) NOT NULL DEFAULT 'user',
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
-    if (userTableExists && userTableExists.count === 0) {
-      // 如果表不存在，创建一个包含所有需要列的新表
-      console.log("Creating users table with all required columns...");
-      db.run(`
-        CREATE TABLE IF NOT EXISTS users (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          username TEXT UNIQUE NOT NULL,
-          password TEXT NOT NULL, -- In a real app, store hashed passwords!
-          name TEXT DEFAULT '',
-          email TEXT UNIQUE,
-          role TEXT CHECK( role IN ('admin', 'user') ) NOT NULL DEFAULT 'user',
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-    } else {
-      // 表已存在，检查是否有name列
-      const nameColumnExists = db.query<{ count: number }, []>(
-        "SELECT COUNT(*) as count FROM pragma_table_info('users') WHERE name = 'name'"
-      ).get();
-
-      // 如果name列不存在，创建一个临时表并迁移数据
-      if (nameColumnExists && nameColumnExists.count === 0) {
-        console.log("Adding name column to users table through table recreation...");
-
-        // 1. 创建临时表
-        db.run(`
-          CREATE TABLE users_temp (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            name TEXT DEFAULT '',
-            email TEXT UNIQUE,
-            role TEXT CHECK( role IN ('admin', 'user') ) NOT NULL DEFAULT 'user',
-            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-          );
-        `);
-
-        // 2. 复制数据
-        db.run(`
-          INSERT INTO users_temp (id, username, password, role, createdAt)
-          SELECT id, username, password, role, createdAt FROM users;
-        `);
-
-        // 3. 删除旧表
-        db.run("DROP TABLE users;");
-
-        // 4. 重命名临时表
-        db.run("ALTER TABLE users_temp RENAME TO users;");
-
-        console.log("Successfully migrated users table with new columns");
-      } else {
-        // name列已经存在，检查email列
-        const emailColumnExists = db.query<{ count: number }, []>(
-          "SELECT COUNT(*) as count FROM pragma_table_info('users') WHERE name = 'email'"
-        ).get();
-
-        if (emailColumnExists && emailColumnExists.count === 0) {
-          console.log("Adding email column to users table through table recreation...");
-
-          // 1. 创建临时表
-          db.run(`
-            CREATE TABLE users_temp (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              username TEXT UNIQUE NOT NULL,
-              password TEXT NOT NULL,
-              name TEXT DEFAULT '',
-              email TEXT UNIQUE,
-              role TEXT CHECK( role IN ('admin', 'user') ) NOT NULL DEFAULT 'user',
-              createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-          `);
-
-          // 2. 复制数据
-          db.run(`
-            INSERT INTO users_temp (id, username, password, name, role, createdAt)
-            SELECT id, username, password, name, role, createdAt FROM users;
-          `);
-
-          // 3. 删除旧表
-          db.run("DROP TABLE users;");
-
-          // 4. 重命名临时表
-          db.run("ALTER TABLE users_temp RENAME TO users;");
-
-          console.log("Successfully migrated users table with email column");
-        }
-      }
-
-      // 更新现有用户，确保name字段有值
-      db.run(`
-        UPDATE users SET name = username WHERE name IS NULL OR name = ''
-      `);
-    }
-
-    // Create staff table
+    // 创建员工表
     db.run(`
       CREATE TABLE IF NOT EXISTS staff (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,48 +35,7 @@ const initDb = (db: Database) => {
       );
     `);
 
-    // 检查staff表中是否存在phone字段
-    const phoneColumnExists = db.query<{ count: number }, []>(
-      "SELECT COUNT(*) as count FROM pragma_table_info('staff') WHERE name = 'phone'"
-    ).get();
-
-    // 如果phone列不存在，则进行表迁移
-    if (phoneColumnExists && phoneColumnExists.count === 0) {
-      console.log("Migrating staff table to add new columns...");
-
-      // 1. 创建临时表
-      db.run(`
-        CREATE TABLE staff_temp (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          phone TEXT NOT NULL,
-          email TEXT,
-          position TEXT,
-          status TEXT CHECK( status IN ('active', 'inactive', 'on_leave') ) NOT NULL DEFAULT 'active',
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-
-      // 2. 从老表中复制数据，设置默认电话号码
-      db.run(`
-        INSERT INTO staff_temp (
-          id, name, phone, status, createdAt
-        )
-        SELECT 
-          id, name, '未设置', status, createdAt
-        FROM staff;
-      `);
-
-      // 3. 删除旧表
-      db.run("DROP TABLE staff;");
-
-      // 4. 重命名临时表
-      db.run("ALTER TABLE staff_temp RENAME TO staff;");
-
-      console.log("Successfully migrated staff table with new columns");
-    }
-
-    // Create vehicles table
+    // 创建车辆表
     db.run(`
       CREATE TABLE IF NOT EXISTS vehicles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -171,189 +46,36 @@ const initDb = (db: Database) => {
       );
     `);
 
-    // Create appointments table
+    // 创建预约表
     db.run(`
       CREATE TABLE IF NOT EXISTS appointments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        appointmentId TEXT UNIQUE NOT NULL, -- 预约唯一标识码
-        customerName TEXT NOT NULL, -- Maybe link to customers table later? For now, keep simple.
-        contactPhone TEXT,  -- 联系电话
-        contactAddress TEXT,  -- 联系地址
-        notes TEXT,  -- 备注信息
-        documentCount INTEGER DEFAULT 1,  -- 文件数量
+        appointmentId TEXT UNIQUE NOT NULL,
+        customerName TEXT NOT NULL,
+        contactPhone TEXT,
+        contactAddress TEXT,
+        notes TEXT,
+        documentCount INTEGER DEFAULT 1,
         appointmentTime DATETIME NOT NULL,
         serviceType TEXT,
         staffId INTEGER,
         vehicleId INTEGER,
         status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
-        estimatedCompletionTime DATETIME,  -- 预计完成时间
-        processingNotes TEXT,  -- 处理备注
-        lastUpdatedBy INTEGER,  -- 最后更新用户ID
-        lastUpdatedAt DATETIME,  -- 最后更新时间
-        createdBy INTEGER,  -- 创建者用户ID
+        estimatedCompletionTime DATETIME,
+        processingNotes TEXT,
+        lastUpdatedBy INTEGER,
+        lastUpdatedAt DATETIME,
+        createdBy INTEGER,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        assignedStaffJson TEXT, -- 分配的员工ID数组的JSON字符串
-        FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL, -- Optional: Handle staff deletion
-        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL, -- Optional: Handle vehicle deletion
-        FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL, -- Optional: Handle user deletion
-        FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE SET NULL -- Optional: Handle user deletion
+        assignedStaffJson TEXT,
+        FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
+        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
+        FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL,
+        FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE SET NULL
       );
     `);
 
-    // Check if the assignedStaffJson column exists in the appointments table
-    const assignedStaffJsonColumnExists = db.query<{ count: number }, []>(
-      "SELECT COUNT(*) as count FROM pragma_table_info('appointments') WHERE name = 'assignedStaffJson'"
-    ).get();
-
-    // Add the assignedStaffJson column if it doesn't exist
-    if (assignedStaffJsonColumnExists && assignedStaffJsonColumnExists.count === 0) {
-      console.log("Adding assignedStaffJson column to appointments table");
-      db.run("ALTER TABLE appointments ADD COLUMN assignedStaffJson TEXT");
-    }
-
-    // 检查appointments表中是否存在appointmentId列
-    const appointmentIdColumnExists = db.query<{ count: number }, []>(
-      "SELECT COUNT(*) as count FROM pragma_table_info('appointments') WHERE name = 'appointmentId'"
-    ).get();
-
-    // 如果appointmentId列不存在，则进行表迁移
-    if (appointmentIdColumnExists && appointmentIdColumnExists.count === 0) {
-      console.log("Migrating appointments table to add new columns...");
-
-      // 1. 创建临时表
-      db.run(`
-        CREATE TABLE appointments_temp (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          appointmentId TEXT UNIQUE NOT NULL,
-          customerName TEXT NOT NULL,
-          contactPhone TEXT,  -- 联系电话
-          contactAddress TEXT,  -- 联系地址
-          notes TEXT,  -- 备注信息
-          documentCount INTEGER DEFAULT 1,  -- 文件数量
-          appointmentTime DATETIME NOT NULL,
-          serviceType TEXT,
-          staffId INTEGER,
-          vehicleId INTEGER,
-          status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
-          estimatedCompletionTime DATETIME,
-          processingNotes TEXT,
-          lastUpdatedBy INTEGER,
-          lastUpdatedAt DATETIME,
-          createdBy INTEGER,
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
-          FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
-          FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL,
-          FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE SET NULL
-        );
-      `);
-
-      // 2. 从老表中复制数据并生成唯一ID
-      db.run(`
-        INSERT INTO appointments_temp (
-          id, customerName, appointmentTime, serviceType, staffId, vehicleId, status, createdAt
-        )
-        SELECT 
-          id, customerName, appointmentTime, serviceType, staffId, vehicleId, 
-          CASE 
-            WHEN status = 'pending' THEN 'pending'
-            WHEN status = 'confirmed' THEN 'confirmed'
-            WHEN status = 'completed' THEN 'completed'
-            WHEN status = 'cancelled' THEN 'cancelled'
-            ELSE 'pending'
-          END as status,
-          createdAt 
-        FROM appointments;
-      `);
-
-      // 3. 为每条记录生成唯一的appointmentId
-      const appointmentIds = db.query<{ id: number }, []>(
-        "SELECT id FROM appointments_temp"
-      ).all();
-
-      const generateUniqueId = (id: number) => {
-        const prefix = 'APT';
-        const timestamp = Date.now().toString().slice(-6);
-        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-        return `${prefix}-${id}-${timestamp}-${random}`;
-      };
-
-      for (const { id } of appointmentIds) {
-        const uniqueId = generateUniqueId(id);
-        db.run(
-          "UPDATE appointments_temp SET appointmentId = ? WHERE id = ?",
-          [uniqueId, id]
-        );
-      }
-
-      // 4. 删除旧表
-      db.run("DROP TABLE appointments;");
-
-      // 5. 重命名临时表
-      db.run("ALTER TABLE appointments_temp RENAME TO appointments;");
-
-      console.log("Successfully migrated appointments table with new columns");
-    }
-
-    // 检查appointments表中是否存在createdBy列
-    const createdByColumnExists = db.query<{ count: number }, []>(
-      "SELECT COUNT(*) as count FROM pragma_table_info('appointments') WHERE name = 'createdBy'"
-    ).get();
-
-    // 如果createdBy列不存在，则进行表迁移添加该列
-    if (createdByColumnExists && createdByColumnExists.count === 0) {
-      console.log("Migrating appointments table to add createdBy column...");
-
-      // 1. 创建临时表，包含所有现有列和新的createdBy列
-      db.run(`
-        CREATE TABLE appointments_temp (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          appointmentId TEXT UNIQUE NOT NULL,
-          customerName TEXT NOT NULL,
-          contactPhone TEXT,  -- 联系电话
-          contactAddress TEXT,  -- 联系地址
-          notes TEXT,  -- 备注信息
-          documentCount INTEGER DEFAULT 1,  -- 文件数量
-          appointmentTime DATETIME NOT NULL,
-          serviceType TEXT,
-          staffId INTEGER,
-          vehicleId INTEGER,
-          status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
-          estimatedCompletionTime DATETIME,
-          processingNotes TEXT,
-          lastUpdatedBy INTEGER,
-          lastUpdatedAt DATETIME,
-          createdBy INTEGER,
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
-          FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
-          FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL,
-          FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE SET NULL
-        );
-      `);
-
-      // 2. 从旧表复制数据到新表，设置createdBy为1（管理员ID）
-      db.run(`
-        INSERT INTO appointments_temp (
-          id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, 
-          status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt
-        )
-        SELECT 
-          id, appointmentId, customerName, appointmentTime, serviceType, staffId, vehicleId, 
-          status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, 1, createdAt
-        FROM appointments;
-      `);
-
-      // 3. 删除旧表
-      db.run("DROP TABLE appointments;");
-
-      // 4. 重命名临时表
-      db.run("ALTER TABLE appointments_temp RENAME TO appointments;");
-
-      console.log("Successfully migrated appointments table with createdBy column");
-    }
-
-    // Create appointment history table for tracking status changes
+    // 创建预约历史记录表
     db.run(`
       CREATE TABLE IF NOT EXISTS appointment_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -372,18 +94,7 @@ const initDb = (db: Database) => {
       );
     `);
 
-    // Check if the assignedStaffJson column exists in the appointment_history table
-    const historyAssignedStaffJsonColumnExists = db.query<{ count: number }, []>(
-      "SELECT COUNT(*) as count FROM pragma_table_info('appointment_history') WHERE name = 'assignedStaffJson'"
-    ).get();
-
-    // Add the assignedStaffJson column if it doesn't exist
-    if (historyAssignedStaffJsonColumnExists && historyAssignedStaffJsonColumnExists.count === 0) {
-      console.log("Adding assignedStaffJson column to appointment_history table");
-      db.run("ALTER TABLE appointment_history ADD COLUMN assignedStaffJson TEXT");
-    }
-
-    // Create customers table
+    // 创建客户表
     db.run(`
       CREATE TABLE IF NOT EXISTS customers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -396,129 +107,67 @@ const initDb = (db: Database) => {
       );
     `);
 
-    // Insert admin user if not exists
-    const adminCheck = db
-      .query("SELECT id FROM users WHERE username = ?")
-      .get("admin");
+    // 创建默认管理员账户
+    const adminCheck = db.query("SELECT id FROM users WHERE username = ?").get("admin");
     if (!adminCheck) {
-      // In a real app, hash this password!
       db.run(`
-        INSERT INTO users (username, password, role, name) VALUES ('admin', 'admin123', 'admin', '管理员')
+        INSERT INTO users (username, password, role, name) 
+        VALUES ('admin', 'admin123', 'admin', '管理员')
       `);
-      console.log(
-        "Created default admin user with username 'admin' and password 'admin123'",
-      );
-    } else {
-      // 确保admin用户有name字段
-      db.run(`
-        UPDATE users SET name = '管理员' WHERE username = 'admin' AND (name IS NULL OR name = '')
-      `);
-      console.log("Admin user already exists");
+      console.log("已创建默认管理员账户：用户名 'admin'，密码 'admin123'");
     }
 
-    // Check if tables were created
-    const tables = db
-      .query("SELECT name FROM sqlite_master WHERE type='table'")
-      .all();
-    console.log("Database tables:", tables.map((t: any) => t.name).join(", "));
+    // 检查数据库表是否创建成功
+    const tables = db.query("SELECT name FROM sqlite_master WHERE type='table'").all();
+    console.log("数据库表创建成功:", tables.map((t: any) => t.name).join(", "));
 
-    console.log("Database schema initialized successfully");
-
-    // Migrate existing appointments to use assignedStaffJson
-    if (assignedStaffJsonColumnExists && assignedStaffJsonColumnExists.count > 0) {
-      // Check for appointments that have staffId but no assignedStaffJson
-      interface AppointmentToMigrate {
-        id: number;
-        staffId: number;
-      }
-
-      const appointmentsToMigrate = db.query<AppointmentToMigrate, []>(
-        "SELECT id, staffId FROM appointments WHERE staffId IS NOT NULL AND assignedStaffJson IS NULL"
-      ).all();
-
-      if (appointmentsToMigrate.length > 0) {
-        console.log(`Migrating ${appointmentsToMigrate.length} appointments to use assignedStaffJson`);
-
-        const updateQuery = db.query(
-          "UPDATE appointments SET assignedStaffJson = ? WHERE id = ?"
-        );
-
-        for (const app of appointmentsToMigrate) {
-          // Create a JSON array with the single staffId
-          const staffArray = JSON.stringify([app.staffId.toString()]);
-          updateQuery.run(staffArray, app.id);
-        }
-      }
-    }
-
-    // Similarly, migrate appointment history records
-    if (historyAssignedStaffJsonColumnExists && historyAssignedStaffJsonColumnExists.count > 0) {
-      interface HistoryToMigrate {
-        id: number;
-        staffId: number;
-      }
-
-      const historyToMigrate = db.query<HistoryToMigrate, []>(
-        "SELECT id, staffId FROM appointment_history WHERE staffId IS NOT NULL AND assignedStaffJson IS NULL"
-      ).all();
-
-      if (historyToMigrate.length > 0) {
-        console.log(`Migrating ${historyToMigrate.length} appointment history records to use assignedStaffJson`);
-
-        const updateQuery = db.query(
-          "UPDATE appointment_history SET assignedStaffJson = ? WHERE id = ?"
-        );
-
-        for (const record of historyToMigrate) {
-          const staffArray = JSON.stringify([record.staffId.toString()]);
-          updateQuery.run(staffArray, record.id);
-        }
-      }
-    }
   } catch (error) {
-    console.error("Error initializing database schema:", error);
-    throw error; // Re-throw to allow caller to handle it
+    console.error("初始化数据库表结构时出错:", error);
+    throw error;
   }
-};
+}
 
-// Get the database instance - initialize if not already created
-export const getDb = () => {
+/**
+ * 获取数据库实例
+ */
+export function getDb() {
   if (!_db) {
-    console.log("Creating new SQLite database connection...");
+    console.log("正在创建新的 SQLite 数据库连接...");
     try {
       _db = new Database("appointment_dashboard.sqlite", { create: true });
-      // Initialize the database schema
       initDb(_db);
-      console.log(
-        "New database connection created and initialized successfully",
-      );
+      console.log("数据库连接创建并初始化成功");
     } catch (error) {
-      console.error("Failed to initialize database:", error);
-      _db = null; // Reset the database connection
+      console.error("初始化数据库失败:", error);
+      _db = null;
       throw error;
     }
   }
   return _db;
-};
+}
 
-// Close the database connection
-export const closeDb = () => {
+/**
+ * 关闭数据库连接
+ */
+export function closeDb() {
   if (_db) {
     try {
       _db.close();
       _db = null;
-      console.log("Database connection closed successfully");
+      console.log("数据库连接已关闭");
     } catch (error) {
-      console.error("Error closing database connection:", error);
+      console.error("关闭数据库连接时出错:", error);
     }
   }
-};
+}
 
-// Helper to safely use database in API routes
-export const withDbConnection = async <T>(callback: (db: Database) => Promise<T> | T): Promise<T> => {
-  // During build, return mock data to avoid database operations
+/**
+ * API 路由中安全使用数据库的辅助函数
+ */
+export async function withDbConnection<T>(callback: (db: Database) => Promise<T> | T): Promise<T> {
+  // 构建阶段跳过数据库操作
   if (process.env.NEXT_PHASE === 'phase-production-build') {
-    console.log('Skipping database operation during build');
+    console.log('构建阶段跳过数据库操作');
     return {} as T;
   }
 
@@ -526,33 +175,28 @@ export const withDbConnection = async <T>(callback: (db: Database) => Promise<T>
   try {
     return await callback(db);
   } finally {
-    // We don't actually close the connection here since SQLite is designed to be kept open
-    // But we could if we wanted to enforce strict connection management
-    // closeDb();
+    // SQLite 设计为保持连接打开状态，所以这里不关闭连接
   }
-};
+}
 
-// Initialize the database on module import
+// 初始化数据库实例
 let db: Database;
 
-// Only initialize database in development and when actually used
+// 仅在开发环境且实际使用时初始化数据库
 if (process.env.NODE_ENV !== 'production' && process.env.NEXT_PHASE !== 'phase-production-build') {
   try {
-    console.log("Initializing database during module import...");
+    console.log("正在初始化数据库...");
     db = getDb();
-    console.log("Database initialized successfully and ready for use");
+    console.log("数据库初始化成功，可以使用");
   } catch (error) {
-    console.error("Critical error during database initialization:", error);
-    // In a real app, you might want to handle this error more gracefully
+    console.error("数据库初始化过程中发生严重错误:", error);
     throw new Error(
-      `Database initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+      `数据库初始化失败: ${error instanceof Error ? error.message : String(error)}`
     );
   }
 } else {
-  // In production or during build, we'll initialize lazily on first actual use
-  console.log("Skipping immediate database initialization during build/production");
+  console.log("生产环境或构建阶段跳过立即初始化数据库");
 }
 
-// Export the database getter function instead of the instance directly
 export { db };
-export default getDb; // Export the getter function as default
+export default getDb;
