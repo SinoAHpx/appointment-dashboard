@@ -9,10 +9,10 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { AdminAppointmentTable } from "@/components/appointments/AdminAppointmentTable";
 import { AppointmentForm, type AppointmentFormData } from "@/components/appointments/form/AppointmentForm";
 import { AppointmentSearch } from "@/components/appointments/AppointmentSearch";
 import { UserAppointmentsList } from "@/components/appointments/UserAppointmentsList";
+import { AppointmentTabs } from "@/components/appointments/AppointmentTabs";
 import {
 	type Appointment,
 	useAppointmentStore,
@@ -37,25 +37,13 @@ export default function AppointmentsPage() {
 		deleteAppointment,
 	} = useAppointmentStore();
 
-	const [page, setPage] = useState(1);
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 
-	// 每页数量
-	const perPage = 10;
-
 	// 过滤预约数据
 	const filteredAppointments = filterAppointments(appointments, searchQuery);
-
-	// 总页数
-	const totalPages = Math.ceil(filteredAppointments.length / perPage);
-
-	// 分页数据
-	const paginatedAppointments = filteredAppointments
-		.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
-		.slice((page - 1) * perPage, page * perPage);
 
 	// 如果用户未登录，重定向到登录页面
 	useEffect(() => {
@@ -69,7 +57,6 @@ export default function AppointmentsPage() {
 	// 处理搜索查询变更
 	const handleSearchChange = (query: string) => {
 		setSearchQuery(query);
-		setPage(1); // 重置到第一页
 	};
 
 	// 处理清除搜索
@@ -195,11 +182,6 @@ export default function AppointmentsPage() {
 		}
 	};
 
-	// 处理页面变更
-	const handlePageChange = (newPage: number) => {
-		setPage(newPage);
-	};
-
 	if (!isAuthenticated) {
 		return null;
 	}
@@ -239,45 +221,39 @@ export default function AppointmentsPage() {
 
 			{/* 不同用户角色展示不同的界面 */}
 			{isAdmin() ? (
-				<AdminAppointmentTable
-					appointments={paginatedAppointments}
+				<AppointmentTabs
+					appointments={filteredAppointments}
 					isLoading={isLoading}
-					page={page}
-					totalPages={totalPages}
-					onPageChange={handlePageChange}
 					onEdit={handleStartEdit}
 					onDelete={handleDeleteAppointment}
 					onStatusUpdate={handleStatusUpdate}
 				/>
 			) : (
 				<UserAppointmentsList
-					appointments={paginatedAppointments}
+					appointments={filteredAppointments}
 					isLoading={isLoading}
-					searchQuery={searchQuery}
-					page={page}
-					totalPages={totalPages}
-					onPageChange={handlePageChange}
-					onClearSearch={handleClearSearch}
 				/>
 			)}
 
 			{/* 编辑预约对话框 */}
-			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-				<DialogContent className="max-w-3xl">
-					<DialogHeader>
-						<DialogTitle>处理预约</DialogTitle>
-						<DialogDescription>更新预约信息</DialogDescription>
-					</DialogHeader>
-					{editingAppointment && (
+			{editingAppointment && (
+				<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+					<DialogContent className="max-w-3xl">
+						<DialogHeader>
+							<DialogTitle>编辑预约</DialogTitle>
+							<DialogDescription>
+								更新预约信息
+							</DialogDescription>
+						</DialogHeader>
 						<AppointmentForm
 							isAdmin={isAdmin()}
 							initialData={editingAppointment}
 							onSubmit={handleUpdateAppointment}
 							submitLabel="更新"
 						/>
-					)}
-				</DialogContent>
-			</Dialog>
+					</DialogContent>
+				</Dialog>
+			)}
 		</div>
 	);
 }
