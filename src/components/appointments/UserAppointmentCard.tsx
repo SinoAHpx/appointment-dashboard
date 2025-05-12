@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { type Appointment } from "@/lib/stores/appointments";
-import { documentTypes, formatDateTime, getStatusData } from "@/lib/utils/appointments/helpers";
+import { documentTypes, documentTypesByCategory, formatDateTime, getStatusData } from "@/lib/utils/appointments/helpers";
 import { Calendar, CheckCircle, Clock, FileText, LayoutList, MapPin, Phone, RotateCcw, User, XCircle, Users, Car } from "lucide-react";
 import { useStaffStore, useVehicleStore } from "@/lib/stores";
 import { useEffect } from "react";
@@ -32,6 +32,38 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
     // Get assigned vehicle info
     const assignedVehicle = vehicles.find(v => v.id === appointment.assignedVehicle);
     const vehicleInfo = assignedVehicle ? `${assignedVehicle.plateNumber} (${assignedVehicle.model})` : '';
+
+    // 解析documentTypesJson数据
+    const getDocumentTypesInfo = () => {
+        if (!appointment.documentTypesJson) {
+            return { docTypes: null, hasPaper: false, hasElectronic: false, hasOther: false };
+        }
+
+        try {
+            const docTypes = JSON.parse(appointment.documentTypesJson);
+            const hasPaper = docTypes.paper?.items?.length > 0 && docTypes.paper?.count > 0;
+            const hasElectronic = docTypes.electronic?.items?.length > 0 && docTypes.electronic?.count > 0;
+            const hasOther = docTypes.other?.items?.length > 0 && docTypes.other?.count > 0;
+
+            return {
+                docTypes,
+                hasPaper,
+                hasElectronic,
+                hasOther
+            };
+        } catch (error) {
+            console.error("解析文档类型数据出错:", error);
+            return { docTypes: null, hasPaper: false, hasElectronic: false, hasOther: false };
+        }
+    };
+
+    const { docTypes, hasPaper, hasElectronic, hasOther } = getDocumentTypesInfo();
+
+    // 获取文档类型的显示名称
+    const getTypeDisplayName = (category: string, typeValue: string) => {
+        const typeObj = documentTypesByCategory[category as keyof typeof documentTypesByCategory]?.find(t => t.value === typeValue);
+        return typeObj?.label || typeValue;
+    };
 
     // Map icon names to components
     const getIconComponent = (iconName: string) => {
@@ -80,10 +112,54 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                         <MapPin size={16} className="text-gray-500" />
                         <span>联系地址：{appointment.contactAddress}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-gray-500" />
-                        <span>文件类型：{documentType}</span>
-                    </div>
+
+                    {/* 显示新的文件类型信息 */}
+                    {(hasPaper || hasElectronic || hasOther) && docTypes ? (
+                        <div className="grid gap-2">
+                            {hasPaper && (
+                                <div className="flex items-start gap-2">
+                                    <FileText size={16} className="text-gray-500 mt-0.5" />
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">纸介质：{docTypes.paper.count}个</span>
+                                        <span className="text-sm text-gray-600">
+                                            {docTypes.paper.items.map((item: string) => getTypeDisplayName('paper', item)).join('、')}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {hasElectronic && (
+                                <div className="flex items-start gap-2">
+                                    <FileText size={16} className="text-gray-500 mt-0.5" />
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">磁介质：{docTypes.electronic.count}个</span>
+                                        <span className="text-sm text-gray-600">
+                                            {docTypes.electronic.items.map((item: string) => getTypeDisplayName('magnetic', item)).join('、')}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {hasOther && (
+                                <div className="flex items-start gap-2">
+                                    <FileText size={16} className="text-gray-500 mt-0.5" />
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">其他介质：{docTypes.other.count}个</span>
+                                        <span className="text-sm text-gray-600">
+                                            {docTypes.other.items.map((item: string) => getTypeDisplayName('other', item)).join('、')}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        // 向后兼容，显示旧的文件类型信息
+                        <div className="flex items-center gap-2">
+                            <FileText size={16} className="text-gray-500" />
+                            <span>文件类型：{documentType}</span>
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-2">
                         <LayoutList size={16} className="text-gray-500" />
                         <span>文件数量：{appointment.documentCount}个</span>
