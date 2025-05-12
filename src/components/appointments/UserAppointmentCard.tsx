@@ -7,6 +7,7 @@ import { documentTypes, documentTypesByCategory, formatDateTime, getStatusData }
 import { Calendar, CheckCircle, Clock, FileText, LayoutList, MapPin, Phone, RotateCcw, User, XCircle, Users, Car } from "lucide-react";
 import { useStaffStore, useVehicleStore } from "@/lib/stores";
 import { useEffect } from "react";
+import { UserAppointmentActions } from "./UserAppointmentActions";
 
 export function UserAppointmentCard({ appointment }: { appointment: Appointment }) {
     const statusData = getStatusData(appointment.status);
@@ -214,6 +215,11 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                             <span>预计完成时间：{formatDateTime(appointment.estimatedCompletionTime)}</span>
                         </div>
                     )}
+
+                    {/* 添加操作按钮区域 */}
+                    <div className="flex justify-end mt-4 pt-4 border-t border-gray-100">
+                        <UserAppointmentActions appointment={appointment} />
+                    </div>
                 </div>
             </CardContent>
         </Card>

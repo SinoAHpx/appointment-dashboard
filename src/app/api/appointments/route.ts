@@ -355,15 +355,14 @@ export async function PUT(request: NextRequest) {
 	}
 }
 
-// 获取预约历史记录
+// 更新预约状态
 export async function PATCH(request: NextRequest) {
 	try {
-		// 验证管理员权限
-		const isAdmin = await verifyAdmin(request);
-		if (!isAdmin) {
+		const auth = await verifyAuth(request);
+		if (!auth.isAuthenticated) {
 			return NextResponse.json(
-				{ success: false, message: "只有管理员可以访问历史记录" },
-				{ status: 403 }
+				{ success: false, message: "未授权访问" },
+				{ status: 401 }
 			);
 		}
 
@@ -376,14 +375,63 @@ export async function PATCH(request: NextRequest) {
 			);
 		}
 
-		const history = getAppointmentHistory(parseInt(body.id));
+		// 获取预约详情以验证权限
+		const appointments = getAllAppointments();
+		const appointment = appointments.find(app => app.id === parseInt(body.id));
+
+		if (!appointment) {
+			return NextResponse.json(
+				{ success: false, message: "预约不存在" },
+				{ status: 404 }
+			);
+		}
+
+		// 验证操作权限 - 普通用户只能操作自己的预约
+		if (!auth.isAdmin && appointment.createdBy !== auth.userId) {
+			return NextResponse.json(
+				{ success: false, message: "无权操作此预约" },
+				{ status: 403 }
+			);
+		}
+
+		// 普通用户只能取消预约，不能更改为其他状态
+		if (!auth.isAdmin && body.status && body.status !== "cancelled") {
+			return NextResponse.json(
+				{ success: false, message: "普通用户只能取消预约" },
+				{ status: 403 }
+			);
+		}
+
+		// 管理员可以请求历史记录
+		if (auth.isAdmin && body.requestHistory) {
+			const history = getAppointmentHistory(parseInt(body.id));
+			return NextResponse.json({
+				success: true,
+				history,
+			});
+		}
+
+		// 更新预约状态
+		const updateData: UpdateAppointmentData = {
+			status: body.status as Appointment["status"],
+			lastUpdatedBy: auth.userId
+		};
+
+		const updatedAppointment = updateAppointment(parseInt(body.id), updateData);
+
+		if (!updatedAppointment) {
+			return NextResponse.json(
+				{ success: false, message: "更新预约状态失败" },
+				{ status: 400 },
+			);
+		}
 
 		return NextResponse.json({
 			success: true,
-			history,
+			appointment: updatedAppointment,
 		});
 	} catch (error) {
-		console.error("获取预约历史记录失败:", error);
+		console.error("更新预约状态失败:", error);
 		return NextResponse.json(
 			{ success: false, message: "服务器错误" },
 			{ status: 500 },
