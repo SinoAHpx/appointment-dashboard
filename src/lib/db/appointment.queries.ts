@@ -11,6 +11,7 @@ export interface Appointment {
 	documentCount: number;
 	appointmentTime: string; // Store as ISO 8601 string (DATETIME)
 	serviceType: string | null;
+	documentTypesJson: string | null; // 新增：以JSON格式存储文档类型信息
 	staffId: number | null;
 	vehicleId: number | null;
 	status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
@@ -38,11 +39,12 @@ export interface AppointmentHistory {
 // Type for creating a new appointment (omit id and createdAt)
 export type NewAppointmentData = Omit<
 	Appointment,
-	"id" | "appointmentId" | "createdAt" | "staffId" | "vehicleId" | "lastUpdatedBy" | "lastUpdatedAt" | "estimatedCompletionTime" | "processingNotes" | "assignedStaffJson"
+	"id" | "appointmentId" | "createdAt" | "staffId" | "vehicleId" | "lastUpdatedBy" | "lastUpdatedAt" | "estimatedCompletionTime" | "processingNotes" | "assignedStaffJson" | "documentTypesJson"
 > & {
 	staffId?: number | null; // Optional in creation
 	vehicleId?: number | null; // Optional in creation
 	appointmentTime: string; // Ensure time is provided
+	documentTypesJson?: string | null; // Optional JSON string of document types and counts
 	estimatedCompletionTime?: string | null;
 	processingNotes?: string | null;
 	contactPhone?: string | null;
@@ -77,7 +79,7 @@ export const getAllAppointments = (): Appointment[] => {
 	try {
 		const db = getDb();
 		const query = db.query<Appointment, []>(
-			"SELECT id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson FROM appointments ORDER BY appointmentTime DESC",
+			"SELECT id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, documentTypesJson, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson FROM appointments ORDER BY appointmentTime DESC",
 		);
 		return query.all();
 	} catch (error) {
@@ -162,6 +164,7 @@ export const addAppointment = (
 			customerName,
 			appointmentTime,
 			serviceType = null,
+			documentTypesJson = null, // 新增：处理文档类型JSON
 			staffId = null,
 			vehicleId = null,
 			status = "pending",
@@ -191,6 +194,7 @@ export const addAppointment = (
 				number,
 				string,
 				string | null,
+				string | null, // documentTypesJson
 				number | null,
 				number | null,
 				Appointment["status"],
@@ -203,9 +207,9 @@ export const addAppointment = (
 			]
 		>(
 			`INSERT INTO appointments 
-       (appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, assignedStaffJson)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
-       RETURNING id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson`,
+       (appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, documentTypesJson, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, assignedStaffJson)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+       RETURNING id, appointmentId, customerName, contactPhone, contactAddress, notes, documentCount, appointmentTime, serviceType, documentTypesJson, staffId, vehicleId, status, estimatedCompletionTime, processingNotes, lastUpdatedBy, lastUpdatedAt, createdBy, createdAt, assignedStaffJson`,
 		);
 
 		const newAppointment = insertQuery.get(
@@ -217,6 +221,7 @@ export const addAppointment = (
 			documentCount,
 			appointmentTime,
 			serviceType,
+			documentTypesJson,
 			staffId,
 			vehicleId,
 			status,

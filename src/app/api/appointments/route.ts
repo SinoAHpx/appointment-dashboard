@@ -152,6 +152,7 @@ export async function POST(request: NextRequest) {
 			customerName: body.customerName,
 			appointmentTime: body.appointmentTime,
 			serviceType: body.serviceType || null,
+			documentTypesJson: body.documentTypesJson || null,
 			staffId: body.staffId ? parseInt(body.staffId) : null,
 			vehicleId: body.vehicleId ? parseInt(body.vehicleId) : null,
 			status: ["pending", "confirmed", "in_progress", "completed", "cancelled"].includes(
@@ -257,6 +258,8 @@ export async function PUT(request: NextRequest) {
 			updateData.appointmentTime = body.appointmentTime;
 		if (body.serviceType !== undefined)
 			updateData.serviceType = body.serviceType;
+		if (body.documentTypesJson !== undefined)
+			updateData.documentTypesJson = body.documentTypesJson;
 		if (body.estimatedCompletionTime !== undefined)
 			updateData.estimatedCompletionTime = body.estimatedCompletionTime;
 		if (body.processingNotes !== undefined)

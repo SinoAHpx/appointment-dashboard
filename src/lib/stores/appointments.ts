@@ -18,6 +18,7 @@ export interface Appointment {
     documentCount: number;
     documentCategory?: string; // 新增：文件介质类别
     documentType: string;
+    documentTypesJson?: string; // 新增：文件类型JSON数据
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
     assignedStaff?: string[];
     assignedVehicle?: string;
@@ -39,6 +40,7 @@ export interface AppointmentFormData {
     documentCount: number;
     documentCategory: string; // 新增：文件介质类别
     documentType: string;
+    documentTypesJson?: string; // 新增：文件类型JSON数据
     notes?: string;
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
     assignedStaff?: string[];
@@ -101,6 +103,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             documentCount: app.documentCount || 1,
                             documentCategory: app.documentCategory || 'paper', // Default to paper
                             documentType: app.serviceType || 'confidential', // Map and default
+                            documentTypesJson: app.documentTypesJson || '', // 处理documentTypesJson字段
                             status: app.status || 'pending',
                             assignedStaff: app.assignedStaff,
                             assignedVehicle: app.assignedVehicle,
@@ -111,13 +114,20 @@ export const useAppointmentStore = create<AppointmentState>()(
                             notes: app.notes || '',
                             createdAt: app.createdAt || '',
                         }));
-                        set({ appointments: formattedAppointments, isLoading: false });
+
+                        set({
+                            appointments: formattedAppointments,
+                            isLoading: false,
+                        });
                     } else {
-                        throw new Error(data.message || "获取预约列表失败或数据格式错误");
+                        throw new Error(data.message || "获取预约列表失败");
                     }
                 } catch (error) {
-                    console.error("Failed to fetch appointments:", error);
-                    set({ isLoading: false, error: (error as Error).message });
+                    console.error("获取预约列表失败:", error);
+                    set({
+                        isLoading: false,
+                        error: (error as Error).message || "获取预约列表过程中发生未知错误",
+                    });
                 }
             },
             fetchAppointmentWithHistory: async (id: string) => {
@@ -181,6 +191,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                         appointmentTime: appointmentData.dateTime,
                         serviceType: appointmentData.documentType,
                         documentCategory: appointmentData.documentCategory, // Add document category
+                        documentTypesJson: appointmentData.documentTypesJson, // 添加documentTypesJson字段
                         status: appointmentData.status,
                         estimatedCompletionTime: appointmentData.estimatedCompletionTime,
                         processingNotes: appointmentData.processingNotes,
@@ -214,6 +225,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             documentCount: data.appointment.documentCount || 1,
                             documentCategory: data.appointment.documentCategory || 'paper', // Default to paper
                             documentType: data.appointment.serviceType || 'confidential',
+                            documentTypesJson: data.appointment.documentTypesJson || '', // 添加documentTypesJson字段
                             status: data.appointment.status || 'pending',
                             assignedStaff: data.appointment.assignedStaff,
                             assignedVehicle: data.appointment.assignedVehicle,
@@ -231,11 +243,14 @@ export const useAppointmentStore = create<AppointmentState>()(
                         }));
                         return true;
                     } else {
-                        throw new Error(data.message || "Failed to add appointment.");
+                        throw new Error(data.message || "创建预约失败");
                     }
                 } catch (error) {
-                    console.error("Failed to add appointment:", error);
-                    set({ isLoading: false, error: (error as Error).message });
+                    console.error("创建预约失败:", error);
+                    set({
+                        isLoading: false,
+                        error: (error as Error).message || "创建预约过程中发生未知错误",
+                    });
                     return false;
                 }
             },
@@ -246,21 +261,24 @@ export const useAppointmentStore = create<AppointmentState>()(
                     const userId = auth.user?.id;
 
                     // Map frontend form fields to backend API expected fields
-                    const apiData: Record<string, any> = {
-                        updatedBy: userId, // Set the current user as the updater
+                    const apiData: any = {
+                        lastUpdatedBy: userId, // Add the current user as updater
                     };
 
+                    // Only include fields that are in the update request
                     if (data.contactName !== undefined) apiData.customerName = data.contactName;
                     if (data.dateTime !== undefined) apiData.appointmentTime = data.dateTime;
                     if (data.documentType !== undefined) apiData.serviceType = data.documentType;
                     if (data.documentCategory !== undefined) apiData.documentCategory = data.documentCategory;
+                    if (data.documentTypesJson !== undefined) apiData.documentTypesJson = data.documentTypesJson;
                     if (data.status !== undefined) apiData.status = data.status;
-                    if (data.notes !== undefined) apiData.notes = data.notes;
-                    if (data.contactPhone !== undefined) apiData.contactPhone = data.contactPhone;
-                    if (data.contactAddress !== undefined) apiData.contactAddress = data.contactAddress;
-                    if (data.documentCount !== undefined) apiData.documentCount = data.documentCount;
                     if (data.estimatedCompletionTime !== undefined) apiData.estimatedCompletionTime = data.estimatedCompletionTime;
                     if (data.processingNotes !== undefined) apiData.processingNotes = data.processingNotes;
+                    if (data.contactPhone !== undefined) apiData.contactPhone = data.contactPhone;
+                    if (data.contactAddress !== undefined) apiData.contactAddress = data.contactAddress;
+                    if (data.notes !== undefined) apiData.notes = data.notes;
+                    if (data.documentCount !== undefined) apiData.documentCount = data.documentCount;
+
                     if (data.assignedStaff !== undefined) apiData.staffId = data.assignedStaff && data.assignedStaff.length > 0 ? data.assignedStaff[0] : null;
                     if (data.assignedVehicle !== undefined) apiData.vehicleId = data.assignedVehicle || null;
 
@@ -287,6 +305,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             documentCount: responseData.appointment.documentCount || 1,
                             documentCategory: responseData.appointment.documentCategory || 'paper', // Default to paper
                             documentType: responseData.appointment.serviceType || 'confidential',
+                            documentTypesJson: responseData.appointment.documentTypesJson || '', // 添加documentTypesJson字段
                             status: responseData.appointment.status || 'pending',
                             assignedStaff: responseData.appointment.assignedStaff,
                             assignedVehicle: responseData.appointment.assignedVehicle,

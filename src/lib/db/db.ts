@@ -58,6 +58,7 @@ function initDb(db: Database) {
         documentCount INTEGER DEFAULT 1,
         appointmentTime DATETIME NOT NULL,
         serviceType TEXT,
+        documentTypesJson TEXT,
         staffId INTEGER,
         vehicleId INTEGER,
         status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
