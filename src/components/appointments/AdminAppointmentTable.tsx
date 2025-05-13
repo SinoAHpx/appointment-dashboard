@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { type Appointment } from "@/lib/stores/appointments";
 import { documentTypes, formatDateTime, getStatusColor, getStatusLabel } from "@/lib/utils/appointments/helpers";
-import { Edit, Trash } from "lucide-react";
+import { Edit, Trash, Eye } from "lucide-react";
 import {
     Pagination,
     PaginationContent,
@@ -30,6 +30,7 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
+import { AppointmentDetailsDialog } from "./AppointmentDetailsDialog";
 
 interface AdminAppointmentTableProps {
     appointments: Appointment[];
@@ -124,12 +125,34 @@ export function AdminAppointmentTable({
                                             <TooltipProvider>
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
+                                                        <AppointmentDetailsDialog
+                                                            appointment={appointment}
+                                                            trigger={
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                >
+                                                                    <Eye size={16} />
+                                                                </Button>
+                                                            }
+                                                        />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>查看详情</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
                                                         <Button
                                                             variant="outline"
-                                                            size="icon"
                                                             onClick={() => onEdit(appointment)}
                                                         >
-                                                            <Edit size={16} />
+                                                            <div className="flex items-center gap-2">
+                                                                <Edit size={16} />
+                                                                处理
+                                                            </div>
                                                         </Button>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
