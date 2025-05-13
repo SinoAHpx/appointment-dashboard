@@ -40,7 +40,7 @@ export default function DashboardPage() {
         (app) => app.status === "pending",
     );
     const availableStaff = staffList.filter((staff) => staff.status === "active");
-    const availableVehicles = vehicles.filter((vehicle) => vehicle.status === "available");
+    const availableVehicles = vehicles.filter((vehicle) => vehicle.isAvailable);
 
     useEffect(() => {
         // 在客户端渲染后标记组件已准备好

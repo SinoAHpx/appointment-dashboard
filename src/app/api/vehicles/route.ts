@@ -56,9 +56,7 @@ export async function POST(request: NextRequest) {
 			model: body.model,
 			vehicleType: body.vehicleType,
 			length: parseFloat(body.length) || 0,
-			status: ["available", "in_use", "maintenance"].includes(body.status)
-				? (body.status as Vehicle["status"])
-				: "available",
+			isAvailable: body.isAvailable,
 		};
 
 		const newVehicle = addVehicle(vehicleData);
@@ -134,15 +132,15 @@ export async function PUT(request: NextRequest) {
 			updateData.length = parseFloat(body.length) || 0;
 		}
 
-		// 验证状态值有效性
-		if (body.status !== undefined) {
-			if (!["available", "in_use", "maintenance"].includes(body.status)) {
+		// 更新 isAvailable 状态
+		if (body.isAvailable !== undefined) {
+			if (typeof body.isAvailable !== "boolean") {
 				return NextResponse.json(
-					{ success: false, message: "无效的状态值" },
+					{ success: false, message: "isAvailable 必须是布尔值" },
 					{ status: 400 },
 				);
 			}
-			updateData.status = body.status as Vehicle["status"];
+			updateData.isAvailable = body.isAvailable;
 		}
 
 		const updatedVehicle = updateVehicle(parseInt(body.id), updateData);

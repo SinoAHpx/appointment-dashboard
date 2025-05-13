@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
 				body.status,
 			)
 				? (body.status as Appointment["status"])
-				: "pending",
+				: "pending",	
 			estimatedCompletionTime: body.estimatedCompletionTime || null,
 			processingNotes: body.processingNotes || null,
 			contactPhone: body.contactPhone || null,

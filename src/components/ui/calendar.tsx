@@ -60,12 +60,17 @@ function Calendar({
 				...classNames,
 			}}
 			components={{
-				IconLeft: ({ className, ...props }) => (
-					<ChevronLeft className={cn("size-4", className)} {...props} />
-				),
-				IconRight: ({ className, ...props }) => (
-					<ChevronRight className={cn("size-4", className)} {...props} />
-				),
+				Chevron: ({ className, ...props }: { className?: string; orientation?: string }) => {
+					// 检查 orientation 是否为 'left' 或 'right'，并据此返回相应的图标
+					if (props.orientation === "left") {
+						return <ChevronLeft className={cn("size-4", className)} />;
+					}
+					if (props.orientation === "right") {
+						return <ChevronRight className={cn("size-4", className)} />;
+					}
+					// 对于其他方向，或者当 orientation 未定义时，返回一个空片段以满足类型要求
+					return <></>;
+				},
 			}}
 			{...props}
 		/>
