@@ -68,19 +68,31 @@ export default function LoginPage() {
 				const searchParams = new URLSearchParams(window.location.search);
 				const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
-				// 增加短暂延时确保状态更新并且Toast有时间显示
+				// 增加足够的延时确保状态和cookie都已更新
 				setTimeout(() => {
 					try {
-						// 避免使用路由跳转，直接修改location
-						window.location.href = callbackUrl.startsWith('/')
-							? callbackUrl
-							: `/${callbackUrl}`;
+						// 添加特殊参数避免中间件重定向循环
+						const redirectUrl = new URL(
+							callbackUrl.startsWith('/') ? callbackUrl : `/${callbackUrl}`,
+							window.location.origin
+						);
+						redirectUrl.searchParams.set('bypassAuthCheck', 'true');
+
+						// 使用路由器导航，而不是强制刷新页面
+						router.push(redirectUrl.pathname + redirectUrl.search);
+
+						// 几秒后移除特殊参数，使用history.replaceState以避免刷新
+						setTimeout(() => {
+							const cleanUrl = new URL(window.location.href);
+							cleanUrl.searchParams.delete('bypassAuthCheck');
+							window.history.replaceState({}, '', cleanUrl.toString());
+						}, 1000);
 					} catch (error) {
 						console.error('重定向失败:', error);
 						// 如果自定义URL有问题，回退到dashboard
-						window.location.href = '/dashboard';
+						router.push('/dashboard');
 					}
-				}, 500);
+				}, 800); // 延长等待时间确保cookie已设置
 			} else {
 				toast("登录失败", {
 					description: "用户名或密码不正确",

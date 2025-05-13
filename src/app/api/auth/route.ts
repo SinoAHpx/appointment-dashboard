@@ -68,10 +68,21 @@ export async function POST(request: Request) {
 		});
 
 		// 设置有7天过期时间的cookie
+		// 1. 设置httpOnly cookie用于服务端验证
 		response.cookies.set({
 			name: "auth-storage",
 			value: JSON.stringify(authState),
 			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			maxAge: 60 * 60 * 24 * 7, // 7天
+			path: "/"
+		});
+
+		// 2. 设置非httpOnly cookie用于客户端同步（确保与localStorage保持同步）
+		response.cookies.set({
+			name: "auth-storage-client",
+			value: JSON.stringify(authState),
+			httpOnly: false,
 			secure: process.env.NODE_ENV === "production",
 			maxAge: 60 * 60 * 24 * 7, // 7天
 			path: "/"

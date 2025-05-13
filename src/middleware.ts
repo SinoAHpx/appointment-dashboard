@@ -17,45 +17,71 @@ export function middleware(request: NextRequest) {
 
     // 检查是否访问受保护路径
     if (isProtectedPath(pathname)) {
-        // 如果请求URL已经有回调参数，可能是正在重定向，跳过处理
-        const requestUrl = new URL(request.url);
-        const isRedirectingToLogin = requestUrl.pathname === '/login' &&
-            requestUrl.searchParams.has('callbackUrl');
+        // 检查当前URL是否有特殊查询参数，避免重定向循环
+        const url = new URL(request.url);
+        const bypassAuth = url.searchParams.has('bypassAuthCheck');
 
-        // 如果已经在重定向过程中，不再继续处理
-        if (isRedirectingToLogin) {
+        // 如果请求URL已经有回调参数，可能是正在重定向，跳过处理
+        const isRedirectingToLogin = url.pathname === '/login' &&
+            url.searchParams.has('callbackUrl');
+
+        // 如果已经在重定向过程中或有绕过检查参数，不再继续处理
+        if (isRedirectingToLogin || bypassAuth) {
             return NextResponse.next();
         }
 
-        // 检查认证cookies
+        // 检查认证cookies (同时检查两种cookie)
         const authSession = request.cookies.get("auth-storage");
+        const authClientSession = request.cookies.get("auth-storage-client");
 
-        // 如果没有认证cookie或认证状态为false，重定向到登录页面
-        if (!authSession) {
+        // 如果两种cookie都不存在，重定向到登录页面
+        if (!authSession && !authClientSession) {
+            console.log("没有发现认证cookie，重定向到登录页面");
             const loginUrl = new URL("/login", request.url);
             loginUrl.searchParams.set("callbackUrl", pathname);
             return NextResponse.redirect(loginUrl);
         }
 
         try {
-            // 解析auth cookie的内容
-            let session;
-            try {
-                session = JSON.parse(decodeURIComponent(authSession.value));
-            } catch {
-                // 如果解码失败，尝试直接解析
-                session = JSON.parse(authSession.value);
+            // 首先尝试解析httpOnly cookie
+            if (authSession) {
+                let session;
+                try {
+                    session = JSON.parse(decodeURIComponent(authSession.value));
+                } catch {
+                    // 如果解码失败，尝试直接解析
+                    session = JSON.parse(authSession.value);
+                }
+
+                // 检查用户是否已认证
+                if (session.state?.isAuthenticated) {
+                    return NextResponse.next();
+                }
             }
 
-            // 检查用户是否已认证
-            if (!session.state?.isAuthenticated) {
-                const loginUrl = new URL("/login", request.url);
-                loginUrl.searchParams.set("callbackUrl", pathname);
-                return NextResponse.redirect(loginUrl);
+            // 如果httpOnly cookie无效，再尝试非httpOnly cookie
+            if (authClientSession) {
+                let clientSession;
+                try {
+                    clientSession = JSON.parse(decodeURIComponent(authClientSession.value));
+                } catch {
+                    clientSession = JSON.parse(authClientSession.value);
+                }
+
+                if (clientSession.state?.isAuthenticated) {
+                    return NextResponse.next();
+                }
             }
+
+            // 如果都无效，重定向到登录页面
+            console.log("认证状态无效，重定向到登录页面");
+            const loginUrl = new URL("/login", request.url);
+            loginUrl.searchParams.set("callbackUrl", pathname);
+            return NextResponse.redirect(loginUrl);
         } catch (error) {
             console.error("解析auth cookie失败:", error);
             const loginUrl = new URL("/login", request.url);
+            loginUrl.searchParams.set("callbackUrl", pathname);
             return NextResponse.redirect(loginUrl);
         }
     }

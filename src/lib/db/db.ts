@@ -171,20 +171,17 @@ export async function withDbConnection<T>(callback: (db: Database) => Promise<T>
 // 初始化数据库实例
 let db: Database;
 
-// 仅在开发环境且实际使用时初始化数据库
-if (process.env.NODE_ENV !== 'production' && process.env.NEXT_PHASE !== 'phase-production-build') {
-  try {
-    console.log("正在初始化数据库...");
-    db = getDb();
-    console.log("数据库初始化成功，可以使用");
-  } catch (error) {
-    console.error("数据库初始化过程中发生严重错误:", error);
-    throw new Error(
-      `数据库初始化失败: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-} else {
-  console.log("生产环境或构建阶段跳过立即初始化数据库");
+// 始终尝试在模块加载时初始化数据库实例
+try {
+  console.log("正在初始化数据库 (模块加载时)...");
+  db = getDb(); // getDb() 会在数据库不存在时创建并初始化表结构
+  console.log("数据库初始化成功 (模块加载时)，可以使用");
+} catch (error) {
+  console.error("数据库初始化过程中发生严重错误 (模块加载时):", error);
+  // 抛出错误以阻止应用在数据库不可用的情况下启动
+  throw new Error(
+    `数据库初始化失败 (模块加载时): ${error instanceof Error ? error.message : String(error)}`
+  );
 }
 
 export { db };

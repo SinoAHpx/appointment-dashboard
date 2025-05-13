@@ -23,11 +23,30 @@ interface AuthState {
 // 检查是否在客户端
 const isClient = typeof window !== 'undefined';
 
-// 尝试从cookie获取初始状态（仅在客户端）
+// 尝试从cookie或localStorage获取初始状态（仅在客户端）
 const getInitialAuthState = () => {
     if (!isClient) return { user: null, isAuthenticated: false };
 
-    // 尝试从localStorage获取
+    // 尝试从客户端cookie获取（优先）
+    try {
+        const cookies = document.cookie.split(';');
+        const authCookie = cookies.find(c => c.trim().startsWith('auth-storage-client='));
+
+        if (authCookie) {
+            const cookieValue = decodeURIComponent(authCookie.split('=')[1].trim());
+            const data = JSON.parse(cookieValue);
+            if (data?.state?.isAuthenticated && data?.state?.user) {
+                return {
+                    user: data.state.user,
+                    isAuthenticated: true
+                };
+            }
+        }
+    } catch (e) {
+        console.error('无法解析cookie中的认证信息', e);
+    }
+
+    // 尝试从localStorage获取（后备）
     try {
         const storage = localStorage.getItem('auth-storage');
         if (storage) {
@@ -64,6 +83,7 @@ export const useAuthStore = create<AuthState>()(
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify({ username, password }),
+                        credentials: "include", // 确保包含cookies
                     });
 
                     const data = await response.json();
@@ -89,6 +109,7 @@ export const useAuthStore = create<AuthState>()(
                         headers: {
                             "Content-Type": "application/json",
                         },
+                        credentials: "include", // 确保包含cookies
                     });
                 } catch (error) {
                     console.error("登出API调用失败:", error);
