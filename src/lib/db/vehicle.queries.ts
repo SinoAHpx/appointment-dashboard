@@ -7,7 +7,7 @@ export interface Vehicle {
 	model: string;        // 必填：车型
 	vehicleType: "electric" | "fuel"; // 必填：车辆类型 - 电车或油车
 	length: number;       // 车长（米）
-	status: "available" | "in_use" | "maintenance";
+	isAvailable: boolean; // 新增：是否可用
 	createdAt: string;
 }
 
@@ -16,8 +16,8 @@ export type NewVehicleData = {
 	plateNumber: string;  // 必填：车牌号 
 	model: string;        // 必填：车型
 	vehicleType: Vehicle["vehicleType"]; // 必填：车辆类型
-	length?: number;      // 可选：车长（米）
-	status?: Vehicle["status"];
+	length?: number | null;
+	isAvailable?: boolean; // 新增：是否可用，默认为 true
 };
 
 // Type for updating an existing vehicle
@@ -30,7 +30,7 @@ export const getAllVehicles = (): Vehicle[] => {
 	try {
 		const db = getDb();
 		const query = db.query<Vehicle, []>(
-			"SELECT id, plateNumber, model, status, createdAt FROM vehicles ORDER BY createdAt DESC",
+			"SELECT id, plateNumber, model, vehicleType, length, isAvailable, createdAt FROM vehicles ORDER BY createdAt DESC",
 		);
 		return query.all();
 	} catch (error) {
@@ -45,14 +45,28 @@ export const getAllVehicles = (): Vehicle[] => {
 export const addVehicle = (data: NewVehicleData): Vehicle | null => {
 	try {
 		const db = getDb();
-		const { plateNumber, model, vehicleType, length = 0, status = "available" } = data;
+		const {
+			plateNumber,
+			model,
+			vehicleType,
+			length = null,
+			isAvailable = true,
+		} = data;
+
 		const insertQuery = db.query<
 			Vehicle,
-			[string, string, Vehicle["vehicleType"], number, Vehicle["status"]]
+			[string, string, string, number | null, boolean]
 		>(
-			"INSERT INTO vehicles (plateNumber, model, vehicleType, length, status) VALUES (?, ?, ?, ?, ?) RETURNING id, plateNumber, model, vehicleType, length, status, createdAt",
+			"INSERT INTO vehicles (plateNumber, model, vehicleType, length, isAvailable) VALUES (?, ?, ?, ?, ?) RETURNING id, plateNumber, model, vehicleType, length, isAvailable, createdAt",
 		);
-		const newVehicle = insertQuery.get(plateNumber, model, vehicleType, length, status);
+
+		const newVehicle = insertQuery.get(
+			plateNumber,
+			model,
+			vehicleType,
+			length,
+			isAvailable,
+		);
 		return newVehicle;
 	} catch (error) {
 		// Check for unique constraint violation (plateNumber)
@@ -80,7 +94,7 @@ export const updateVehicle = (
 		const fields = Object.keys(data) as (keyof UpdateVehicleData)[];
 		if (fields.length === 0) {
 			const currentQuery = db.query<Vehicle, [number]>(
-				"SELECT * FROM vehicles WHERE id = ?",
+				"SELECT id, plateNumber, model, vehicleType, length, isAvailable, createdAt FROM vehicles WHERE id = ?",
 			);
 			return currentQuery.get(id);
 		}
@@ -90,7 +104,7 @@ export const updateVehicle = (
 		values.push(id.toString());
 
 		const updateQuery = db.query<Vehicle, any[]>(
-			`UPDATE vehicles SET ${setClause} WHERE id = ? RETURNING id, plateNumber, model, vehicleType, length, status, createdAt`,
+			`UPDATE vehicles SET ${setClause} WHERE id = ? RETURNING id, plateNumber, model, vehicleType, length, isAvailable, createdAt`,
 		);
 		const updatedVehicle = updateQuery.get(...values);
 		return updatedVehicle;
@@ -118,10 +132,9 @@ export const updateVehicle = (
 export const deleteVehicle = (id: number): boolean => {
 	try {
 		const db = getDb();
-		// First, update any appointments that reference this vehicle to NULL
-		db.query(
-			"UPDATE appointments SET vehicleId = NULL WHERE vehicleId = ?",
-		).run(id);
+		// 当删除车辆时，不再直接修改 appointments 表。
+		// 依赖后续业务逻辑处理（如编辑预约时发现车辆不存在）。
+		// 或者可以创建一个单独的服务来异步清理这些关联。
 
 		const deleteQuery = db.query("DELETE FROM vehicles WHERE id = ?");
 		const result = deleteQuery.run(id);

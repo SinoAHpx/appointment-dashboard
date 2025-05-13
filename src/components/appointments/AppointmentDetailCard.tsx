@@ -17,11 +17,11 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
 
     // Fetch staff and vehicles data when component mounts
     useEffect(() => {
-        if (appointment.assignedStaff?.length || appointment.assignedVehicle) {
+        if (appointment.assignedStaff?.length || appointment.assignedVehicles?.length) {
             fetchStaff();
             fetchVehicles();
         }
-    }, [appointment.assignedStaff, appointment.assignedVehicle, fetchStaff, fetchVehicles]);
+    }, [appointment.assignedStaff, appointment.assignedVehicles, fetchStaff, fetchVehicles]);
 
     // Get assigned staff names and info
     const assignedStaffInfo = appointment.assignedStaff?.map(staffId => {
@@ -33,9 +33,15 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
         };
     }).filter((staff): staff is { name: string; idCard: string; } => staff !== null);
 
-    // Get assigned vehicle info
-    const assignedVehicle = vehicles.find(v => v.id === appointment.assignedVehicle);
-    const vehicleInfo = assignedVehicle ? `${assignedVehicle.plateNumber} (${assignedVehicle.model})` : '';
+    // Get assigned vehicles info
+    const assignedVehiclesInfo = appointment.assignedVehicles?.map(vehicleId => {
+        const vehicle = vehicles.find(v => v.id === vehicleId);
+        if (!vehicle) return null;
+        return {
+            plateNumber: vehicle.plateNumber,
+            model: vehicle.model
+        };
+    }).filter((vehicle): vehicle is { plateNumber: string; model: string; } => vehicle !== null);
 
     // 解析documentTypesJson数据
     const getDocumentTypesInfo = () => {
@@ -213,40 +219,43 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                         </div>
 
                         {/* 处理信息组 */}
-                        {((appointment.assignedStaff && appointment.assignedStaff.length > 0) || appointment.assignedVehicle) && (
+                        {((appointment.assignedStaff && appointment.assignedStaff.length > 0) || (appointment.assignedVehicles && appointment.assignedVehicles.length > 0)) && (
                             <div className="mb-3">
                                 <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-1.5">
-                                    <Users size={14} className="text-indigo-500" />
-                                    <span>处理人员与车辆</span>
+                                    <Users className="h-4 w-4" /> 处理人员与车辆
                                 </h3>
                                 <div className="space-y-2">
                                     {/* Show assigned staff if available */}
-                                    {appointment.assignedStaff && appointment.assignedStaff.length > 0 && assignedStaffInfo && (
-                                        <div className="bg-indigo-50 p-2 rounded-md">
+                                    {appointment.assignedStaff && assignedStaffInfo && assignedStaffInfo.length > 0 && (
+                                        <div className="bg-blue-50 p-2 rounded-md">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <Users size={16} className="text-indigo-600" />
-                                                <span className="font-medium">处理人员</span>
+                                                <Users className="h-4 w-4 text-blue-500" />
+                                                <span className="text-sm font-medium text-blue-700">指派人员</span>
                                             </div>
-                                            <div className="space-y-1 pl-1">
+                                            <div className="bg-white p-1.5 rounded-md text-sm shadow-sm space-y-1">
                                                 {assignedStaffInfo.map((staff, index) => (
-                                                    <div key={index} className="bg-white p-1.5 rounded-md text-sm flex items-center justify-between shadow-sm">
+                                                    <div key={index} className="flex items-center justify-between">
                                                         <span className="font-medium">{staff.name}</span>
-                                                        <span className="text-xs text-gray-500 font-mono">{staff.idCard}</span>
+                                                        <span className="text-gray-500 text-xs">身份证: {staff.idCard}</span>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Show assigned vehicle if available */}
-                                    {appointment.assignedVehicle && vehicleInfo && (
+                                    {/* Show assigned vehicles if available */}
+                                    {appointment.assignedVehicles && assignedVehiclesInfo && assignedVehiclesInfo.length > 0 && (
                                         <div className="bg-blue-50 p-2 rounded-md">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <Car size={16} className="text-blue-600" />
-                                                <span className="font-medium">派遣车辆</span>
+                                                <Car className="h-4 w-4 text-blue-500" />
+                                                <span className="text-sm font-medium text-blue-700">派遣车辆</span>
                                             </div>
                                             <div className="bg-white p-1.5 rounded-md text-sm shadow-sm">
-                                                {vehicleInfo}
+                                                {assignedVehiclesInfo.map((vehicle, index) => (
+                                                    <div key={index} className="flex items-center justify-between">
+                                                        <span className="font-medium">{vehicle.plateNumber} ({vehicle.model})</span>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     )}

@@ -31,6 +31,25 @@ export function AppointmentEditDialog({
         setIsSubmitting(true);
 
         try {
+            // 准备人员和车辆分配的数据
+            const assignedStaffJson = data.assignedStaff && data.assignedStaff.length > 0
+                ? JSON.stringify(data.assignedStaff)
+                : null;
+
+            const assignedVehicleJson = data.assignedVehicles && data.assignedVehicles.length > 0
+                ? JSON.stringify(data.assignedVehicles)
+                : null;
+
+            // 记录重要的提交数据，用于调试
+            console.log("AppointmentEditDialog 提交数据:", {
+                assignedStaff: data.assignedStaff,
+                assignedVehicles: data.assignedVehicles,
+                assignedStaffJson,
+                assignedVehicleJson,
+                status: data.status, // 确保状态也被正确传递
+                estimatedCompletionTime: data.estimatedCompletionTime
+            });
+
             // 转换数据格式
             const submitData = {
                 id: appointment.id,
@@ -55,6 +74,15 @@ export function AppointmentEditDialog({
                         count: data.documentTypes.other?.count || 0
                     }
                 }),
+                // 添加管理员可以设置的字段
+                status: data.status,
+                estimatedCompletionTime: data.estimatedCompletionTime,
+                processingNotes: data.processingNotes,
+                // 添加分配相关字段
+                assignedStaff: data.assignedStaff,
+                assignedVehicles: data.assignedVehicles,
+                assignedStaffJson: assignedStaffJson,
+                assignedVehicleJson: assignedVehicleJson
             };
 
             const response = await fetch(`/api/appointments`, {
@@ -92,7 +120,7 @@ export function AppointmentEditDialog({
                 </DialogHeader>
 
                 <AppointmentForm
-                    isAdmin={false} // 普通用户只能编辑基本信息
+                    isAdmin={user?.role === 'admin'} // 根据用户权限决定可编辑内容
                     initialData={appointment}
                     onSubmit={handleSubmit}
                     submitLabel={isSubmitting ? "保存中..." : "保存修改"}

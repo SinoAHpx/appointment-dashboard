@@ -11,6 +11,8 @@ import {
 } from "@/lib/db/appointment.queries";
 import { verifyAdmin, verifyAuth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+import { updateStaff } from "@/lib/db/staff.queries";
+import { updateVehicle } from "@/lib/db/vehicle.queries";
 
 // 获取所有预约
 export async function GET(request: NextRequest) {
@@ -23,22 +25,18 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// 管理员可以获取所有预约
-		// 普通用户只能获取自己创建的预约
 		const url = new URL(request.url);
 		const id = url.searchParams.get("id");
 		const includeHistory = url.searchParams.get("includeHistory") === "true";
 
 		let appointments = getAllAppointments();
 
-		// 如果不是管理员，只返回该用户创建的预约
 		if (!auth.isAdmin) {
 			appointments = appointments.filter(
 				app => app.createdBy === auth.userId
 			);
 		}
 
-		// 如果指定了ID，获取特定预约
 		if (id) {
 			const filteredAppointments = appointments.filter(
 				(app) => app.id === parseInt(id)
@@ -54,12 +52,10 @@ export async function GET(request: NextRequest) {
 			const appointment = filteredAppointments[0];
 			let history: AppointmentHistory[] = [];
 
-			// 只有管理员可以查看历史记录
 			if (includeHistory && auth.isAdmin) {
 				history = getAppointmentHistory(parseInt(id));
 			}
 
-			// Parse assignedStaffJson to assignedStaff array if available
 			let assignedStaff: string[] = [];
 			if (appointment.assignedStaffJson) {
 				try {
@@ -67,16 +63,21 @@ export async function GET(request: NextRequest) {
 				} catch (e) {
 					console.error("Error parsing assignedStaffJson", e);
 				}
-			} else if (appointment.staffId) {
-				// Legacy: If no JSON array but there is a staffId, use it as a single element array
-				assignedStaff = [appointment.staffId.toString()];
 			}
 
-			// Add assignedStaff and assignedVehicle fields to the response
+			let assignedVehicles: string[] = [];
+			if (appointment.assignedVehicleJson) {
+				try {
+					assignedVehicles = JSON.parse(appointment.assignedVehicleJson);
+				} catch (e) {
+					console.error("Error parsing assignedVehicleJson", e);
+				}
+			}
+
 			const responseAppointment = {
 				...appointment,
 				assignedStaff,
-				assignedVehicle: appointment.vehicleId ? appointment.vehicleId.toString() : null
+				assignedVehicles
 			};
 
 			return NextResponse.json({
@@ -86,9 +87,7 @@ export async function GET(request: NextRequest) {
 			});
 		}
 
-		// Transform appointments for the frontend
 		const transformedAppointments = appointments.map(app => {
-			// Parse assignedStaffJson to assignedStaff array if available
 			let assignedStaff: string[] = [];
 			if (app.assignedStaffJson) {
 				try {
@@ -96,19 +95,24 @@ export async function GET(request: NextRequest) {
 				} catch (e) {
 					console.error("Error parsing assignedStaffJson", e);
 				}
-			} else if (app.staffId) {
-				// Legacy: If no JSON array but there is a staffId, use it as a single element array
-				assignedStaff = [app.staffId.toString()];
+			}
+
+			let assignedVehicles: string[] = [];
+			if (app.assignedVehicleJson) {
+				try {
+					assignedVehicles = JSON.parse(app.assignedVehicleJson);
+				} catch (e) {
+					console.error("Error parsing assignedVehicleJson", e);
+				}
 			}
 
 			return {
 				...app,
 				assignedStaff,
-				assignedVehicle: app.vehicleId ? app.vehicleId.toString() : null
+				assignedVehicles
 			};
 		});
 
-		// 返回所有可访问的预约
 		return NextResponse.json({ success: true, appointments: transformedAppointments });
 	} catch (error) {
 		console.error("获取预约列表失败:", error);
@@ -132,7 +136,6 @@ export async function POST(request: NextRequest) {
 
 		const body = await request.json();
 
-		// 验证必要字段
 		if (!body.customerName) {
 			return NextResponse.json(
 				{ success: false, message: "客户姓名必填" },
@@ -147,14 +150,11 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// 准备预约数据
 		const appointmentData: NewAppointmentData = {
 			customerName: body.customerName,
 			appointmentTime: body.appointmentTime,
 			serviceType: body.serviceType || null,
 			documentTypesJson: body.documentTypesJson || null,
-			staffId: body.staffId ? parseInt(body.staffId) : null,
-			vehicleId: body.vehicleId ? parseInt(body.vehicleId) : null,
 			status: ["pending", "confirmed", "in_progress", "completed", "cancelled"].includes(
 				body.status,
 			)
@@ -166,26 +166,23 @@ export async function POST(request: NextRequest) {
 			contactAddress: body.contactAddress || null,
 			notes: body.notes || null,
 			documentCount: body.documentCount || 1,
-			updatedBy: auth.userId,
-			createdBy: auth.userId, // 记录创建者ID
+			createdBy: auth.userId,
 		};
 
-		// Handle assignedStaff array
-		if (body.assignedStaff) {
-			// Store as JSON string
+		if (body.assignedStaffJson !== undefined) {
+			appointmentData.assignedStaffJson = body.assignedStaffJson;
+		} else if (body.assignedStaff) {
 			appointmentData.assignedStaffJson = Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0
 				? JSON.stringify(body.assignedStaff)
 				: null;
-
-			// Use first staff as primary for backward compatibility
-			if (Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0) {
-				appointmentData.staffId = parseInt(body.assignedStaff[0]);
-			}
 		}
 
-		// Handle assignedVehicle
-		if (body.assignedVehicle) {
-			appointmentData.vehicleId = parseInt(body.assignedVehicle);
+		if (body.assignedVehicleJson !== undefined) {
+			appointmentData.assignedVehicleJson = body.assignedVehicleJson;
+		} else if (body.assignedVehicles) {
+			appointmentData.assignedVehicleJson = Array.isArray(body.assignedVehicles) && body.assignedVehicles.length > 0
+				? JSON.stringify(body.assignedVehicles)
+				: null;
 		}
 
 		const newAppointment = addAppointment(appointmentData);
@@ -230,28 +227,32 @@ export async function PUT(request: NextRequest) {
 			);
 		}
 
-		// 获取预约详情以验证权限
 		const appointments = getAllAppointments();
-		const appointment = appointments.find(app => app.id === parseInt(body.id));
+		const appointmentToUpdate = appointments.find(app => app.id === parseInt(body.id));
 
-		if (!appointment) {
+		if (!appointmentToUpdate) {
 			return NextResponse.json(
 				{ success: false, message: "预约不存在" },
 				{ status: 404 }
 			);
 		}
 
-		// 验证访问权限
-		if (!auth.isAdmin && appointment.createdBy !== auth.userId) {
+		if (!auth.isAdmin && appointmentToUpdate.createdBy !== auth.userId) {
 			return NextResponse.json(
 				{ success: false, message: "无权操作此预约" },
 				{ status: 403 }
 			);
 		}
 
+		const oldAssignedStaffIds: number[] = appointmentToUpdate.assignedStaffJson
+			? JSON.parse(appointmentToUpdate.assignedStaffJson).map(Number)
+			: [];
+		const oldAssignedVehicleIds: number[] = appointmentToUpdate.assignedVehicleJson
+			? JSON.parse(appointmentToUpdate.assignedVehicleJson).map(Number)
+			: [];
+
 		const updateData: UpdateAppointmentData = {};
 
-		// 只包含要更新的字段
 		if (body.customerName !== undefined)
 			updateData.customerName = body.customerName;
 		if (body.appointmentTime !== undefined)
@@ -273,43 +274,37 @@ export async function PUT(request: NextRequest) {
 		if (body.documentCount !== undefined)
 			updateData.documentCount = body.documentCount;
 
-		// 处理staff和vehicle ID - 只有管理员可以分配
+		let newAssignedStaffIds: number[] = oldAssignedStaffIds;
+		let newAssignedVehicleIds: number[] = oldAssignedVehicleIds;
+
 		if (auth.isAdmin) {
-			// Handle single staffId (legacy) or assignedStaff array (new format)
-			if (body.staffId !== undefined) {
-				updateData.staffId = body.staffId ? parseInt(body.staffId) : null;
-			}
-
-			// Handle assignedStaff array from frontend
-			if (body.assignedStaff !== undefined) {
-				// For now, we still use staffId in the database for the primary staff
-				// If there's at least one staff assigned, use the first one as primary
-				if (Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0) {
-					updateData.staffId = parseInt(body.assignedStaff[0]);
-				} else {
-					updateData.staffId = null;
-				}
-
-				// Store the full staff array as JSON in a separate field for future use
+			if (body.assignedStaffJson !== undefined) {
+				updateData.assignedStaffJson = body.assignedStaffJson;
+				newAssignedStaffIds = body.assignedStaffJson ? JSON.parse(body.assignedStaffJson).map(Number) : [];
+			} else if (body.assignedStaff !== undefined) {
 				updateData.assignedStaffJson = Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0
 					? JSON.stringify(body.assignedStaff)
 					: null;
+				newAssignedStaffIds = Array.isArray(body.assignedStaff) && body.assignedStaff.length > 0
+					? body.assignedStaff.map(Number)
+					: [];
 			}
 
-			if (body.vehicleId !== undefined) {
-				updateData.vehicleId = body.vehicleId ? parseInt(body.vehicleId) : null;
-			}
-
-			// Handle assignedVehicle from frontend
-			if (body.assignedVehicle !== undefined) {
-				updateData.vehicleId = body.assignedVehicle ? parseInt(body.assignedVehicle) : null;
+			if (body.assignedVehicleJson !== undefined) {
+				updateData.assignedVehicleJson = body.assignedVehicleJson;
+				newAssignedVehicleIds = body.assignedVehicleJson ? JSON.parse(body.assignedVehicleJson).map(Number) : [];
+			} else if (body.assignedVehicles !== undefined) {
+				updateData.assignedVehicleJson = Array.isArray(body.assignedVehicles) && body.assignedVehicles.length > 0
+					? JSON.stringify(body.assignedVehicles)
+					: null;
+				newAssignedVehicleIds = Array.isArray(body.assignedVehicles) && body.assignedVehicles.length > 0
+					? body.assignedVehicles.map(Number)
+					: [];
 			}
 		}
 
-		// 处理最后更新用户信息
 		updateData.lastUpdatedBy = auth.userId;
 
-		// 验证状态值有效性
 		if (body.status !== undefined) {
 			if (
 				!["pending", "confirmed", "in_progress", "completed", "cancelled"].includes(
@@ -321,15 +316,12 @@ export async function PUT(request: NextRequest) {
 					{ status: 400 },
 				);
 			}
-
-			// 状态相关权限控制：只有管理员可以将状态设置为in_progress
 			if (body.status === "in_progress" && !auth.isAdmin) {
 				return NextResponse.json(
 					{ success: false, message: "只有管理员可以将预约设置为处理中状态" },
 					{ status: 403 }
 				);
 			}
-
 			updateData.status = body.status as Appointment["status"];
 		}
 
@@ -340,6 +332,44 @@ export async function PUT(request: NextRequest) {
 				{ success: false, message: "更新预约失败，预约可能不存在" },
 				{ status: 400 },
 			);
+		}
+
+		if (auth.isAdmin) {
+			const staffToMakeAvailable = oldAssignedStaffIds.filter(id => !newAssignedStaffIds.includes(id));
+			const staffToMakeUnavailable = newAssignedStaffIds.filter(id => !oldAssignedStaffIds.includes(id));
+
+			staffToMakeAvailable.forEach(staffId => {
+				try {
+					updateStaff(staffId, { isAvailable: true });
+				} catch (e) {
+					console.error(`Error making staff ${staffId} available:`, e);
+				}
+			});
+			staffToMakeUnavailable.forEach(staffId => {
+				try {
+					updateStaff(staffId, { isAvailable: false });
+				} catch (e) {
+					console.error(`Error making staff ${staffId} unavailable:`, e);
+				}
+			});
+
+			const vehiclesToMakeAvailable = oldAssignedVehicleIds.filter(id => !newAssignedVehicleIds.includes(id));
+			const vehiclesToMakeUnavailable = newAssignedVehicleIds.filter(id => !oldAssignedVehicleIds.includes(id));
+
+			vehiclesToMakeAvailable.forEach(vehicleId => {
+				try {
+					updateVehicle(vehicleId, { isAvailable: true });
+				} catch (e) {
+					console.error(`Error making vehicle ${vehicleId} available:`, e);
+				}
+			});
+			vehiclesToMakeUnavailable.forEach(vehicleId => {
+				try {
+					updateVehicle(vehicleId, { isAvailable: false });
+				} catch (e) {
+					console.error(`Error making vehicle ${vehicleId} unavailable:`, e);
+				}
+			});
 		}
 
 		return NextResponse.json({
@@ -375,7 +405,6 @@ export async function PATCH(request: NextRequest) {
 			);
 		}
 
-		// 获取预约详情以验证权限
 		const appointments = getAllAppointments();
 		const appointment = appointments.find(app => app.id === parseInt(body.id));
 
@@ -386,7 +415,6 @@ export async function PATCH(request: NextRequest) {
 			);
 		}
 
-		// 验证操作权限 - 普通用户只能操作自己的预约
 		if (!auth.isAdmin && appointment.createdBy !== auth.userId) {
 			return NextResponse.json(
 				{ success: false, message: "无权操作此预约" },
@@ -394,7 +422,6 @@ export async function PATCH(request: NextRequest) {
 			);
 		}
 
-		// 普通用户只能取消预约，不能更改为其他状态
 		if (!auth.isAdmin && body.status && body.status !== "cancelled") {
 			return NextResponse.json(
 				{ success: false, message: "普通用户只能取消预约" },
@@ -402,7 +429,6 @@ export async function PATCH(request: NextRequest) {
 			);
 		}
 
-		// 管理员可以请求历史记录
 		if (auth.isAdmin && body.requestHistory) {
 			const history = getAppointmentHistory(parseInt(body.id));
 			return NextResponse.json({
@@ -411,7 +437,6 @@ export async function PATCH(request: NextRequest) {
 			});
 		}
 
-		// 更新预约状态
 		const updateData: UpdateAppointmentData = {
 			status: body.status as Appointment["status"],
 			lastUpdatedBy: auth.userId
@@ -450,7 +475,6 @@ export async function DELETE(request: NextRequest) {
 			);
 		}
 
-		// 从 URL 参数获取 ID
 		const url = new URL(request.url);
 		const id = url.searchParams.get("id");
 
@@ -461,7 +485,6 @@ export async function DELETE(request: NextRequest) {
 			);
 		}
 
-		// 获取预约详情以验证权限
 		const appointments = getAllAppointments();
 		const appointment = appointments.find(app => app.id === parseInt(id));
 
@@ -472,7 +495,6 @@ export async function DELETE(request: NextRequest) {
 			);
 		}
 
-		// 验证删除权限 - 只有管理员或创建者可以删除
 		if (!auth.isAdmin && appointment.createdBy !== auth.userId) {
 			return NextResponse.json(
 				{ success: false, message: "无权删除此预约" },

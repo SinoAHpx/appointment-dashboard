@@ -21,7 +21,7 @@ export interface Appointment {
     documentTypesJson?: string; // 新增：文件类型JSON数据
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
     assignedStaff?: string[];
-    assignedVehicle?: string;
+    assignedVehicles?: string[];
     estimatedCompletionTime?: string;
     processingNotes?: string;
     lastUpdatedBy?: string;
@@ -44,7 +44,7 @@ export interface AppointmentFormData {
     notes?: string;
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
     assignedStaff?: string[];
-    assignedVehicle?: string;
+    assignedVehicles?: string[];
     estimatedCompletionTime?: string;
     processingNotes?: string;
 }
@@ -106,7 +106,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             documentTypesJson: app.documentTypesJson || '', // 处理documentTypesJson字段
                             status: app.status || 'pending',
                             assignedStaff: app.assignedStaff,
-                            assignedVehicle: app.assignedVehicle,
+                            assignedVehicles: app.assignedVehicles || (app.assignedVehicle ? [app.assignedVehicle] : []), // 兼容旧数据
                             estimatedCompletionTime: app.estimatedCompletionTime || '',
                             processingNotes: app.processingNotes || '',
                             lastUpdatedBy: app.lastUpdatedBy?.toString() || '',
@@ -151,7 +151,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             documentType: data.appointment.serviceType || 'confidential',
                             status: data.appointment.status || 'pending',
                             assignedStaff: data.appointment.assignedStaff,
-                            assignedVehicle: data.appointment.assignedVehicle,
+                            assignedVehicles: data.appointment.assignedVehicles || (data.appointment.assignedVehicle ? [data.appointment.assignedVehicle] : []), // 兼容旧数据
                             estimatedCompletionTime: data.appointment.estimatedCompletionTime || '',
                             processingNotes: data.appointment.processingNotes || '',
                             lastUpdatedBy: data.appointment.lastUpdatedBy?.toString() || '',
@@ -200,6 +200,8 @@ export const useAppointmentStore = create<AppointmentState>()(
                         notes: appointmentData.notes,
                         documentCount: appointmentData.documentCount,
                         updatedBy: userId, // Set the current user as the updater
+                        assignedStaffJson: appointmentData.assignedStaff ? JSON.stringify(appointmentData.assignedStaff) : null,
+                        assignedVehicleJson: appointmentData.assignedVehicles ? JSON.stringify(appointmentData.assignedVehicles) : null,
                     };
 
                     // Use API endpoint
@@ -228,7 +230,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             documentTypesJson: data.appointment.documentTypesJson || '', // 添加documentTypesJson字段
                             status: data.appointment.status || 'pending',
                             assignedStaff: data.appointment.assignedStaff,
-                            assignedVehicle: data.appointment.assignedVehicle,
+                            assignedVehicles: data.appointment.assignedVehicles || (data.appointment.assignedVehicle ? [data.appointment.assignedVehicle] : []), // 兼容旧数据
                             estimatedCompletionTime: data.appointment.estimatedCompletionTime || '',
                             processingNotes: data.appointment.processingNotes || '',
                             lastUpdatedBy: data.appointment.lastUpdatedBy?.toString() || '',
@@ -279,8 +281,8 @@ export const useAppointmentStore = create<AppointmentState>()(
                     if (data.notes !== undefined) apiData.notes = data.notes;
                     if (data.documentCount !== undefined) apiData.documentCount = data.documentCount;
 
-                    if (data.assignedStaff !== undefined) apiData.staffId = data.assignedStaff && data.assignedStaff.length > 0 ? data.assignedStaff[0] : null;
-                    if (data.assignedVehicle !== undefined) apiData.vehicleId = data.assignedVehicle || null;
+                    if (data.assignedStaff !== undefined) apiData.assignedStaffJson = JSON.stringify(data.assignedStaff);
+                    if (data.assignedVehicles !== undefined) apiData.assignedVehicleJson = JSON.stringify(data.assignedVehicles);
 
                     // Use API endpoint
                     const response = await fetch("/api/appointments", {
@@ -308,7 +310,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                             documentTypesJson: responseData.appointment.documentTypesJson || '', // 添加documentTypesJson字段
                             status: responseData.appointment.status || 'pending',
                             assignedStaff: responseData.appointment.assignedStaff,
-                            assignedVehicle: responseData.appointment.assignedVehicle,
+                            assignedVehicles: responseData.appointment.assignedVehicles || (responseData.appointment.assignedVehicle ? [responseData.appointment.assignedVehicle] : []), // 兼容旧数据
                             estimatedCompletionTime: responseData.appointment.estimatedCompletionTime || '',
                             processingNotes: responseData.appointment.processingNotes || '',
                             lastUpdatedBy: responseData.appointment.lastUpdatedBy?.toString() || '',
@@ -385,7 +387,7 @@ export const useAppointmentStore = create<AppointmentState>()(
             assignVehicle: async (appointmentId, vehicleId) => {
                 // Properly map the vehicleId to the expected API field
                 return get().updateAppointment(appointmentId, {
-                    assignedVehicle: vehicleId ? vehicleId.toString() : undefined
+                    assignedVehicles: vehicleId ? [vehicleId.toString()] : undefined
                 });
             },
         }),

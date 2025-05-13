@@ -28,11 +28,14 @@ function initDb(db: Database) {
       CREATE TABLE IF NOT EXISTS staff (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        idCard TEXT NOT NULL,
+        phone TEXT NOT NULL UNIQUE,
+        idCard TEXT NOT NULL UNIQUE,
         position TEXT,
         status TEXT CHECK( status IN ('active', 'inactive', 'on_leave') ) NOT NULL DEFAULT 'active',
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        isAvailable BOOLEAN DEFAULT TRUE NOT NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(phone),
+        UNIQUE(idCard)
       );
     `);
 
@@ -40,16 +43,17 @@ function initDb(db: Database) {
     db.run(`
       CREATE TABLE IF NOT EXISTS vehicles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        plateNumber TEXT UNIQUE NOT NULL,
-        model TEXT,
-        vehicleType TEXT CHECK( vehicleType IN ('electric', 'fuel') ) NOT NULL DEFAULT 'fuel',
-        length REAL DEFAULT 0,
-        status TEXT CHECK( status IN ('available', 'in_use', 'maintenance') ) NOT NULL DEFAULT 'available',
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        plateNumber TEXT NOT NULL UNIQUE,
+        model TEXT NOT NULL,
+        vehicleType TEXT,
+        length REAL,
+        isAvailable BOOLEAN DEFAULT TRUE NOT NULL,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(plateNumber)
       );
     `);
 
-    // 创建预约表
+    // 创建预约表 - 更新表结构以支持多个员工和车辆
     db.run(`
       CREATE TABLE IF NOT EXISTS appointments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,8 +66,6 @@ function initDb(db: Database) {
         appointmentTime DATETIME NOT NULL,
         serviceType TEXT,
         documentTypesJson TEXT,
-        staffId INTEGER,
-        vehicleId INTEGER,
         status TEXT CHECK( status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
         estimatedCompletionTime DATETIME,
         processingNotes TEXT,
@@ -72,32 +74,27 @@ function initDb(db: Database) {
         createdBy INTEGER,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         assignedStaffJson TEXT,
-        FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
-        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
+        assignedVehicleJson TEXT,
         FOREIGN KEY (lastUpdatedBy) REFERENCES users (id) ON DELETE SET NULL,
         FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE SET NULL
       );
     `);
 
-    // 创建预约历史记录表
+    // 创建预约历史记录表 - 更新表结构以支持多个员工和车辆
     db.run(`
       CREATE TABLE IF NOT EXISTS appointment_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         appointmentId INTEGER NOT NULL,
         status TEXT NOT NULL,
-        staffId INTEGER,
-        vehicleId INTEGER,
         notes TEXT,
         updatedBy INTEGER NOT NULL,
         updatedAt DATETIME NOT NULL,
         assignedStaffJson TEXT,
+        assignedVehicleJson TEXT,
         FOREIGN KEY (appointmentId) REFERENCES appointments (id) ON DELETE CASCADE,
-        FOREIGN KEY (staffId) REFERENCES staff (id) ON DELETE SET NULL,
-        FOREIGN KEY (vehicleId) REFERENCES vehicles (id) ON DELETE SET NULL,
         FOREIGN KEY (updatedBy) REFERENCES users (id) ON DELETE SET NULL
       );
     `);
-
 
     // 创建默认管理员账户
     const adminCheck = db.query("SELECT id FROM users WHERE username = ?").get("admin");

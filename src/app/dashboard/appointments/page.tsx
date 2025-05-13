@@ -92,12 +92,31 @@ export default function AppointmentsPage() {
 				}
 			}
 
+			// 处理人员和车辆分配的JSON数据
+			const assignedStaffJson = formData.assignedStaff && formData.assignedStaff.length > 0
+				? JSON.stringify(formData.assignedStaff)
+				: null;
+
+			const assignedVehicleJson = formData.assignedVehicles && formData.assignedVehicles.length > 0
+				? JSON.stringify(formData.assignedVehicles)
+				: null;
+
 			// 添加缺失的字段
 			const enrichedFormData = {
 				...formData,
 				documentCategory,
-				documentType
+				documentType,
+				assignedStaffJson,
+				assignedVehicleJson
 			};
+
+			// 记录重要的数据用于调试
+			console.log("创建预约数据:", {
+				assignedStaff: formData.assignedStaff,
+				assignedVehicles: formData.assignedVehicles,
+				assignedStaffJson,
+				assignedVehicleJson
+			});
 
 			const success = await addAppointment(enrichedFormData);
 			if (success) {
@@ -138,12 +157,32 @@ export default function AppointmentsPage() {
 				}
 			}
 
+			// 处理人员和车辆分配的JSON数据
+			const assignedStaffJson = formData.assignedStaff && formData.assignedStaff.length > 0
+				? JSON.stringify(formData.assignedStaff)
+				: null;
+
+			const assignedVehicleJson = formData.assignedVehicles && formData.assignedVehicles.length > 0
+				? JSON.stringify(formData.assignedVehicles)
+				: null;
+
 			// 添加缺失的字段
 			const enrichedFormData = {
 				...formData,
 				documentCategory,
-				documentType
+				documentType,
+				assignedStaffJson,
+				assignedVehicleJson
 			};
+
+			// 记录重要的数据用于调试
+			console.log("更新预约数据:", {
+				appointmentId: editingAppointment.id,
+				assignedStaff: formData.assignedStaff,
+				assignedVehicles: formData.assignedVehicles,
+				assignedStaffJson,
+				assignedVehicleJson
+			});
 
 			const success = await updateAppointment(
 				editingAppointment.id,

@@ -16,15 +16,15 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
     const { staffList, fetchStaff } = useStaffStore();
     const { vehicles, fetchVehicles } = useVehicleStore();
 
-    // Fetch staff and vehicles data when component mounts
+    // 获取员工和车辆数据
     useEffect(() => {
-        if (appointment.assignedStaff?.length || appointment.assignedVehicle) {
+        if (appointment.assignedStaff?.length || appointment.assignedVehicles?.length) {
             fetchStaff();
             fetchVehicles();
         }
-    }, [appointment.assignedStaff, appointment.assignedVehicle, fetchStaff, fetchVehicles]);
+    }, [appointment.assignedStaff, appointment.assignedVehicles, fetchStaff, fetchVehicles]);
 
-    // Get assigned staff names and info
+    // 获取分配的员工信息
     const assignedStaffInfo = appointment.assignedStaff?.map(staffId => {
         const staff = staffList.find(s => s.id === staffId);
         if (!staff) return null;
@@ -34,9 +34,15 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
         };
     }).filter((staff): staff is { name: string; idCard: string; } => staff !== null);
 
-    // Get assigned vehicle info
-    const assignedVehicle = vehicles.find(v => v.id === appointment.assignedVehicle);
-    const vehicleInfo = assignedVehicle ? `${assignedVehicle.plateNumber} (${assignedVehicle.model})` : '';
+    // 获取分配的车辆信息
+    const assignedVehiclesInfo = appointment.assignedVehicles?.map(vehicleId => {
+        const vehicle = vehicles.find(v => v.id === vehicleId);
+        if (!vehicle) return null;
+        return {
+            plateNumber: vehicle.plateNumber,
+            model: vehicle.model
+        };
+    }).filter((vehicle): vehicle is { plateNumber: string; model: string; } => vehicle !== null);
 
     // 解析documentTypesJson数据
     const getDocumentTypesInfo = () => {
@@ -70,7 +76,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
         return typeObj?.label || typeValue;
     };
 
-    // Map icon names to components
+    // 根据图标名称返回对应的组件
     const getIconComponent = (iconName: string) => {
         switch (iconName) {
             case "clock":
@@ -155,7 +161,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                                 <span>文件与数量信息</span>
                             </h3>
                             <div className="bg-gray-50 p-2 rounded-md">
-                                {/* 显示新的文件类型信息 */}
+                                {/* 显示文件类型信息 */}
                                 {(hasPaper || hasElectronic || hasOther) && docTypes ? (
                                     <div className="grid gap-2">
                                         {hasPaper && (
@@ -214,14 +220,14 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                         </div>
 
                         {/* 处理信息组 */}
-                        {((appointment.assignedStaff && appointment.assignedStaff.length > 0) || appointment.assignedVehicle) && (
+                        {((appointment.assignedStaff && appointment.assignedStaff.length > 0) || (appointment.assignedVehicles && appointment.assignedVehicles.length > 0)) && (
                             <div className="mb-3">
                                 <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-1.5">
                                     <Users size={14} className="text-indigo-500" />
                                     <span>处理人员与车辆</span>
                                 </h3>
                                 <div className="space-y-2">
-                                    {/* Show assigned staff if available */}
+                                    {/* 显示分配的员工 */}
                                     {appointment.assignedStaff && appointment.assignedStaff.length > 0 && assignedStaffInfo && (
                                         <div className="bg-indigo-50 p-2 rounded-md">
                                             <div className="flex items-center gap-2 mb-1">
@@ -239,15 +245,25 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                                         </div>
                                     )}
 
-                                    {/* Show assigned vehicle if available */}
-                                    {appointment.assignedVehicle && vehicleInfo && (
+                                    {/* 显示分配的车辆 */}
+                                    {appointment.assignedVehicles && appointment.assignedVehicles.length > 0 && assignedVehiclesInfo && assignedVehiclesInfo.length > 0 && (
                                         <div className="bg-blue-50 p-2 rounded-md">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <Car size={16} className="text-blue-600" />
                                                 <span className="font-medium">派遣车辆</span>
+                                                {assignedVehiclesInfo.length > 1 && (
+                                                    <Badge variant="outline" className="ml-auto bg-blue-100 text-blue-800">
+                                                        {assignedVehiclesInfo.length}辆
+                                                    </Badge>
+                                                )}
                                             </div>
-                                            <div className="bg-white p-1.5 rounded-md text-sm shadow-sm">
-                                                {vehicleInfo}
+                                            <div className="space-y-1 pl-1">
+                                                {assignedVehiclesInfo.map((vehicle, index) => (
+                                                    <div key={index} className="bg-white p-1.5 rounded-md text-sm flex items-center justify-between shadow-sm">
+                                                        <span className="font-medium">{vehicle.plateNumber}</span>
+                                                        <span className="text-xs text-gray-500">{vehicle.model}</span>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     )}

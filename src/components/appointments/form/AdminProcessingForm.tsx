@@ -33,22 +33,22 @@ interface AdminProcessingFormProps {
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
     estimatedCompletionTime: string;
     assignedStaff: string[];
-    assignedVehicle: string;
+    assignedVehicles: string[];
     onStatusChange: (value: string) => void;
     onEstimatedCompletionTimeChange: (value: string) => void;
     onAssignedStaffChange: (value: string[]) => void;
-    onAssignedVehicleChange: (value: string) => void;
+    onAssignedVehiclesChange: (value: string[]) => void;
 }
 
 export function AdminProcessingForm({
     status,
     estimatedCompletionTime,
     assignedStaff,
-    assignedVehicle,
+    assignedVehicles,
     onStatusChange,
     onEstimatedCompletionTimeChange,
     onAssignedStaffChange,
-    onAssignedVehicleChange
+    onAssignedVehiclesChange
 }: AdminProcessingFormProps) {
     const { staffList } = useStaffStore();
     const { vehicles } = useVehicleStore();
@@ -73,9 +73,17 @@ export function AdminProcessingForm({
         }
     };
 
-    // 处理车辆选择
+    // 处理车辆选择 - 支持多选
     const handleVehicleSelection = (vehicleId: string) => {
-        onAssignedVehicleChange(vehicleId === assignedVehicle ? "" : vehicleId);
+        const currentAssignedVehicles = [...assignedVehicles];
+        // 检查是否已选择
+        if (currentAssignedVehicles.includes(vehicleId)) {
+            // 如果已选择，则移除
+            onAssignedVehiclesChange(currentAssignedVehicles.filter(id => id !== vehicleId));
+        } else {
+            // 如果未选择，则添加
+            onAssignedVehiclesChange([...currentAssignedVehicles, vehicleId]);
+        }
     };
 
     // 获取已选人员名称
@@ -89,11 +97,13 @@ export function AdminProcessingForm({
     };
 
     // 获取已选车辆信息
-    const getSelectedVehicleInfo = () => {
-        if (!assignedVehicle) return "选择派遣车辆";
+    const getSelectedVehiclesInfo = () => {
+        if (!assignedVehicles?.length) return "选择派遣车辆";
 
-        const vehicle = availableVehicles.find(v => v.id === assignedVehicle);
-        return vehicle ? `${vehicle.plateNumber} (${vehicle.model})` : "未知车辆";
+        return assignedVehicles.map(id => {
+            const vehicle = availableVehicles.find(v => v.id === id);
+            return vehicle ? `${vehicle.plateNumber}` : "未知车辆";
+        }).join(", ");
     };
 
     return (
@@ -200,7 +210,7 @@ export function AdminProcessingForm({
                     )}
                 </div>
 
-                {/* 指派车辆 - 单选 */}
+                {/* 指派车辆 - 多选 */}
                 <div className="flex flex-col gap-1.5">
                     <Label>指派车辆</Label>
                     <Popover open={vehicleSelectOpen} onOpenChange={setVehicleSelectOpen}>
@@ -211,7 +221,7 @@ export function AdminProcessingForm({
                                 className="justify-between"
                             >
                                 <div className="max-w-[90%] truncate text-left">
-                                    {getSelectedVehicleInfo()}
+                                    {getSelectedVehiclesInfo()}
                                 </div>
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
@@ -232,7 +242,7 @@ export function AdminProcessingForm({
                                                 <Check
                                                     className={cn(
                                                         "mr-2 h-4 w-4",
-                                                        assignedVehicle === vehicle.id
+                                                        assignedVehicles?.includes(vehicle.id)
                                                             ? "opacity-100"
                                                             : "opacity-0"
                                                     )}
@@ -251,16 +261,16 @@ export function AdminProcessingForm({
                     </Popover>
 
                     {/* 显示已选车辆 */}
-                    {assignedVehicle && (
+                    {assignedVehicles && assignedVehicles.length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                            {(() => {
-                                const vehicle = availableVehicles.find(v => v.id === assignedVehicle);
+                            {assignedVehicles.map(vehicleId => {
+                                const vehicle = availableVehicles.find(v => v.id === vehicleId);
                                 return vehicle && (
-                                    <Badge variant="secondary" className="text-xs">
+                                    <Badge key={vehicleId} variant="secondary" className="text-xs">
                                         {vehicle.plateNumber}
                                     </Badge>
                                 );
-                            })()}
+                            })}
                         </div>
                     )}
                 </div>

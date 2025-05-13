@@ -31,7 +31,9 @@ export interface AppointmentFormData {
     estimatedCompletionTime?: string;
     processingNotes?: string;
     assignedStaff?: string[];
-    assignedVehicle?: string;
+    assignedVehicles?: string[];
+    assignedStaffJson?: string | null;
+    assignedVehicleJson?: string | null;
 }
 
 interface AppointmentFormProps {
@@ -47,8 +49,6 @@ export function AppointmentForm({
     onSubmit,
     submitLabel = "保存",
 }: AppointmentFormProps) {
-    const { isAdmin: checkIsAdmin } = useAuthStore();
-
     const [formData, setFormData] = useState<AppointmentFormData>({
         dateTime: "",
         contactName: "",
@@ -65,7 +65,9 @@ export function AppointmentForm({
         estimatedCompletionTime: "",
         processingNotes: "",
         assignedStaff: [],
-        assignedVehicle: "",
+        assignedVehicles: [],
+        assignedStaffJson: null,
+        assignedVehicleJson: null,
     });
 
     // Initialize form with provided data
@@ -111,31 +113,21 @@ export function AppointmentForm({
                         };
                     }
                 } catch (error) {
-                    console.error("解析documentTypesJson时出错:", error);
-                    // 如果解析失败，使用原有的方式处理（向后兼容）
-                    if (initialData.documentType) {
-                        for (const [category, types] of Object.entries(documentTypesByCategory)) {
-                            if (types.some(type => type.value === initialData.documentType)) {
-                                documentTypes[category as keyof typeof documentTypes] = {
-                                    types: [initialData.documentType],
-                                    count: initialData.documentCount || 0
-                                };
-                                break;
-                            }
-                        }
-                    }
+                    console.error("解析documentTypesJson失败:", error);
                 }
-            } else if (initialData.documentType) {
-                // 向后兼容 - 如果没有documentTypesJson但有documentType
-                for (const [category, types] of Object.entries(documentTypesByCategory)) {
-                    if (types.some(type => type.value === initialData.documentType)) {
-                        documentTypes[category as keyof typeof documentTypes] = {
-                            types: [initialData.documentType],
-                            count: initialData.documentCount || 0
-                        };
-                        break;
-                    }
-                }
+            }
+
+            // 处理人员和车辆分配
+            let assignedStaff: string[] = [];
+            let assignedVehicles: string[] = [];
+
+            // 处理来自数据库的人员和车辆数据
+            if (initialData.assignedStaff && Array.isArray(initialData.assignedStaff)) {
+                assignedStaff = initialData.assignedStaff;
+            }
+
+            if (initialData.assignedVehicles && Array.isArray(initialData.assignedVehicles)) {
+                assignedVehicles = initialData.assignedVehicles;
             }
 
             setFormData({
@@ -144,13 +136,15 @@ export function AppointmentForm({
                 contactPhone: initialData.contactPhone || "",
                 contactAddress: initialData.contactAddress || "",
                 documentCount: initialData.documentCount || 1,
-                documentTypes,
+                documentTypes: documentTypes,
                 notes: combinedNotes,
                 status: initialData.status || "pending",
                 estimatedCompletionTime: initialData.estimatedCompletionTime || "",
-                processingNotes: "",
-                assignedStaff: initialData.assignedStaff || [],
-                assignedVehicle: initialData.assignedVehicle || "",
+                processingNotes: initialData.processingNotes || "",
+                assignedStaff: assignedStaff,
+                assignedVehicles: assignedVehicles,
+                assignedStaffJson: assignedStaff.length > 0 ? JSON.stringify(assignedStaff) : null,
+                assignedVehicleJson: assignedVehicles.length > 0 ? JSON.stringify(assignedVehicles) : null,
             });
         }
     }, [initialData]);
@@ -173,10 +167,29 @@ export function AppointmentForm({
             }
         });
 
+        // 准备分配的人员和车辆的JSON字符串
+        const assignedStaffJson = formData.assignedStaff && formData.assignedStaff.length > 0
+            ? JSON.stringify(formData.assignedStaff)
+            : null;
+
+        const assignedVehicleJson = formData.assignedVehicles && formData.assignedVehicles.length > 0
+            ? JSON.stringify(formData.assignedVehicles)
+            : null;
+
+        // 记录关键数据，确保数据被正确传递
+        console.log('提交表单数据:', {
+            assignedStaff: formData.assignedStaff,
+            assignedVehicles: formData.assignedVehicles,
+            assignedStaffJson,
+            assignedVehicleJson
+        });
+
         // 准备提交数据
         const submitData = {
             ...formData,
-            documentTypesJson
+            documentTypesJson,
+            assignedStaffJson,
+            assignedVehicleJson
         };
 
         onSubmit(submitData);
@@ -204,6 +217,33 @@ export function AppointmentForm({
             [key]: value
         }));
     };
+
+    // 每当人员或车辆分配变化时，更新JSON字段
+    useEffect(() => {
+        if (formData.assignedStaff) {
+            const staffJson = formData.assignedStaff.length > 0
+                ? JSON.stringify(formData.assignedStaff)
+                : null;
+
+            setFormData(prev => ({
+                ...prev,
+                assignedStaffJson: staffJson
+            }));
+        }
+    }, [formData.assignedStaff]);
+
+    useEffect(() => {
+        if (formData.assignedVehicles) {
+            const vehicleJson = formData.assignedVehicles.length > 0
+                ? JSON.stringify(formData.assignedVehicles)
+                : null;
+
+            setFormData(prev => ({
+                ...prev,
+                assignedVehicleJson: vehicleJson
+            }));
+        }
+    }, [formData.assignedVehicles]);
 
     return (
         <>
@@ -236,11 +276,19 @@ export function AppointmentForm({
                             status={formData.status}
                             estimatedCompletionTime={formData.estimatedCompletionTime || ""}
                             assignedStaff={formData.assignedStaff || []}
-                            assignedVehicle={formData.assignedVehicle || ""}
+                            assignedVehicles={formData.assignedVehicles || []}
                             onStatusChange={value => updateFormData("status", value as AppointmentFormData["status"])}
                             onEstimatedCompletionTimeChange={value => updateFormData("estimatedCompletionTime", value)}
-                            onAssignedStaffChange={value => updateFormData("assignedStaff", value)}
-                            onAssignedVehicleChange={value => updateFormData("assignedVehicle", value)}
+                            onAssignedStaffChange={value => {
+                                updateFormData("assignedStaff", value);
+                                // 直接更新 JSON 字段
+                                updateFormData("assignedStaffJson", value.length > 0 ? JSON.stringify(value) : null);
+                            }}
+                            onAssignedVehiclesChange={value => {
+                                updateFormData("assignedVehicles", value);
+                                // 直接更新 JSON 字段
+                                updateFormData("assignedVehicleJson", value.length > 0 ? JSON.stringify(value) : null);
+                            }}
                         />
                     </TabsContent>
                 </Tabs>
