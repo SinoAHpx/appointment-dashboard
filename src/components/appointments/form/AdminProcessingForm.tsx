@@ -28,8 +28,6 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useStaffStore, useVehicleStore } from "@/lib/stores";
-import { type Staff } from "@/lib/stores/staff";
-import { type Vehicle } from "@/lib/stores/vehicles";
 
 interface AdminProcessingFormProps {
     status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
@@ -158,27 +156,30 @@ export function AdminProcessingForm({
                                 <CommandInput placeholder="搜索人员..." />
                                 <CommandEmpty>未找到匹配的人员</CommandEmpty>
                                 <CommandGroup>
-                                    {availableStaff.length ? availableStaff.map(staff => (
-                                        <CommandItem
-                                            key={staff.id}
-                                            value={staff.id}
-                                            onSelect={() => handleStaffSelection(staff.id)}
-                                        >
-                                            <Check
-                                                className={cn(
-                                                    "mr-2 h-4 w-4",
-                                                    assignedStaff?.includes(staff.id)
-                                                        ? "opacity-100"
-                                                        : "opacity-0"
-                                                )}
-                                            />
-                                            {staff.name} ({staff.position})
-                                        </CommandItem>
-                                    )) : (
-                                        <div className="p-2 text-sm text-muted-foreground">
-                                            暂无可用人员
-                                        </div>
-                                    )}
+                                    <ScrollArea className="h-[200px]" type="hover">
+                                        {availableStaff.length ? availableStaff.map(staff => (
+                                            <CommandItem
+                                                key={staff.id}
+                                                value={staff.id}
+                                                onSelect={() => handleStaffSelection(staff.id)}
+                                                className="cursor-pointer"
+                                            >
+                                                <Check
+                                                    className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        assignedStaff?.includes(staff.id)
+                                                            ? "opacity-100"
+                                                            : "opacity-0"
+                                                    )}
+                                                />
+                                                {staff.name} ({staff.position})
+                                            </CommandItem>
+                                        )) : (
+                                            <div className="p-2 text-sm text-muted-foreground">
+                                                暂无可用人员
+                                            </div>
+                                        )}
+                                    </ScrollArea>
                                 </CommandGroup>
                             </Command>
                         </PopoverContent>
@@ -220,12 +221,13 @@ export function AdminProcessingForm({
                                 <CommandInput placeholder="搜索车辆..." />
                                 <CommandEmpty>未找到匹配的车辆</CommandEmpty>
                                 <CommandGroup>
-                                    <ScrollArea className="h-[200px]">
+                                    <ScrollArea className="h-[200px]" type="hover">
                                         {availableVehicles.length ? availableVehicles.map(vehicle => (
                                             <CommandItem
                                                 key={vehicle.id}
                                                 value={vehicle.id}
                                                 onSelect={() => handleVehicleSelection(vehicle.id)}
+                                                className="cursor-pointer"
                                             >
                                                 <Check
                                                     className={cn(

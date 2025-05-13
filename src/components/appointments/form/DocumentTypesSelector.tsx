@@ -19,8 +19,8 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { documentCategories, documentTypesByCategory } from "@/lib/utils/appointments/helpers";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // 文档类型选择器的数据类型
 export interface DocumentTypesData {
@@ -105,12 +105,13 @@ export function DocumentTypesSelector({ value, onChange }: DocumentTypesSelector
                                         <CommandInput placeholder="搜索文件类型..." />
                                         <CommandEmpty>未找到匹配的类型</CommandEmpty>
                                         <CommandGroup>
-                                            <ScrollArea className="h-[200px]">
+                                            <ScrollArea className="h-[200px]" type="hover">
                                                 {documentTypesByCategory[category.value as keyof typeof documentTypesByCategory].map((type) => (
                                                     <CommandItem
                                                         key={type.value}
                                                         value={type.value}
                                                         onSelect={() => handleTypeSelection(category.value, type.value)}
+                                                        className="cursor-pointer"
                                                     >
                                                         <Check
                                                             className={cn(

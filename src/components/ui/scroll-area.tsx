@@ -5,20 +5,35 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+interface ScrollAreaProps extends React.ComponentProps<typeof ScrollAreaPrimitive.Root> {
+	type?: "auto" | "always" | "scroll" | "hover";
+	viewportRef?: React.RefObject<HTMLDivElement>;
+}
+
 function ScrollArea({
 	className,
 	children,
+	type = "auto",
+	viewportRef,
 	...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+}: ScrollAreaProps) {
 	return (
 		<ScrollAreaPrimitive.Root
 			data-slot="scroll-area"
 			className={cn("relative", className)}
+			type={type}
 			{...props}
 		>
 			<ScrollAreaPrimitive.Viewport
+				ref={viewportRef}
 				data-slot="scroll-area-viewport"
 				className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+				style={{
+					overscrollBehavior: "contain",
+					// 确保在 command 组件内部能够正常滚动
+					touchAction: "pan-y",
+					WebkitOverflowScrolling: "touch"
+				}}
 			>
 				{children}
 			</ScrollAreaPrimitive.Viewport>
@@ -28,21 +43,27 @@ function ScrollArea({
 	);
 }
 
+interface ScrollBarProps extends React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar> {
+	forceVisible?: boolean;
+}
+
 function ScrollBar({
 	className,
 	orientation = "vertical",
+	forceVisible = false,
 	...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
+}: ScrollBarProps) {
 	return (
 		<ScrollAreaPrimitive.ScrollAreaScrollbar
 			data-slot="scroll-area-scrollbar"
 			orientation={orientation}
 			className={cn(
 				"flex touch-none p-px transition-colors select-none",
+				forceVisible && "!block",
 				orientation === "vertical" &&
-					"h-full w-2.5 border-l border-l-transparent",
+				"h-full w-2.5 border-l border-l-transparent",
 				orientation === "horizontal" &&
-					"h-2.5 flex-col border-t border-t-transparent",
+				"h-2.5 flex-col border-t border-t-transparent",
 				className,
 			)}
 			{...props}
