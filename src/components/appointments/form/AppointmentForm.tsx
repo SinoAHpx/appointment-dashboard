@@ -208,7 +208,7 @@ export function AppointmentForm({
     return (
         <>
             {isAdmin ? (
-                <Tabs defaultValue="basic" className="w-full">
+                <Tabs defaultValue="admin" className="w-full">
                     <TabsList className="grid w-full grid-cols-2 mb-4">
                         <TabsTrigger value="basic">基本信息</TabsTrigger>
                         <TabsTrigger value="admin">处理信息</TabsTrigger>
