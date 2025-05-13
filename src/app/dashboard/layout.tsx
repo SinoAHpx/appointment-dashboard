@@ -2,7 +2,7 @@
 
 import { AuthGuard } from "@/components/AuthGuard";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore } from "@/lib/stores";
 import {
     Briefcase,
     Calendar,
@@ -10,6 +10,7 @@ import {
     Home,
     User,
     Users,
+    FileDown,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -64,6 +65,7 @@ export default function DashboardLayout({
         { name: "用户管理", path: "/dashboard/users", icon: Users },
         { name: "人员管理", path: "/dashboard/staff", icon: Briefcase },
         { name: "车辆管理", path: "/dashboard/vehicles", icon: Car },
+        { name: "数据导出", path: "/dashboard/exports", icon: FileDown },
     ];
 
     // 根据用户角色过滤导航项目 - 普通用户只能访问预约页面

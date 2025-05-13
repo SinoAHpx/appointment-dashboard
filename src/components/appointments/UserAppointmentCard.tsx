@@ -331,15 +331,15 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                             <div className="space-y-1.5 text-xs text-gray-600">
                                 <div className="flex items-center gap-2">
                                     <Building size={14} className="text-gray-500" />
-                                    <span>立品科技数据销毁服务中心</span>
+                                    <span>中国融通安全保密技术中心</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <MapPin size={14} className="text-gray-500" />
-                                    <span>地址：上海市浦东新区张江高科技园区博云路2号浦软大厦102室</span>
+                                    <span>地址：北京市海淀区xxxxxx</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Phone size={14} className="text-gray-500" />
-                                    <span>电话：021-50806767</span>
+                                    <span>电话：010-50806767</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Mail size={14} className="text-gray-500" />
