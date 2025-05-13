@@ -39,7 +39,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { AuthGuard } from "@/components/AuthGuard";
-import { AdminUser, useUserStore } from "@/lib/store";
+import { AdminUser, useUserStore, useAuthStore } from "@/lib/stores";
 import { format } from "date-fns";
 import {
 	Pencil,
@@ -66,6 +66,7 @@ export default function UsersPage() {
 		updateUser,
 		deleteUser,
 	} = useUserStore();
+	const { user } = useAuthStore();
 
 	const [page, setPage] = useState(1);
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

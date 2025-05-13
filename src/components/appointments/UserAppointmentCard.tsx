@@ -349,6 +349,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                         </div>
                     </div>
 
+                    {/* 操作按钮 */}
                     <div className="mt-auto p-3 pt-2 border-t border-gray-100">
                         <div className="flex justify-end">
                             <UserAppointmentActions appointment={appointment} />

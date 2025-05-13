@@ -1,5 +1,4 @@
 import { findUserByUsernameWithPassword } from "@/lib/db/user.queries";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 // 登录API路由
@@ -48,8 +47,7 @@ export async function POST(request: Request) {
 			...userWithoutPassword,
 			// 将数字ID转换为字符串以满足前端User接口的要求
 			id: userWithoutPassword.id.toString(),
-			name: userWithoutPassword.name || username,
-			email: userWithoutPassword.email || null
+			name: userWithoutPassword.name || username
 		};
 
 		console.log("最终返回用户信息:", finalUser);

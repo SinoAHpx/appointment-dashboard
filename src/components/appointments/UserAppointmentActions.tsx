@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, X } from "lucide-react";
+import { Edit, X, Wallet } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -16,6 +16,8 @@ import {
 import { type Appointment } from "@/lib/stores/appointments";
 import { useRouter } from "next/navigation";
 import { AppointmentEditDialog } from "./form/AppointmentEditDialog";
+import { useAuthStore } from "@/lib/stores";
+import { CheckoutDialog } from "@/components/checkout";
 
 interface UserAppointmentActionsProps {
     appointment: Appointment;
@@ -29,6 +31,7 @@ export function UserAppointmentActions({
     onUpdateSuccess,
 }: UserAppointmentActionsProps) {
     const router = useRouter();
+    const { user } = useAuthStore();
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -102,6 +105,20 @@ export function UserAppointmentActions({
                         取消预约
                     </Button>
                 )}
+
+                <CheckoutDialog
+                    appointment={appointment}
+                    trigger={
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-200"
+                        >
+                            <Wallet size={14} className="mr-1" />
+                            结算
+                        </Button>
+                    }
+                />
             </div>
 
             {/* 取消预约确认对话框 */}
