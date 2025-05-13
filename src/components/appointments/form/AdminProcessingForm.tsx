@@ -158,29 +158,27 @@ export function AdminProcessingForm({
                                 <CommandInput placeholder="搜索人员..." />
                                 <CommandEmpty>未找到匹配的人员</CommandEmpty>
                                 <CommandGroup>
-                                    <ScrollArea className="h-[200px]">
-                                        {availableStaff.length ? availableStaff.map(staff => (
-                                            <CommandItem
-                                                key={staff.id}
-                                                value={staff.id}
-                                                onSelect={() => handleStaffSelection(staff.id)}
-                                            >
-                                                <Check
-                                                    className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        assignedStaff?.includes(staff.id)
-                                                            ? "opacity-100"
-                                                            : "opacity-0"
-                                                    )}
-                                                />
-                                                {staff.name} ({staff.position})
-                                            </CommandItem>
-                                        )) : (
-                                            <div className="p-2 text-sm text-muted-foreground">
-                                                暂无可用人员
-                                            </div>
-                                        )}
-                                    </ScrollArea>
+                                    {availableStaff.length ? availableStaff.map(staff => (
+                                        <CommandItem
+                                            key={staff.id}
+                                            value={staff.id}
+                                            onSelect={() => handleStaffSelection(staff.id)}
+                                        >
+                                            <Check
+                                                className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    assignedStaff?.includes(staff.id)
+                                                        ? "opacity-100"
+                                                        : "opacity-0"
+                                                )}
+                                            />
+                                            {staff.name} ({staff.position})
+                                        </CommandItem>
+                                    )) : (
+                                        <div className="p-2 text-sm text-muted-foreground">
+                                            暂无可用人员
+                                        </div>
+                                    )}
                                 </CommandGroup>
                             </Command>
                         </PopoverContent>

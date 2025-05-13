@@ -76,7 +76,7 @@ export default function DashboardLayout({
         : [{ name: "我的预约", path: "/dashboard/appointments", icon: Calendar }];
 
     // 标题文本根据用户角色不同
-    const headerTitle = isAdmin() ? "预约管理系统" : "预约系统";
+    const headerTitle = isAdmin() ? "预约管理系统" : "中国融通销毁中心预约登记系统";
 
     return (
         <>

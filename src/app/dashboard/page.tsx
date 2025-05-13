@@ -12,11 +12,10 @@ import {
 import {
     useAppointmentStore,
     useAuthStore,
-    useCustomerStore,
     useStaffStore,
     useVehicleStore,
 } from "@/lib/store";
-import { CalendarDays, Car, Clock, UserCircle, Users } from "lucide-react";
+import { CalendarDays, Car, Clock, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -29,7 +28,6 @@ export default function DashboardPage() {
 
     // Fetch data from stores
     const { appointments, fetchAppointments } = useAppointmentStore();
-    const { customers } = useCustomerStore();
     const { staffList } = useStaffStore();
     const { vehicles } = useVehicleStore();
 
