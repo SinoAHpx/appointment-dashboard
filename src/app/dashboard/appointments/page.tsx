@@ -19,7 +19,7 @@ import {
 	useAuthStore,
 } from "@/lib/stores";
 import { filterAppointments } from "@/lib/utils/appointments/helpers";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ export default function AppointmentsPage() {
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [isRefreshing, setIsRefreshing] = useState(false);
 
 	// 过滤预约数据
 	const filteredAppointments = filterAppointments(appointments, searchQuery);
@@ -57,6 +58,19 @@ export default function AppointmentsPage() {
 	// 处理搜索查询变更
 	const handleSearchChange = (query: string) => {
 		setSearchQuery(query);
+	};
+
+	// 处理刷新预约列表
+	const handleRefresh = async () => {
+		try {
+			setIsRefreshing(true);
+			await fetchAppointments();
+			toast.success("预约列表已刷新");
+		} catch (error) {
+			toast.error("刷新预约列表失败");
+		} finally {
+			setIsRefreshing(false);
+		}
 	};
 
 	// 处理新建预约提交
@@ -184,11 +198,21 @@ export default function AppointmentsPage() {
 
 			{/* 搜索框 */}
 			<div className="flex justify-between items-center">
-				<AppointmentSearch
-					searchQuery={searchQuery}
-					onSearchChange={handleSearchChange}
-					placeholder={isAdmin() ? "搜索联系人、电话或地址" : "搜索预约记录..."}
-				/>
+				<div className="flex items-center gap-2">
+					<AppointmentSearch
+						searchQuery={searchQuery}
+						onSearchChange={handleSearchChange}
+						placeholder={isAdmin() ? "搜索联系人、电话或地址" : "搜索预约记录..."}
+					/>
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={handleRefresh}
+						disabled={isRefreshing}
+					>
+						<RefreshCcw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+					</Button>
+				</div>
 				<Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
 					<DialogTrigger asChild>
 						<Button>
