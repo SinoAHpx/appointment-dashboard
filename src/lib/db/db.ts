@@ -98,18 +98,6 @@ function initDb(db: Database) {
       );
     `);
 
-    // 创建客户表
-    db.run(`
-      CREATE TABLE IF NOT EXISTS customers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        phone TEXT UNIQUE,
-        email TEXT UNIQUE,
-        address TEXT,
-        company TEXT,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
 
     // 创建默认管理员账户
     const adminCheck = db.query("SELECT id FROM users WHERE username = ?").get("admin");
