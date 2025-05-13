@@ -100,11 +100,11 @@ export default function RegisterPage() {
 				<CardHeader className="space-y-1">
 					<div className="flex justify-center mb-6">
 						<Image
-							src="/next.svg"
+							src="/logo.jpeg"
 							alt="Logo"
-							width={120}
-							height={30}
-							className="dark:invert"
+							width={100}
+							height={95}
+							className="rounded-md"
 						/>
 					</div>
 					<CardTitle className="text-2xl font-bold text-center">

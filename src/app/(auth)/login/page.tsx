@@ -63,11 +63,11 @@ export default function LoginPage() {
 				toast("登录成功", {
 					description: `欢迎回来，${values.username}`,
 				});
-				
+
 				// 获取URL参数中的回调地址
 				const searchParams = new URLSearchParams(window.location.search);
 				const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-				
+
 				// 增加短暂延时确保状态更新并且Toast有时间显示
 				setTimeout(() => {
 					try {
@@ -97,13 +97,13 @@ export default function LoginPage() {
 		<div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
 			<Card className="w-full max-w-md">
 				<CardHeader className="space-y-1">
-					<div className="flex justify-center mb-6">
+					<div className="flex justify-center mb-2">
 						<Image
-							src="/next.svg"
+							src="/logo.jpeg"
 							alt="Logo"
-							width={120}
-							height={30}
-							className="dark:invert"
+							width={200}
+							height={180}
+							className="rounded-md"
 						/>
 					</div>
 					<CardTitle className="text-2xl font-bold text-center">
@@ -114,15 +114,6 @@ export default function LoginPage() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<Alert className="mb-6 bg-blue-50 text-blue-800 border-blue-200">
-						<InfoIcon className="h-4 w-4 mr-2" />
-						<AlertDescription className="text-sm">
-							<div className="font-medium mb-1">测试账号：</div>
-							<div>管理员: admin / admin123</div>
-							<div>普通用户: user1 / user123</div>
-						</AlertDescription>
-					</Alert>
-
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 							<FormField

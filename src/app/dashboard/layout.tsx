@@ -13,6 +13,7 @@ import {
     FileDown,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -84,7 +85,16 @@ export default function DashboardLayout({
                     <div className="flex min-h-screen flex-col">
                         <header className="bg-white border-b border-gray-200 shadow-sm">
                             <div className="w-full px-4 py-3 flex justify-between items-center">
-                                <h1 className="text-xl font-bold">{headerTitle}</h1>
+                                <div className="flex items-center gap-3">
+                                    <Image
+                                        src="/logo.jpeg"
+                                        alt="Logo"
+                                        width={40}
+                                        height={40}
+                                        className="rounded-md"
+                                    />
+                                    <h1 className="text-xl font-bold">{headerTitle}</h1>
+                                </div>
                                 <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-2 text-sm text-gray-600">
                                         <User size={16} />
