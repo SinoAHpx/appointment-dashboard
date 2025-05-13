@@ -42,6 +42,9 @@ export function UserAppointmentActions({
     // 判断预约是否可以被编辑（已完成或已取消的预约不能编辑）
     const canEdit = appointment.status === "pending";
 
+    // 判断是否可以结算（已确认但未完成的预约可以结算，并且用户不是政府用户）
+    const canCheckout = appointment.status === "confirmed" && user && !user.isGovUser;
+
     // 取消预约
     const handleCancelAppointment = async () => {
         setIsLoading(true);
@@ -106,19 +109,21 @@ export function UserAppointmentActions({
                     </Button>
                 )}
 
-                <CheckoutDialog
-                    appointment={appointment}
-                    trigger={
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-200"
-                        >
-                            <Wallet size={14} className="mr-1" />
-                            结算
-                        </Button>
-                    }
-                />
+                {canCheckout && (
+                    <CheckoutDialog
+                        appointment={appointment}
+                        trigger={
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 border-green-200"
+                            >
+                                <Wallet size={14} className="mr-1" />
+                                结算
+                            </Button>
+                        }
+                    />
+                )}
             </div>
 
             {/* 取消预约确认对话框 */}
