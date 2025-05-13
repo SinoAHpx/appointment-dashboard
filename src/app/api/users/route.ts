@@ -23,7 +23,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { username, password, role = "user", name, email } = body;
+        const { username, password, role = "user", name, phone, isGovUser = false } = body;
 
         // Validate request
         if (!username || !password || !name) {
@@ -56,34 +56,13 @@ export async function POST(request: Request) {
         }
 
         // Create the user
-        const newUser = createUser(username, password, role);
+        const newUser = createUser(username, password, role, name, phone, isGovUser);
 
         if (!newUser) {
             return NextResponse.json(
                 { success: false, message: "用户名已被占用" },
                 { status: 409 }
             );
-        }
-
-        // Update additional user information (name, email) if provided
-        if (name || email) {
-            const db = getDb();
-            db.query("UPDATE users SET name = ?, email = ? WHERE id = ?").run(
-                name || "",
-                email || null,
-                newUser.id
-            );
-
-            // Return the updated user
-            const updatedUser = db.query(
-                "SELECT id, username, role, name, email, createdAt FROM users WHERE id = ?"
-            ).get(newUser.id);
-
-            return NextResponse.json({
-                success: true,
-                user: updatedUser,
-                message: "用户创建成功",
-            });
         }
 
         return NextResponse.json({

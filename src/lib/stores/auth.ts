@@ -7,7 +7,8 @@ export interface User {
     username: string;
     name: string;
     role: "admin" | "user";
-    email?: string | null;
+    phone?: string | null;
+    isGovUser?: boolean;
 }
 
 // 认证状态类型定义

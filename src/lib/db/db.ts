@@ -16,8 +16,9 @@ function initDb(db: Database) {
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         name TEXT DEFAULT '',
-        email TEXT UNIQUE,
+        phone TEXT UNIQUE,
         role TEXT CHECK( role IN ('admin', 'user') ) NOT NULL DEFAULT 'user',
+        isGovUser BOOLEAN NOT NULL DEFAULT 0,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);

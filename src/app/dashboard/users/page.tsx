@@ -49,10 +49,13 @@ import {
 	Trash,
 	User,
 	Edit,
+	FileCheck,
+	FileX,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
+import { Switch } from "@/components/ui/switch";
 
 export default function UsersPage() {
 	const {
@@ -74,8 +77,9 @@ export default function UsersPage() {
 		username: "",
 		password: "",
 		name: "",
-		email: "",
+		phone: "",
 		role: "user" as "user" | "admin",
+		isGovUser: false,
 	});
 
 	// 编辑用户表单状态
@@ -92,7 +96,7 @@ export default function UsersPage() {
 			(user) =>
 				user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+				(user.phone && user.phone.toLowerCase().includes(searchQuery.toLowerCase())) ||
 				user.role.toLowerCase().includes(searchQuery.toLowerCase()),
 		).length / perPage,
 	);
@@ -103,7 +107,7 @@ export default function UsersPage() {
 			(user) =>
 				user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+				(user.phone && user.phone.toLowerCase().includes(searchQuery.toLowerCase())) ||
 				user.role.toLowerCase().includes(searchQuery.toLowerCase()),
 		)
 		.sort((a, b) => a.username.localeCompare(b.username))
@@ -188,8 +192,9 @@ export default function UsersPage() {
 					username: "",
 					password: "",
 					name: "",
-					email: "",
+					phone: "",
 					role: "user" as "user" | "admin",
+					isGovUser: false,
 				});
 			} else {
 				toast.error("创建用户失败");
@@ -238,8 +243,9 @@ export default function UsersPage() {
 			const updateData: Partial<AdminUser> = {
 				username: editingUser.username,
 				name: editingUser.name,
-				email: editingUser.email,
+				phone: editingUser.phone,
 				role: editingUser.role,
+				isGovUser: editingUser.isGovUser,
 			};
 
 			// 如果修改了密码，添加密码字段
@@ -341,31 +347,41 @@ export default function UsersPage() {
 										required
 									/>
 								</div>
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="email">邮箱</Label>
-									<Input
-										id="email"
-										name="email"
-										type="email"
-										value={newUser.email}
-										onChange={handleNewUserChange}
-										placeholder="邮箱地址（可选）"
-									/>
+								<div className="grid grid-cols-2 gap-4">
+									<div className="flex flex-col gap-2">
+										<Label htmlFor="phone">手机号</Label>
+										<Input
+											id="phone"
+											name="phone"
+											type="tel"
+											value={newUser.phone}
+											onChange={handleNewUserChange}
+											placeholder="手机号码（可选）"
+										/>
+									</div>
+									<div className="flex flex-col gap-2">
+										<Label htmlFor="role">角色 *</Label>
+										<Select
+											value={newUser.role}
+											onValueChange={handleRoleChange}
+										>
+											<SelectTrigger id="role">
+												<SelectValue placeholder="选择角色" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="user">普通用户</SelectItem>
+												<SelectItem value="admin">管理员</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
 								</div>
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="role">角色 *</Label>
-									<Select
-										value={newUser.role}
-										onValueChange={handleRoleChange}
-									>
-										<SelectTrigger id="role">
-											<SelectValue placeholder="选择角色" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="user">普通用户</SelectItem>
-											<SelectItem value="admin">管理员</SelectItem>
-										</SelectContent>
-									</Select>
+								<div className="flex items-center justify-between">
+									<Label htmlFor="isGovUser">是否为政府用户</Label>
+									<Switch
+										id="isGovUser"
+										checked={newUser.isGovUser}
+										onCheckedChange={(checked) => setNewUser(prev => ({ ...prev, isGovUser: checked }))}
+									/>
 								</div>
 							</div>
 							<DialogFooter>
@@ -386,7 +402,7 @@ export default function UsersPage() {
 						/>
 						<Input
 							className="pl-8"
-							placeholder="搜索用户名、姓名、邮箱或角色"
+							placeholder="搜索用户名、姓名、手机号或角色"
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
 						/>
@@ -401,8 +417,9 @@ export default function UsersPage() {
 								<TableRow>
 									<TableHead>用户名</TableHead>
 									<TableHead>姓名</TableHead>
-									<TableHead>邮箱</TableHead>
+									<TableHead>手机号</TableHead>
 									<TableHead>角色</TableHead>
+									<TableHead>政府用户</TableHead>
 									<TableHead>创建时间</TableHead>
 									<TableHead className="text-right">操作</TableHead>
 								</TableRow>
@@ -410,13 +427,13 @@ export default function UsersPage() {
 							<TableBody>
 								{isLoading ? (
 									<TableRow>
-										<TableCell colSpan={6} className="text-center py-6">
+										<TableCell colSpan={7} className="text-center py-6">
 											加载中...
 										</TableCell>
 									</TableRow>
 								) : filteredUsers.length === 0 ? (
 									<TableRow>
-										<TableCell colSpan={6} className="text-center py-6">
+										<TableCell colSpan={7} className="text-center py-6">
 											{searchQuery ? "没有找到匹配的用户" : "暂无用户记录"}
 										</TableCell>
 									</TableRow>
@@ -425,7 +442,7 @@ export default function UsersPage() {
 										<TableRow key={user.id}>
 											<TableCell>{user.username}</TableCell>
 											<TableCell>{user.name}</TableCell>
-											<TableCell>{user.email || "-"}</TableCell>
+											<TableCell>{user.phone || "-"}</TableCell>
 											<TableCell>
 												<div className="flex items-center gap-1">
 													{user.role === "admin" ? (
@@ -437,6 +454,21 @@ export default function UsersPage() {
 														<>
 															<User size={16} className="text-blue-500" />
 															<span>普通用户</span>
+														</>
+													)}
+												</div>
+											</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-1">
+													{user.isGovUser ? (
+														<>
+															<FileCheck size={16} className="text-green-500" />
+															<span>是</span>
+														</>
+													) : (
+														<>
+															<FileX size={16} className="text-gray-500" />
+															<span>否</span>
 														</>
 													)}
 												</div>
@@ -562,32 +594,44 @@ export default function UsersPage() {
 									)}
 								</div>
 
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="edit-email">邮箱</Label>
-									<Input
-										id="edit-email"
-										name="email"
-										type="email"
-										value={editingUser.email || ""}
-										onChange={handleEditUserChange}
-										placeholder="邮箱地址（可选）"
-									/>
+								<div className="grid grid-cols-2 gap-4">
+									<div className="flex flex-col gap-2">
+										<Label htmlFor="edit-phone">手机号</Label>
+										<Input
+											id="edit-phone"
+											name="phone"
+											type="tel"
+											value={editingUser.phone || ""}
+											onChange={handleEditUserChange}
+											placeholder="手机号码（可选）"
+										/>
+									</div>
+									<div className="flex flex-col gap-2">
+										<Label htmlFor="edit-role">角色 *</Label>
+										<Select
+											value={editingUser.role}
+											onValueChange={handleEditRoleChange}
+										>
+											<SelectTrigger id="edit-role">
+												<SelectValue placeholder="选择角色" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="user">普通用户</SelectItem>
+												<SelectItem value="admin">管理员</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
 								</div>
 
-								<div className="flex flex-col gap-2">
-									<Label htmlFor="edit-role">角色 *</Label>
-									<Select
-										value={editingUser.role}
-										onValueChange={handleEditRoleChange}
-									>
-										<SelectTrigger id="edit-role">
-											<SelectValue placeholder="选择角色" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="user">普通用户</SelectItem>
-											<SelectItem value="admin">管理员</SelectItem>
-										</SelectContent>
-									</Select>
+								<div className="flex items-center justify-between">
+									<Label htmlFor="edit-isGovUser">是否为政府用户</Label>
+									<Switch
+										id="edit-isGovUser"
+										checked={editingUser.isGovUser}
+										onCheckedChange={(checked) =>
+											setEditingUser(prev => prev ? { ...prev, isGovUser: checked } : null)
+										}
+									/>
 								</div>
 							</div>
 						)}

@@ -17,10 +17,10 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const { username, password, role, name, email } = body;
+        const { username, password, role, name, phone, isGovUser } = body;
 
         // Make sure at least one field is being updated
-        if (!username && !password && !role && !name && !email) {
+        if (!username && !password && !role && !name && !phone && isGovUser === undefined) {
             return NextResponse.json(
                 { success: false, message: "没有提供需要更新的字段" },
                 { status: 400 }
@@ -44,7 +44,7 @@ export async function PUT(
         }
 
         // Update the user
-        const updatedUser = updateUser(id, { username, password, role, name, email });
+        const updatedUser = updateUser(id, { username, password, role, name, phone, isGovUser });
 
         if (!updatedUser) {
             return NextResponse.json(
