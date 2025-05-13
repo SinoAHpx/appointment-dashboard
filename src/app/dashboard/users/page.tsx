@@ -365,7 +365,7 @@ export default function UsersPage() {
 											value={newUser.role}
 											onValueChange={handleRoleChange}
 										>
-											<SelectTrigger id="role">
+											<SelectTrigger className="w-full" id="role">
 												<SelectValue placeholder="选择角色" />
 											</SelectTrigger>
 											<SelectContent>
