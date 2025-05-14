@@ -12,6 +12,7 @@ import {
     Users,
     FileDown,
     FileText,
+    JapaneseYen
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -67,7 +68,7 @@ export default function DashboardLayout({
         { name: "用户管理", path: "/dashboard/users", icon: Users },
         { name: "人员管理", path: "/dashboard/staff", icon: Briefcase },
         { name: "车辆管理", path: "/dashboard/vehicles", icon: Car },
-        { name: "报价管理", path: "/dashboard/checkout", icon: FileDown },
+        { name: "报价管理", path: "/dashboard/checkout", icon: JapaneseYen },
         { name: "信息管理", path: "/dashboard/info", icon: FileText },
         { name: "数据导出", path: "/dashboard/exports", icon: FileDown },
     ];
