@@ -8,6 +8,7 @@ import { Calendar, CheckCircle, Clock, FileText, LayoutList, MapPin, Phone, Rota
 import { useStaffStore, useVehicleStore } from "@/lib/stores";
 import { useEffect } from "react";
 import { UserAppointmentActions } from "./UserAppointmentActions";
+import { useSystemInfoStore } from "@/lib/stores/info";
 
 export function UserAppointmentCard({ appointment }: { appointment: Appointment }) {
     const statusData = getStatusData(appointment.status);
@@ -15,6 +16,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
 
     const { staffList, fetchStaff } = useStaffStore();
     const { vehicles, fetchVehicles } = useVehicleStore();
+    const { info, fetchInfo } = useSystemInfoStore();
 
     // 获取员工和车辆数据
     useEffect(() => {
@@ -23,6 +25,11 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
             fetchVehicles();
         }
     }, [appointment.assignedStaff, appointment.assignedVehicles, fetchStaff, fetchVehicles]);
+
+    // 获取系统信息
+    useEffect(() => {
+        fetchInfo();
+    }, [fetchInfo]);
 
     // 获取分配的员工信息
     const assignedStaffInfo = appointment.assignedStaff?.map(staffId => {
@@ -321,24 +328,14 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                     <div className="p-3 flex flex-col flex-grow">
                         <div className="space-y-2 text-sm text-gray-700 mb-3">
                             <p className="font-medium text-gray-700 mb-1">重要事项：</p>
-                            <ul className="space-y-2">
-                                <li className="flex gap-2">
-                                    <span className="font-medium">1.</span>
-                                    <span>上门分拣服务需由我方评估工作量并与委托方沟通确定人数后，再安排相应分拣工人开展分拣和装包工作；</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="font-medium">2.</span>
-                                    <span>按规定，为起到内部监督作用，分拣或装卸，单次单项服务不得低于2人；</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="font-medium">3.</span>
-                                    <span>未选择分拣服务，默认已按销毁标准分类完毕。上门装车时，如发现待销物品分类不合规，则现场退回；</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="font-medium">4.</span>
-                                    <span>未选择装卸服务，则现场装车、卸载环节自行负责，不提供相应帮助。</span>
-                                </li>
-                            </ul>
+                            <div className="max-h-[200px] overflow-y-auto pr-2 space-y-2">
+                                {info?.notes.split('\n').map((note, index) => (
+                                    <div key={index} className="flex gap-2">
+                                        <span className="font-medium">{index + 1}.</span>
+                                        <span>{note}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {/* 公司信息 */}
@@ -347,19 +344,19 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                             <div className="space-y-1.5 text-xs text-gray-600">
                                 <div className="flex items-center gap-2">
                                     <Building size={14} className="text-gray-500" />
-                                    <span>中国融通安全保密技术中心</span>
+                                    <span>{info?.company_name}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <MapPin size={14} className="text-gray-500" />
-                                    <span>地址：北京市海淀区xxxxxx</span>
+                                    <span>地址：{info?.company_address}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Phone size={14} className="text-gray-500" />
-                                    <span>电话：010-50806767</span>
+                                    <span>电话：{info?.company_phone}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Mail size={14} className="text-gray-500" />
-                                    <span>邮箱：service@datarecovery.com.cn</span>
+                                    <span>邮箱：{info?.company_email}</span>
                                 </div>
                             </div>
                         </div>
