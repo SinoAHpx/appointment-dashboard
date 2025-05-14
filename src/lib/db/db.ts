@@ -96,6 +96,28 @@ function initDb(db: Database) {
       );
     `);
 
+    // 创建系统信息表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS system_info (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        notes TEXT,
+        company_name TEXT NOT NULL DEFAULT '中国融通安全保密技术中心',
+        company_address TEXT NOT NULL DEFAULT '北京市海淀区xxxxxx',
+        company_phone TEXT NOT NULL DEFAULT '010-50806767',
+        company_email TEXT NOT NULL DEFAULT 'service@datarecovery.com.cn',
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_by INTEGER,
+        FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE SET NULL
+      );
+    `);
+
+    // 插入默认系统信息
+    db.run(`
+      INSERT OR IGNORE INTO system_info (id, notes, company_name, company_address, company_phone, company_email)
+      VALUES (1, '1. 上门分拣服务需由我方评估工作量并与委托方沟通确定人数后，再安排相应分拣工人开展分拣和装包工作；\n2. 按规定，为起到内部监督作用，分拣或装卸，单次单项服务不得低于2人；\n3. 未选择分拣服务，默认已按销毁标准分类完毕。上门装车时，如发现待销物品分类不合规，则现场退回；\n4. 未选择装卸服务，则现场装车、卸载环节自行负责，不提供相应帮助。',
+      '中国融通安全保密技术中心', '北京市海淀区xxxxxx', '010-50806767', 'service@datarecovery.com.cn');
+    `);
+
     // 创建默认管理员账户
     const adminCheck = db.query("SELECT id FROM users WHERE username = ?").get("admin");
     if (!adminCheck) {
