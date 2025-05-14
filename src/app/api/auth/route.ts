@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 			name: "auth-storage",
 			value: JSON.stringify(authState),
 			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
+			//secure: process.env.NODE_ENV === "production",
 			maxAge: 60 * 60 * 24 * 7, // 7天
 			path: "/"
 		});
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
 			name: "auth-storage-client",
 			value: JSON.stringify(authState),
 			httpOnly: false,
-			secure: process.env.NODE_ENV === "production",
+			//secure: process.env.NODE_ENV === "production",
 			maxAge: 60 * 60 * 24 * 7, // 7天
 			path: "/"
 		});
