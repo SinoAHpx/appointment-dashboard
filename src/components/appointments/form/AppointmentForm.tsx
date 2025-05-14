@@ -24,6 +24,7 @@ export interface AppointmentFormData {
     contactName: string;
     contactPhone: string;
     contactAddress: string;
+    contactAddressDetails: string[];
     documentCount: number;
     documentTypes: DocumentTypesData;
     notes: string;
@@ -54,6 +55,7 @@ export function AppointmentForm({
         contactName: "",
         contactPhone: "",
         contactAddress: "",
+        contactAddressDetails: [],
         documentCount: 1,
         documentTypes: {
             paper: { types: [], count: 0 },
@@ -135,6 +137,7 @@ export function AppointmentForm({
                 contactName: initialData.contactName || "",
                 contactPhone: initialData.contactPhone || "",
                 contactAddress: initialData.contactAddress || "",
+                contactAddressDetails: [],
                 documentCount: initialData.documentCount || 1,
                 documentTypes: documentTypes,
                 notes: combinedNotes,
@@ -260,12 +263,14 @@ export function AppointmentForm({
                             contactName={formData.contactName}
                             contactPhone={formData.contactPhone}
                             contactAddress={formData.contactAddress}
+                            contactAddressDetails={formData.contactAddressDetails}
                             documentTypes={formData.documentTypes}
                             notes={formData.notes}
                             onDateTimeChange={value => updateFormData("dateTime", value)}
                             onContactNameChange={value => updateFormData("contactName", value)}
                             onContactPhoneChange={value => updateFormData("contactPhone", value)}
                             onContactAddressChange={value => updateFormData("contactAddress", value)}
+                            onContactAddressDetailsChange={value => updateFormData("contactAddressDetails", value)}
                             onDocumentTypesChange={value => updateFormData("documentTypes", value)}
                             onNotesChange={value => updateFormData("notes", value)}
                         />
@@ -299,12 +304,14 @@ export function AppointmentForm({
                         contactName={formData.contactName}
                         contactPhone={formData.contactPhone}
                         contactAddress={formData.contactAddress}
+                        contactAddressDetails={formData.contactAddressDetails}
                         documentTypes={formData.documentTypes}
                         notes={formData.notes}
                         onDateTimeChange={value => updateFormData("dateTime", value)}
                         onContactNameChange={value => updateFormData("contactName", value)}
                         onContactPhoneChange={value => updateFormData("contactPhone", value)}
                         onContactAddressChange={value => updateFormData("contactAddress", value)}
+                        onContactAddressDetailsChange={value => updateFormData("contactAddressDetails", value)}
                         onDocumentTypesChange={value => updateFormData("documentTypes", value)}
                         onNotesChange={value => updateFormData("notes", value)}
                     />
