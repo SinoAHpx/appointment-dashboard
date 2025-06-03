@@ -103,9 +103,6 @@ export default function DashboardLayout({
                                     <div className="flex items-center gap-2 text-sm text-gray-600">
                                         <User size={16} />
                                         <span>{user?.name}</span>
-                                        <span className="px-2 py-0.5 bg-gray-100 rounded-full text-xs">
-                                            {user?.role === "admin" ? "管理员" : "用户"}
-                                        </span>
                                     </div>
                                     <Button variant="outline" onClick={handleLogout}>
                                         退出登录
