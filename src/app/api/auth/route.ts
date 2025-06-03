@@ -1,17 +1,45 @@
 import { findUserByUsernameWithPassword } from "@/lib/db/user.queries";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 // 登录API路由
 export async function POST(request: Request) {
 	try {
 		// 解析请求体
 		const body = await request.json();
-		const { username, password } = body;
+		const { username, password, captcha } = body;
 
 		// 验证请求
 		if (!username || !password) {
 			return NextResponse.json(
 				{ success: false, message: "用户名和密码必填" },
+				{ status: 400 },
+			);
+		}
+
+		// 验证验证码
+		if (!captcha) {
+			return NextResponse.json(
+				{ success: false, message: "请输入验证码" },
+				{ status: 400 },
+			);
+		}
+
+		// 获取存储的验证码
+		const cookieStore = await cookies();
+		const storedCaptcha = cookieStore.get('captcha-text')?.value;
+
+		if (!storedCaptcha) {
+			return NextResponse.json(
+				{ success: false, message: "验证码已过期，请刷新验证码" },
+				{ status: 400 },
+			);
+		}
+
+		// 验证码比较（不区分大小写）
+		if (captcha.toUpperCase() !== storedCaptcha.toUpperCase()) {
+			return NextResponse.json(
+				{ success: false, message: "验证码错误" },
 				{ status: 400 },
 			);
 		}
@@ -65,6 +93,12 @@ export async function POST(request: Request) {
 		const response = NextResponse.json({
 			success: true,
 			user: finalUser,
+		});
+
+		// 验证码验证成功后，清除验证码cookie
+		response.cookies.set('captcha-text', '', {
+			maxAge: 0,
+			path: '/'
 		});
 
 		// 设置有7天过期时间的cookie

@@ -17,6 +17,7 @@ interface AuthState {
     isAuthenticated: boolean;
     login: (username: string, password: string) => Promise<boolean>;
     logout: () => Promise<void>;
+    setUser: (user: User) => void;
     isAdmin: () => boolean;
 }
 
@@ -121,6 +122,12 @@ export const useAuthStore = create<AuthState>()(
             isAdmin: () => {
                 const { user } = get();
                 return user?.role === "admin";
+            },
+            setUser: (user: User) => {
+                set({
+                    user,
+                    isAuthenticated: true,
+                });
             },
         }),
         {

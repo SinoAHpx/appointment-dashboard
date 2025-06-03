@@ -27,6 +27,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Captcha } from "@/components/ui/captcha";
 import { useAuthStore } from "@/lib/store";
 import { InfoIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -37,6 +38,9 @@ const loginSchema = z.object({
 	}),
 	password: z.string().min(6, {
 		message: "密码至少需要6个字符",
+	}),
+	captcha: z.string().min(4, {
+		message: "请输入4位验证码",
 	}),
 });
 
@@ -50,6 +54,7 @@ export default function LoginPage() {
 		defaultValues: {
 			username: "",
 			password: "",
+			captcha: "",
 		},
 	});
 
@@ -57,9 +62,25 @@ export default function LoginPage() {
 		setIsLoading(true);
 
 		try {
-			const success = await login(values.username, values.password);
+			// 发送包含验证码的登录请求
+			const response = await fetch('/api/auth', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					username: values.username,
+					password: values.password,
+					captcha: values.captcha,
+				}),
+			});
 
-			if (success) {
+			const result = await response.json();
+
+			if (result.success && result.user) {
+				// 手动调用store的login方法来设置状态
+				useAuthStore.getState().setUser(result.user);
+
 				toast("登录成功", {
 					description: `欢迎回来，${values.username}`,
 				});
@@ -95,8 +116,21 @@ export default function LoginPage() {
 				}, 800); // 延长等待时间确保cookie已设置
 			} else {
 				toast("登录失败", {
-					description: "用户名或密码不正确",
+					description: result.message || "用户名或密码不正确",
 				});
+
+				// 如果是验证码错误，清空验证码输入并刷新验证码
+				if (result.message?.includes('验证码')) {
+					form.setValue('captcha', '');
+					// 延迟一点点时间，让表单清空后再刷新验证码
+					setTimeout(() => {
+						// 触发验证码刷新
+						const refreshElement = document.querySelector('[data-refresh-captcha]') as HTMLElement;
+						if (refreshElement) {
+							refreshElement.click();
+						}
+					}, 100);
+				}
 			}
 		} catch (error) {
 			toast(`登录失败：${error}`, {});
@@ -107,74 +141,126 @@ export default function LoginPage() {
 
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-			<Card className="w-full max-w-md">
-				<CardHeader className="space-y-1">
-					<div className="flex justify-center mb-2">
-						<Image
-							src="/logo.jpeg"
-							alt="Logo"
-							width={200}
-							height={180}
-							className="rounded-md"
-						/>
+			<Card className="w-full max-w-4xl overflow-hidden">
+				<div className="flex min-h-[600px]">
+					{/* 左侧Logo区域 */}
+					<div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-center lg:p-8">
+						<div className="max-w-sm">
+							<Image
+								src="/logo.jpeg"
+								alt="Logo"
+								width={300}
+								height={270}
+								className="rounded-lg"
+							/>
+						</div>
 					</div>
-					<CardTitle className="text-2xl font-bold text-center">
-						欢迎登录
-					</CardTitle>
-					<CardDescription className="text-center">
-						请输入您的用户名和密码
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-							<FormField
-								control={form.control}
-								name="username"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>用户名</FormLabel>
-										<FormControl>
-											<Input placeholder="请输入用户名" {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="password"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>密码</FormLabel>
-										<FormControl>
-											<Input
-												type="password"
-												placeholder="请输入密码"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<Button type="submit" className="w-full" disabled={isLoading}>
-								{isLoading ? "登录中..." : "登录"}
-							</Button>
-						</form>
-					</Form>
-				</CardContent>
-				<CardFooter className="flex justify-center">
-					<p className="text-sm text-gray-600">
-						还没有账号？{" "}
-						<Link
-							href="/register"
-							className="font-medium text-primary hover:underline"
-						>
-							立即注册
-						</Link>
-					</p>
-				</CardFooter>
+
+					{/* 右侧登录表单区域 */}
+					<div className="flex flex-1 flex-col justify-between lg:p-8 p-6">
+						{/* 表单主体区域 - 垂直居中 */}
+						<div className="flex flex-col justify-center flex-1">
+							<CardHeader className="space-y-1 px-0 pt-0">
+								{/* 在小屏幕上显示logo */}
+								<div className="flex justify-center mb-4 lg:hidden">
+									<Image
+										src="/logo.jpeg"
+										alt="Logo"
+										width={150}
+										height={135}
+										className="rounded-md"
+									/>
+								</div>
+								<CardTitle className="text-2xl font-bold text-center lg:text-left">
+									欢迎登录
+								</CardTitle>
+								<CardDescription className="text-center lg:text-left">
+									请输入您的用户名和密码
+								</CardDescription>
+							</CardHeader>
+							<CardContent className="px-0">
+								<Form {...form}>
+									<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+										<FormField
+											control={form.control}
+											name="username"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>用户名</FormLabel>
+													<FormControl>
+														<Input placeholder="请输入用户名" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="password"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>密码</FormLabel>
+													<FormControl>
+														<Input
+															type="password"
+															placeholder="请输入密码"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="captcha"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>验证码</FormLabel>
+													<div className="flex items-center space-x-2">
+														<FormControl>
+															<Input
+																placeholder="请输入验证码"
+																maxLength={4}
+																className="uppercase flex-1"
+																{...field}
+																onChange={(e) => {
+																	// 自动转换为大写
+																	const value = e.target.value.toUpperCase();
+																	field.onChange(value);
+																}}
+															/>
+														</FormControl>
+														<div className="w-[120px]">
+															<Captcha />
+														</div>
+													</div>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<Button type="submit" className="w-full" disabled={isLoading}>
+											{isLoading ? "登录中..." : "登录"}
+										</Button>
+									</form>
+								</Form>
+							</CardContent>
+						</div>
+
+						{/* 注册链接 - 固定在底部 */}
+						<CardFooter className="px-0 pb-0 mt-6">
+							<p className="text-sm text-gray-600">
+								还没有账号？{" "}
+								<Link
+									href="/register"
+									className="font-medium text-primary hover:underline"
+								>
+									立即注册
+								</Link>
+							</p>
+						</CardFooter>
+					</div>
+				</div>
 			</Card>
 		</div>
 	);
