@@ -12,13 +12,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { Wallet, FileText, Truck, User, Check } from "lucide-react";
+import { Wallet, FileText, Truck, User, Check, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Appointment } from "@/lib/stores/appointments";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 interface CheckoutDialogProps {
@@ -27,74 +28,88 @@ interface CheckoutDialogProps {
     className?: string;
 }
 
-interface PricingSettings {
-    basicServicePrice: number;
-    sortingServicePrice: number;
-    packagingServicePrice: number;
+interface ServiceItem {
+    id: number;
+    name: string;
+    unit: string;
+    price: number;
+    description?: string;
+    isActive: boolean;
+}
+
+interface ServiceQuantity {
+    serviceId: number;
+    quantity: number;
 }
 
 export function CheckoutDialog({ appointment, trigger, className }: CheckoutDialogProps) {
     const [open, setOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [pricingSettings, setPricingSettings] = useState<PricingSettings | null>(null);
-    const [needPackagingService, setNeedPackagingService] = useState(false);
+    const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
+    const [serviceQuantities, setServiceQuantities] = useState<ServiceQuantity[]>([]);
 
-    // 获取预约相关信息
-    const staffCount = appointment?.assignedStaff?.length || 0;
-
-    // 获取价格配置
+    // 获取动态服务项目
     useEffect(() => {
         if (open) {
-            fetchPricingSettings();
+            fetchServiceItems();
         }
     }, [open]);
 
-    const fetchPricingSettings = async () => {
+    const fetchServiceItems = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/checkout');
+            const response = await fetch('/api/checkout/service-items?active=true');
             if (!response.ok) {
-                throw new Error('获取价格配置失败');
+                throw new Error('获取服务项目失败');
             }
-            const data = await response.json();
-            setPricingSettings(data);
+            const result = await response.json();
+            if (result.success) {
+                setServiceItems(result.data);
+                // 初始化数量，默认每个服务项目数量为0
+                setServiceQuantities(result.data.map((item: ServiceItem) => ({
+                    serviceId: item.id,
+                    quantity: 0
+                })));
+            } else {
+                throw new Error(result.error || '获取服务项目失败');
+            }
         } catch (error) {
-            console.error('获取价格配置出错:', error);
-            toast.error('获取价格配置失败，请稍后重试');
+            console.error('获取服务项目出错:', error);
+            toast.error('获取服务项目失败，请稍后重试');
         } finally {
             setIsLoading(false);
         }
     };
 
-    // 计算各项费用
-    const calculatePrices = () => {
-        if (!pricingSettings) {
-            return {
-                basicServicePrice: 0,
-                staffPrice: 0,
-                packagingPrice: 0,
-                totalPrice: 0
-            };
-        }
-
-        const basicPrice = pricingSettings.basicServicePrice;
-        const staffPrice = staffCount > 0 ? staffCount * pricingSettings.sortingServicePrice : 0;
-        const packagingPrice = needPackagingService ? pricingSettings.packagingServicePrice : 0;
-        const totalPrice = basicPrice + staffPrice + packagingPrice;
-
-        return {
-            basicServicePrice: basicPrice,
-            staffPrice,
-            packagingPrice,
-            totalPrice
-        };
+    // 更新服务数量
+    const updateServiceQuantity = (serviceId: number, quantity: number) => {
+        setServiceQuantities(prev => prev.map(sq =>
+            sq.serviceId === serviceId
+                ? { ...sq, quantity: Math.max(0, quantity) }
+                : sq
+        ));
     };
 
-    const { basicServicePrice, staffPrice, packagingPrice, totalPrice } = calculatePrices();
+    // 计算总价
+    const calculateTotal = () => {
+        return serviceQuantities.reduce((total, sq) => {
+            const service = serviceItems.find(si => si.id === sq.serviceId);
+            return total + (service ? service.price * sq.quantity : 0);
+        }, 0);
+    };
+
+    const totalPrice = calculateTotal();
 
     // 模拟结算处理
     const handleCheckout = async () => {
+        // 检查是否选择了任何服务
+        const hasSelectedServices = serviceQuantities.some(sq => sq.quantity > 0);
+        if (!hasSelectedServices) {
+            toast.error('请至少选择一项服务');
+            return;
+        }
+
         setIsProcessing(true);
 
         // 这里将来会有真实的结算逻辑
@@ -118,25 +133,25 @@ export function CheckoutDialog({ appointment, trigger, className }: CheckoutDial
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[550px]">
+            <DialogContent className="sm:max-w-[650px] max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>服务结算</DialogTitle>
                     <DialogDescription>
                         {appointment
                             ? "为此预约项目进行结算"
-                            : "结算您的服务费用"}
+                            : "选择需要的服务并进行结算"}
                     </DialogDescription>
                 </DialogHeader>
 
                 {isLoading ? (
                     <div className="py-8 flex justify-center">
                         <div className="animate-pulse text-center">
-                            <p className="text-sm text-muted-foreground">正在获取价格信息...</p>
+                            <p className="text-sm text-muted-foreground">正在获取服务项目...</p>
                         </div>
                     </div>
                 ) : (
                     <div className="py-4 space-y-4">
-                        {appointment ? (
+                        {appointment && (
                             <Card className="border border-gray-200">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-base">预约详情</CardTitle>
@@ -167,83 +182,99 @@ export function CheckoutDialog({ appointment, trigger, className }: CheckoutDial
                                     </div>
                                 </CardContent>
                             </Card>
-                        ) : (
-                            <p className="text-center text-muted-foreground">
-                                请在下一步完善结算详情
-                            </p>
                         )}
 
-                        {/* 结算价格表 */}
+                        {/* 服务项目选择 */}
                         <Card className="border border-gray-200">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-base">服务费用明细</CardTitle>
+                                <CardTitle className="text-base">选择服务项目</CardTitle>
+                                <CardDescription>
+                                    请选择需要的服务并设置数量
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {/* 基础服务费用 */}
-                                <div className="flex items-start gap-3 p-2 border border-dashed border-gray-200 rounded-md bg-gray-50">
-                                    <FileText className="text-blue-500 mt-0.5" size={18} />
-                                    <div className="flex-1">
-                                        <div className="flex justify-between">
-                                            <span className="font-medium">基础服务费</span>
-                                            <span className="font-medium">¥ {basicServicePrice.toFixed(2)}</span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            标准文件处理服务基础费用
-                                        </p>
+                                {serviceItems.length === 0 ? (
+                                    <div className="text-center py-4 text-muted-foreground">
+                                        暂无可用的服务项目
                                     </div>
-                                </div>
+                                ) : (
+                                    serviceItems.map((service) => {
+                                        const quantityData = serviceQuantities.find(sq => sq.serviceId === service.id);
+                                        const quantity = quantityData?.quantity || 0;
+                                        const itemTotal = service.price * quantity;
 
-                                {/* 人员费用 */}
-                                <div className="flex items-start gap-3 p-2 border border-dashed border-gray-200 rounded-md bg-gray-50">
-                                    <User className="text-indigo-500 mt-0.5" size={18} />
-                                    <div className="flex-1">
-                                        <div className="flex justify-between">
-                                            <span className="font-medium">分拣服务费</span>
-                                            <span className="font-medium">¥ {staffPrice.toFixed(2)}</span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            {staffCount > 0
-                                                ? `已分配 ${staffCount} 名工作人员，每人 ¥${pricingSettings?.sortingServicePrice.toFixed(2)}`
-                                                : "未使用分拣服务"}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* 装卸服务选项 */}
-                                <div className="flex items-start gap-3 p-2 border border-dashed border-gray-200 rounded-md bg-gray-50">
-                                    <Truck className="text-green-500 mt-0.5" size={18} />
-                                    <div className="flex-1">
-                                        <div className="flex justify-between">
-                                            <span className="font-medium">装卸服务费</span>
-                                            <span className="font-medium">
-                                                {needPackagingService
-                                                    ? `¥ ${packagingPrice.toFixed(2)}`
-                                                    : "¥ 0.00"}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center space-x-2 mt-2">
-                                            <Checkbox
-                                                id="packaging-service"
-                                                checked={needPackagingService}
-                                                onCheckedChange={(checked) =>
-                                                    setNeedPackagingService(checked === true)
-                                                }
-                                            />
-                                            <Label htmlFor="packaging-service" className="text-xs text-muted-foreground cursor-pointer">
-                                                需要装卸服务（¥{pricingSettings?.packagingServicePrice.toFixed(2)}）
-                                            </Label>
-                                        </div>
-                                    </div>
-                                </div>
+                                        return (
+                                            <div key={service.id} className="flex items-center gap-3 p-3 border border-dashed border-gray-200 rounded-md bg-gray-50">
+                                                <FileText className="text-blue-500 flex-shrink-0" size={18} />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div>
+                                                            <span className="font-medium">{service.name}</span>
+                                                            <span className="text-sm text-muted-foreground ml-2">
+                                                                ({service.unit})
+                                                            </span>
+                                                        </div>
+                                                        <span className="font-medium text-right">
+                                                            ¥{service.price.toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                    {service.description && (
+                                                        <p className="text-xs text-muted-foreground mb-2">
+                                                            {service.description}
+                                                        </p>
+                                                    )}
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0"
+                                                                onClick={() => updateServiceQuantity(service.id, quantity - 1)}
+                                                                disabled={quantity <= 0}
+                                                            >
+                                                                <Minus className="h-4 w-4" />
+                                                            </Button>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                value={quantity}
+                                                                onChange={(e) => updateServiceQuantity(service.id, Number(e.target.value) || 0)}
+                                                                className="h-8 w-16 text-center"
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0"
+                                                                onClick={() => updateServiceQuantity(service.id, quantity + 1)}
+                                                            >
+                                                                <Plus className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="text-sm text-muted-foreground">小计: </span>
+                                                            <span className="font-medium">
+                                                                ¥{itemTotal.toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
 
                                 {/* 总计 */}
-                                <div className="pt-2 mt-2">
-                                    <Separator className="mb-2" />
-                                    <div className="flex justify-between text-base font-bold">
-                                        <span>总计金额:</span>
-                                        <span className="text-primary">¥ {totalPrice.toFixed(2)}</span>
+                                {serviceItems.length > 0 && (
+                                    <div className="pt-2 mt-4">
+                                        <Separator className="mb-4" />
+                                        <div className="flex justify-between text-lg font-bold">
+                                            <span>总计金额:</span>
+                                            <span className="text-primary">¥{totalPrice.toFixed(2)}</span>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </CardContent>
                         </Card>
                     </div>
@@ -256,7 +287,7 @@ export function CheckoutDialog({ appointment, trigger, className }: CheckoutDial
                     <Button
                         type="submit"
                         onClick={handleCheckout}
-                        disabled={isProcessing || isLoading}
+                        disabled={isProcessing || isLoading || totalPrice === 0}
                         className="gap-1"
                     >
                         {isProcessing ? "处理中..." : (
