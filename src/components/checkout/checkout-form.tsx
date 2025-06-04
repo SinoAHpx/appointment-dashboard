@@ -206,34 +206,6 @@ export function CheckoutForm() {
                     </Form>
                 </CardContent>
             </Card>
-
-            {/* 向后兼容 - 显示传统价格设置（仅用于展示） */}
-            {pricing && (pricing.basicServicePrice || pricing.sortingServicePrice || pricing.packagingServicePrice) && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>传统价格设置</CardTitle>
-                        <CardDescription>
-                            旧版本的固定价格设置（仅供参考）
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div className="flex justify-between">
-                                <span>基础服务价格：</span>
-                                <span>¥{pricing.basicServicePrice}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>分拣服务价格：</span>
-                                <span>¥{pricing.sortingServicePrice}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>装卸服务价格：</span>
-                                <span>¥{pricing.packagingServicePrice}</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
         </div>
     );
 } 
