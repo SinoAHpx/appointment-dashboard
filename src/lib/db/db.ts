@@ -23,6 +23,41 @@ function initDb(db: Database) {
       );
     `);
 
+    // 为已存在的users表添加审核相关字段（如果不存在的话）
+    try {
+      db.run(`ALTER TABLE users ADD COLUMN approvalStatus TEXT CHECK( approvalStatus IN ('pending', 'approved', 'rejected') ) DEFAULT 'approved'`);
+    } catch (e) {
+      // 字段已存在，忽略错误
+    }
+    try {
+      db.run(`ALTER TABLE users ADD COLUMN approvedBy INTEGER`);
+    } catch (e) {
+      // 字段已存在，忽略错误
+    }
+    try {
+      db.run(`ALTER TABLE users ADD COLUMN approvedAt DATETIME`);
+    } catch (e) {
+      // 字段已存在，忽略错误
+    }
+    try {
+      db.run(`ALTER TABLE users ADD COLUMN rejectionReason TEXT`);
+    } catch (e) {
+      // 字段已存在，忽略错误
+    }
+
+    // 创建合同表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS contracts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER NOT NULL,
+        filename TEXT NOT NULL,
+        filepath TEXT NOT NULL,
+        uploadedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status TEXT CHECK( status IN ('active', 'deleted') ) NOT NULL DEFAULT 'active',
+        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
+      );
+    `);
+
     // 创建员工表
     db.run(`
       CREATE TABLE IF NOT EXISTS staff (

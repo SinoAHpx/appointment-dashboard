@@ -26,22 +26,29 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore } from "@/lib/stores";
 import { toast } from "sonner";
+import { Upload, FileImage } from "lucide-react";
 
 const registerSchema = z
 	.object({
 		username: z.string().min(2, {
 			message: "用户名至少需要2个字符",
 		}),
-		email: z.string().email({
-			message: "请输入有效的电子邮箱地址",
-		}),
 		password: z.string().min(6, {
 			message: "密码至少需要6个字符",
 		}),
 		confirmPassword: z.string().min(6, {
 			message: "确认密码至少需要6个字符",
+		}),
+		name: z.string().min(1, {
+			message: "请输入真实姓名",
+		}),
+		phone: z.string().min(11, {
+			message: "请输入有效的手机号码",
+		}),
+		contract: z.any().refine((file) => file instanceof File, {
+			message: "请上传合同图片",
 		}),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
@@ -51,43 +58,101 @@ const registerSchema = z
 
 export default function RegisterPage() {
 	const [isLoading, setIsLoading] = useState(false);
-	const { login } = useAuthStore();
+	const [contractFile, setContractFile] = useState<File | null>(null);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 	const router = useRouter();
 
 	const form = useForm<z.infer<typeof registerSchema>>({
 		resolver: zodResolver(registerSchema),
 		defaultValues: {
 			username: "",
-			email: "",
 			password: "",
 			confirmPassword: "",
+			name: "",
+			phone: "",
 		},
 	});
+
+	// 处理文件上传
+	function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+		const file = event.target.files?.[0];
+		if (file) {
+			// 验证文件类型
+			if (!file.type.startsWith("image/")) {
+				toast.error("请上传图片文件");
+				return;
+			}
+
+			// 验证文件大小（5MB）
+			if (file.size > 5 * 1024 * 1024) {
+				toast.error("文件大小不能超过5MB");
+				return;
+			}
+
+			setContractFile(file);
+			form.setValue("contract", file);
+
+			// 创建预览
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				setPreviewUrl(e.target?.result as string);
+			};
+			reader.readAsDataURL(file);
+		}
+	}
 
 	async function onSubmit(values: z.infer<typeof registerSchema>) {
 		setIsLoading(true);
 
 		try {
-			// 模拟注册过程，实际项目中替换为API调用
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			// 第一步：注册用户
+			const registerResponse = await fetch("/api/auth/register", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					username: values.username,
+					password: values.password,
+					name: values.name,
+					phone: values.phone,
+				}),
+			});
 
-			// 注册成功后自动登录
-			const success = await login(values.username, values.password);
+			const registerData = await registerResponse.json();
 
-			if (success) {
-				toast("注册成功", {
-					description: `欢迎加入，${values.username}`,
-				});
-				router.push("/");
-			} else {
-				toast("登录失败", {
-					description: "注册成功但自动登录失败，请尝试手动登录",
-				});
-				router.push("/login");
+			if (!registerResponse.ok) {
+				throw new Error(registerData.error || "注册失败");
 			}
+
+			// 第二步：上传合同文件
+			if (contractFile && registerData.user) {
+				const formData = new FormData();
+				formData.append("file", contractFile);
+				formData.append("userId", registerData.user.id.toString());
+
+				const uploadResponse = await fetch("/api/contracts/upload", {
+					method: "POST",
+					body: formData,
+				});
+
+				const uploadData = await uploadResponse.json();
+
+				if (!uploadResponse.ok) {
+					throw new Error(uploadData.error || "合同上传失败");
+				}
+			}
+
+			toast.success("注册成功", {
+				description: "您的注册申请已提交，请等待管理员审核。审核通过后您将能够正常使用系统。",
+			});
+
+			// 跳转到登录页面
+			router.push("/login");
 		} catch (error) {
-			toast("注册失败", {
-				description: "请稍后再试",
+			console.error("注册失败:", error);
+			toast.error("注册失败", {
+				description: error instanceof Error ? error.message : "请稍后再试",
 			});
 		} finally {
 			setIsLoading(false);
@@ -111,7 +176,7 @@ export default function RegisterPage() {
 						注册账号
 					</CardTitle>
 					<CardDescription className="text-center">
-						创建一个新账号以使用预约系统
+						创建一个新账号以使用预约系统。注册后需要管理员审核。
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -132,16 +197,25 @@ export default function RegisterPage() {
 							/>
 							<FormField
 								control={form.control}
-								name="email"
+								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>电子邮箱</FormLabel>
+										<FormLabel>真实姓名</FormLabel>
 										<FormControl>
-											<Input
-												type="email"
-												placeholder="请输入电子邮箱"
-												{...field}
-											/>
+											<Input placeholder="请输入真实姓名" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="phone"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>手机号码</FormLabel>
+										<FormControl>
+											<Input placeholder="请输入手机号码" {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -181,6 +255,63 @@ export default function RegisterPage() {
 									</FormItem>
 								)}
 							/>
+
+							{/* 合同上传部分 */}
+							<FormField
+								control={form.control}
+								name="contract"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>合同模板</FormLabel>
+										<FormControl>
+											<div className="space-y-4">
+												<div className="flex items-center justify-center w-full">
+													<label
+														htmlFor="contract-upload"
+														className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+													>
+														<div className="flex flex-col items-center justify-center pt-5 pb-6">
+															{previewUrl ? (
+																<FileImage className="w-8 h-8 mb-2 text-green-500" />
+															) : (
+																<Upload className="w-8 h-8 mb-2 text-gray-500" />
+															)}
+															<p className="mb-2 text-sm text-gray-500">
+																{contractFile
+																	? contractFile.name
+																	: "点击上传合同图片"}
+															</p>
+															<p className="text-xs text-gray-500">
+																支持 PNG, JPG, JPEG (最大 5MB)
+															</p>
+														</div>
+														<input
+															id="contract-upload"
+															type="file"
+															className="hidden"
+															accept="image/*"
+															onChange={handleFileChange}
+														/>
+													</label>
+												</div>
+												{previewUrl && (
+													<div className="mt-4">
+														<Image
+															src={previewUrl}
+															alt="合同预览"
+															width={200}
+															height={150}
+															className="mx-auto rounded-lg border"
+														/>
+													</div>
+												)}
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
 							<Button type="submit" className="w-full" disabled={isLoading}>
 								{isLoading ? "注册中..." : "注册"}
 							</Button>

@@ -9,6 +9,10 @@ export interface User {
     phone?: string | null;
     role: "admin" | "user";
     isGovUser: boolean;
+    approvalStatus: "pending" | "approved" | "rejected";
+    approvedBy?: number | null;
+    approvedAt?: string | null;
+    rejectionReason?: string | null;
     createdAt: string;
 }
 
@@ -19,7 +23,7 @@ export const findUserByUsernameWithPassword = (username: string): User | null =>
     try {
         const db = getDb();
         const query = db.query<User, [string]>(
-            "SELECT id, username, password, name, phone, role, isGovUser, createdAt FROM users WHERE username = ?",
+            "SELECT id, username, password, name, phone, role, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, createdAt FROM users WHERE username = ?",
         );
         return query.get(username);
     } catch (error) {
@@ -35,7 +39,7 @@ export const findUserByUsername = (username: string): Omit<User, "password"> | n
     try {
         const db = getDb();
         const query = db.query<Omit<User, "password">, [string]>(
-            "SELECT id, username, name, phone, role, isGovUser, createdAt FROM users WHERE username = ?",
+            "SELECT id, username, name, phone, role, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, createdAt FROM users WHERE username = ?",
         );
         return query.get(username);
     } catch (error) {
@@ -51,11 +55,27 @@ export const getAllUsers = (): Omit<User, "password">[] => {
     try {
         const db = getDb();
         const query = db.query<Omit<User, "password">, []>(
-            "SELECT id, username, name, phone, role, isGovUser, createdAt FROM users ORDER BY createdAt DESC",
+            "SELECT id, username, name, phone, role, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, createdAt FROM users ORDER BY createdAt DESC",
         );
         return query.all();
     } catch (error) {
         console.error("Error fetching all users:", error);
+        return [];
+    }
+};
+
+/**
+ * Gets all pending users waiting for approval
+ */
+export const getPendingUsers = (): Omit<User, "password">[] => {
+    try {
+        const db = getDb();
+        const query = db.query<Omit<User, "password">, []>(
+            "SELECT id, username, name, phone, role, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, createdAt FROM users WHERE approvalStatus = 'pending' ORDER BY createdAt DESC",
+        );
+        return query.all();
+    } catch (error) {
+        console.error("Error fetching pending users:", error);
         return [];
     }
 };
@@ -70,7 +90,8 @@ export const createUser = (
     role: User["role"] = "user",
     name: string = "",
     phone: string | null = null,
-    isGovUser: boolean = false
+    isGovUser: boolean = false,
+    approvalStatus: User["approvalStatus"] = "pending"
 ): Omit<User, "password"> | null => {
     try {
         const db = getDb();
@@ -82,12 +103,12 @@ export const createUser = (
         }
 
         // Insert new user
-        const insertQuery = db.query<User, [string, string, User["role"], string, string | null, boolean]>(
-            "INSERT INTO users (username, password, role, name, phone, isGovUser) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, username, role, name, phone, isGovUser, createdAt",
+        const insertQuery = db.query<User, [string, string, User["role"], string, string | null, boolean, User["approvalStatus"]]>(
+            "INSERT INTO users (username, password, role, name, phone, isGovUser, approvalStatus) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id, username, role, name, phone, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, createdAt",
         );
 
         // Return user without password
-        const newUser = insertQuery.get(username, password, role, name, phone, isGovUser);
+        const newUser = insertQuery.get(username, password, role, name, phone, isGovUser, approvalStatus);
         if (!newUser) return null;
 
         // Omit password from the returned user
@@ -95,6 +116,49 @@ export const createUser = (
         return userWithoutPassword;
     } catch (error) {
         console.error("Error creating user:", error);
+        return null;
+    }
+};
+
+/**
+ * Approves a user
+ */
+export const approveUser = (
+    userId: number,
+    approvedBy: number
+): Omit<User, "password"> | null => {
+    try {
+        const db = getDb();
+        const updateQuery = db.query<User, [number, string, number]>(
+            "UPDATE users SET approvalStatus = 'approved', approvedBy = ?, approvedAt = datetime('now') WHERE id = ? RETURNING id, username, name, phone, role, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, createdAt",
+        );
+
+        const updatedUser = updateQuery.get(approvedBy, userId);
+        return updatedUser;
+    } catch (error) {
+        console.error("Error approving user:", error);
+        return null;
+    }
+};
+
+/**
+ * Rejects a user
+ */
+export const rejectUser = (
+    userId: number,
+    approvedBy: number,
+    rejectionReason: string
+): Omit<User, "password"> | null => {
+    try {
+        const db = getDb();
+        const updateQuery = db.query<User, [number, string, string, number]>(
+            "UPDATE users SET approvalStatus = 'rejected', approvedBy = ?, approvedAt = datetime('now'), rejectionReason = ? WHERE id = ? RETURNING id, username, name, phone, role, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, createdAt",
+        );
+
+        const updatedUser = updateQuery.get(approvedBy, rejectionReason, userId);
+        return updatedUser;
+    } catch (error) {
+        console.error("Error rejecting user:", error);
         return null;
     }
 };

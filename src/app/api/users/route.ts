@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         }
 
         // Create the user
-        const newUser = createUser(username, password, role, name, phone, isGovUser);
+        const newUser = createUser(username, password, role, name, phone, isGovUser, "approved");
 
         if (!newUser) {
             return NextResponse.json(
