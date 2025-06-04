@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Minus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     Command,
@@ -22,11 +22,12 @@ import {
 import { documentCategories, documentTypesByCategory } from "@/lib/utils/appointments/helpers";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// 文档类型选择器的数据类型
+// 修改后的文档类型选择器数据类型 - 每个子类型都有独立的数量
 export interface DocumentTypesData {
     [category: string]: {
-        types: string[];
-        count: number;
+        items: {
+            [itemType: string]: number;  // 每个子类型的独立数量
+        }
     };
 }
 
@@ -38,122 +39,208 @@ interface DocumentTypesSelectorProps {
 export function DocumentTypesSelector({ value, onChange }: DocumentTypesSelectorProps) {
     const [typeSelectOpen, setTypeSelectOpen] = useState<{ [key: string]: boolean }>({});
 
-    // 处理文件类型选择
-    const handleTypeSelection = (category: string, typeValue: string) => {
-        const currentTypes = value[category]?.types || [];
-        const newTypes = currentTypes.includes(typeValue)
-            ? currentTypes.filter(t => t !== typeValue)
-            : [...currentTypes, typeValue];
+    // 添加新的文档类型
+    const handleAddDocumentType = (category: string, typeValue: string) => {
+        const currentItems = value[category]?.items || {};
+
+        // 如果该类型已存在，不重复添加
+        if (currentItems[typeValue] !== undefined) {
+            return;
+        }
 
         onChange({
             ...value,
             [category]: {
-                ...value[category],
-                types: newTypes
+                items: {
+                    ...currentItems,
+                    [typeValue]: 1  // 默认数量为1
+                }
             }
         });
     };
 
-    // 处理文件数量变更
-    const handleCountChange = (category: string, count: number) => {
+    // 移除文档类型
+    const handleRemoveDocumentType = (category: string, typeValue: string) => {
+        const currentItems = value[category]?.items || {};
+        const newItems = { ...currentItems };
+        delete newItems[typeValue];
+
         onChange({
             ...value,
             [category]: {
-                ...value[category],
-                count: count
+                items: newItems
             }
         });
     };
 
-    // 获取已选类型的显示文本
-    const getSelectedTypesDisplay = (category: string) => {
-        const types = value[category]?.types || [];
-        if (types.length === 0) return "选择文件类型";
+    // 更新特定文档类型的数量
+    const handleCountChange = (category: string, typeValue: string, count: number) => {
+        const currentItems = value[category]?.items || {};
 
-        return types.map(typeValue => {
-            const typeObj = documentTypesByCategory[category as keyof typeof documentTypesByCategory]
-                .find(t => t.value === typeValue);
-            return typeObj?.label || typeValue;
-        }).join(", ");
+        onChange({
+            ...value,
+            [category]: {
+                items: {
+                    ...currentItems,
+                    [typeValue]: Math.max(0, count)  // 确保数量不小于0
+                }
+            }
+        });
+    };
+
+    // 获取已添加的文档类型
+    const getAddedTypes = (category: string) => {
+        return Object.keys(value[category]?.items || {});
+    };
+
+    // 获取可选择的文档类型（排除已添加的）
+    const getAvailableTypes = (category: string) => {
+        const addedTypes = getAddedTypes(category);
+        return documentTypesByCategory[category as keyof typeof documentTypesByCategory]
+            .filter(type => !addedTypes.includes(type.value));
     };
 
     return (
-        <div className="grid gap-2">
-            {documentCategories.map((category) => (
-                <div key={category.value} className="grid grid-cols-[1fr,3fr] gap-3 items-start">
-                    <Label className="pt-2.5">{category.label}</Label>
-                    <div className="flex items-start space-x-2">
-                        <div className="flex-1">
-                            <Popover
-                                open={typeSelectOpen[category.value]}
-                                onOpenChange={(open) => setTypeSelectOpen(prev => ({ ...prev, [category.value]: open }))}
-                            >
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        className="justify-between w-full"
-                                    >
-                                        <div className="max-w-[90%] truncate text-left">
-                                            {getSelectedTypesDisplay(category.value)}
-                                        </div>
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-0" align="start">
-                                    <Command>
-                                        <CommandInput placeholder="搜索文件类型..." />
-                                        <CommandEmpty>未找到匹配的类型</CommandEmpty>
-                                        <CommandGroup>
-                                            <ScrollArea className="h-[200px]" type="hover">
-                                                {documentTypesByCategory[category.value as keyof typeof documentTypesByCategory].map((type) => (
-                                                    <CommandItem
-                                                        key={type.value}
-                                                        value={type.value}
-                                                        onSelect={() => handleTypeSelection(category.value, type.value)}
-                                                        className="cursor-pointer"
-                                                    >
-                                                        <Check
-                                                            className={cn(
-                                                                "mr-2 h-4 w-4",
-                                                                value[category.value]?.types.includes(type.value)
-                                                                    ? "opacity-100"
-                                                                    : "opacity-0"
-                                                            )}
-                                                        />
-                                                        {type.label}
-                                                    </CommandItem>
-                                                ))}
-                                            </ScrollArea>
-                                        </CommandGroup>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                            {value[category.value]?.types.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                    {value[category.value].types.map(typeValue => {
-                                        const type = documentTypesByCategory[category.value as keyof typeof documentTypesByCategory]
-                                            .find(t => t.value === typeValue);
-                                        return (
-                                            <Badge key={typeValue} variant="secondary" className="text-xs">
-                                                {type?.label || typeValue}
-                                            </Badge>
-                                        );
-                                    })}
-                                </div>
+        <div className="space-y-4">
+            {documentCategories.map((category) => {
+                const addedTypes = getAddedTypes(category.value);
+                const availableTypes = getAvailableTypes(category.value);
+
+                return (
+                    <div key={category.value} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium text-gray-700">{category.label}</Label>
+
+                            {/* 添加新类型的下拉按钮 */}
+                            {availableTypes.length > 0 && (
+                                <Popover
+                                    open={typeSelectOpen[category.value]}
+                                    onOpenChange={(open) => setTypeSelectOpen(prev => ({ ...prev, [category.value]: open }))}
+                                >
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-xs"
+                                        >
+                                            <Plus className="h-3 w-3 mr-1" />
+                                            添加
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[250px] p-0" align="end">
+                                        <Command>
+                                            <CommandInput placeholder="搜索类型..." className="h-8" />
+                                            <CommandEmpty>未找到匹配的类型</CommandEmpty>
+                                            <CommandGroup>
+                                                <ScrollArea className="h-[150px]" type="hover">
+                                                    {availableTypes.map((type) => (
+                                                        <CommandItem
+                                                            key={type.value}
+                                                            value={type.value}
+                                                            onSelect={() => {
+                                                                handleAddDocumentType(category.value, type.value);
+                                                                setTypeSelectOpen(prev => ({ ...prev, [category.value]: false }));
+                                                            }}
+                                                            className="cursor-pointer text-xs"
+                                                        >
+                                                            <Plus className="mr-2 h-3 w-3" />
+                                                            {type.label}
+                                                        </CommandItem>
+                                                    ))}
+                                                </ScrollArea>
+                                            </CommandGroup>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                             )}
                         </div>
-                        <Input
-                            type="number"
-                            min="0"
-                            value={value[category.value]?.count || 0}
-                            onChange={(e) => handleCountChange(category.value, parseInt(e.target.value) || 0)}
-                            className="w-24"
-                            placeholder="数量"
-                        />
+
+                        {/* 已添加的文档类型列表 */}
+                        <div className="space-y-1.5">
+                            {addedTypes.length === 0 ? (
+                                <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded text-center">
+                                    尚未添加{category.label}
+                                </div>
+                            ) : (
+                                addedTypes.map(typeValue => {
+                                    const type = documentTypesByCategory[category.value as keyof typeof documentTypesByCategory]
+                                        .find(t => t.value === typeValue);
+                                    const count = value[category.value]?.items[typeValue] || 0;
+
+                                    return (
+                                        <div key={typeValue} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                                <Badge variant="secondary" className="text-xs truncate">
+                                                    {type?.label || typeValue}
+                                                </Badge>
+                                            </div>
+
+                                            <div className="flex items-center space-x-1">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-6 w-6 p-0"
+                                                    onClick={() => handleCountChange(category.value, typeValue, count - 1)}
+                                                    disabled={count <= 0}
+                                                >
+                                                    <Minus className="h-3 w-3" />
+                                                </Button>
+
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    value={count}
+                                                    onChange={(e) => handleCountChange(category.value, typeValue, parseInt(e.target.value) || 0)}
+                                                    className="w-12 h-6 text-center text-xs p-1"
+                                                />
+
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-6 w-6 p-0"
+                                                    onClick={() => handleCountChange(category.value, typeValue, count + 1)}
+                                                >
+                                                    <Plus className="h-3 w-3" />
+                                                </Button>
+
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                    onClick={() => handleRemoveDocumentType(category.value, typeValue)}
+                                                >
+                                                    <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* 显示该类别的总数量 */}
+                        {addedTypes.length > 0 && (
+                            <div className="text-xs text-muted-foreground text-right">
+                                小计: {Object.values(value[category.value]?.items || {}).reduce((sum, count) => sum + count, 0)} 件
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+
+            {/* 显示总数量 */}
+            {Object.values(value).some(category => Object.keys(category.items).length > 0) && (
+                <div className="border-t pt-2 mt-4">
+                    <div className="text-sm font-medium text-gray-900 text-right">
+                        总计: {Object.values(value).reduce((total, category) => {
+                            return total + Object.values(category.items).reduce((sum, count) => sum + count, 0);
+                        }, 0)} 件
                     </div>
                 </div>
-            ))}
+            )}
         </div>
     );
 } 

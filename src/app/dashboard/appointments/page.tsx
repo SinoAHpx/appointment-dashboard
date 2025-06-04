@@ -76,49 +76,65 @@ export default function AppointmentsPage() {
 	// 处理新建预约提交
 	const handleSubmitNewAppointment = async (formData: AppointmentFormData) => {
 		try {
-			// 由于后端API可能尚未更新，我们可以在这里处理新字段
-			// 提交时只保留需要的字段，不需要修改后端API
+			// 计算总文档数量（从新的数据结构中）
+			const totalDocumentCount = Object.values(formData.documentTypes).reduce((total, category) => {
+				return total + Object.values(category.items).reduce((sum, count) => sum + count, 0);
+			}, 0);
 
-			// 从 documentTypes 中获取 documentCategory 和 documentType
+			// 转换新的文档类型结构为数据库格式
+			const documentTypesJson = JSON.stringify({
+				paper: {
+					items: formData.documentTypes.paper?.items || {}
+				},
+				electronic: {
+					items: formData.documentTypes.magnetic?.items || {}
+				},
+				other: {
+					items: formData.documentTypes.other?.items || {}
+				}
+			});
+
+			// 从新的documentTypes结构中获取documentCategory和documentType (向后兼容)
 			let documentCategory = 'paper'; // 默认值
 			let documentType = 'confidential'; // 默认值
 
-			// 遍历所有类别找到第一个有选中类型的类别作为主类别
+			// 遍历所有类别找到第一个有文档的类别作为主类别
 			for (const [category, data] of Object.entries(formData.documentTypes)) {
-				if (data.types.length > 0) {
+				const hasItems = Object.keys(data.items).length > 0;
+				if (hasItems) {
 					documentCategory = category;
-					documentType = data.types[0]; // 使用第一个选择的类型
+					documentType = Object.keys(data.items)[0]; // 使用第一个选择的类型
 					break;
 				}
 			}
 
-			// 处理人员和车辆分配的JSON数据
-			const assignedStaffJson = formData.assignedStaff && formData.assignedStaff.length > 0
-				? JSON.stringify(formData.assignedStaff)
-				: null;
-
-			const assignedVehicleJson = formData.assignedVehicles && formData.assignedVehicles.length > 0
-				? JSON.stringify(formData.assignedVehicles)
-				: null;
-
-			// 添加缺失的字段
-			const enrichedFormData = {
-				...formData,
-				documentCategory,
-				documentType,
-				assignedStaffJson,
-				assignedVehicleJson
+			// 准备符合AppointmentFormData类型的提交数据
+			const submitData = {
+				dateTime: formData.dateTime,
+				contactName: formData.contactName,
+				contactPhone: formData.contactPhone,
+				contactAddress: formData.contactAddress,
+				documentCount: formData.documentCount || totalDocumentCount,
+				documentCategory: documentCategory,
+				documentType: documentType,
+				documentTypesJson: documentTypesJson,
+				notes: formData.notes,
+				status: formData.status,
+				estimatedCompletionTime: formData.estimatedCompletionTime,
+				processingNotes: formData.processingNotes,
+				assignedStaff: formData.assignedStaff,
+				assignedVehicles: formData.assignedVehicles,
 			};
 
 			// 记录重要的数据用于调试
 			console.log("创建预约数据:", {
 				assignedStaff: formData.assignedStaff,
 				assignedVehicles: formData.assignedVehicles,
-				assignedStaffJson,
-				assignedVehicleJson
+				documentTypesJson,
+				totalDocumentCount
 			});
 
-			const success = await addAppointment(enrichedFormData);
+			const success = await addAppointment(submitData);
 			if (success) {
 				toast.success("预约创建成功");
 				setIsAddDialogOpen(false);
@@ -141,38 +157,54 @@ export default function AppointmentsPage() {
 		if (!editingAppointment) return;
 
 		try {
-			// 由于后端API可能尚未更新，我们可以在这里处理新字段
-			// 提交时只保留需要的字段，不需要修改后端API
+			// 计算总文档数量（从新的数据结构中）
+			const totalDocumentCount = Object.values(formData.documentTypes).reduce((total, category) => {
+				return total + Object.values(category.items).reduce((sum, count) => sum + count, 0);
+			}, 0);
 
-			// 从 documentTypes 中获取 documentCategory 和 documentType
+			// 转换新的文档类型结构为数据库格式
+			const documentTypesJson = JSON.stringify({
+				paper: {
+					items: formData.documentTypes.paper?.items || {}
+				},
+				electronic: {
+					items: formData.documentTypes.magnetic?.items || {}
+				},
+				other: {
+					items: formData.documentTypes.other?.items || {}
+				}
+			});
+
+			// 从新的documentTypes结构中获取documentCategory和documentType (向后兼容)
 			let documentCategory = 'paper'; // 默认值
 			let documentType = 'confidential'; // 默认值
 
-			// 遍历所有类别找到第一个有选中类型的类别作为主类别
+			// 遍历所有类别找到第一个有文档的类别作为主类别
 			for (const [category, data] of Object.entries(formData.documentTypes)) {
-				if (data.types.length > 0) {
+				const hasItems = Object.keys(data.items).length > 0;
+				if (hasItems) {
 					documentCategory = category;
-					documentType = data.types[0]; // 使用第一个选择的类型
+					documentType = Object.keys(data.items)[0]; // 使用第一个选择的类型
 					break;
 				}
 			}
 
-			// 处理人员和车辆分配的JSON数据
-			const assignedStaffJson = formData.assignedStaff && formData.assignedStaff.length > 0
-				? JSON.stringify(formData.assignedStaff)
-				: null;
-
-			const assignedVehicleJson = formData.assignedVehicles && formData.assignedVehicles.length > 0
-				? JSON.stringify(formData.assignedVehicles)
-				: null;
-
-			// 添加缺失的字段
-			const enrichedFormData = {
-				...formData,
-				documentCategory,
-				documentType,
-				assignedStaffJson,
-				assignedVehicleJson
+			// 准备符合AppointmentFormData类型的提交数据
+			const submitData = {
+				dateTime: formData.dateTime,
+				contactName: formData.contactName,
+				contactPhone: formData.contactPhone,
+				contactAddress: formData.contactAddress,
+				documentCount: formData.documentCount || totalDocumentCount,
+				documentCategory: documentCategory,
+				documentType: documentType,
+				documentTypesJson: documentTypesJson,
+				notes: formData.notes,
+				status: formData.status,
+				estimatedCompletionTime: formData.estimatedCompletionTime,
+				processingNotes: formData.processingNotes,
+				assignedStaff: formData.assignedStaff,
+				assignedVehicles: formData.assignedVehicles,
 			};
 
 			// 记录重要的数据用于调试
@@ -180,13 +212,13 @@ export default function AppointmentsPage() {
 				appointmentId: editingAppointment.id,
 				assignedStaff: formData.assignedStaff,
 				assignedVehicles: formData.assignedVehicles,
-				assignedStaffJson,
-				assignedVehicleJson
+				documentTypesJson,
+				totalDocumentCount
 			});
 
 			const success = await updateAppointment(
 				editingAppointment.id,
-				enrichedFormData,
+				submitData,
 			);
 			if (success) {
 				toast.success("预约更新成功");
@@ -259,7 +291,7 @@ export default function AppointmentsPage() {
 							新建预约
 						</Button>
 					</DialogTrigger>
-					<DialogContent className="max-w-3xl">
+					<DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
 						<DialogHeader>
 							<DialogTitle>新建预约</DialogTitle>
 							<DialogDescription>
@@ -294,7 +326,7 @@ export default function AppointmentsPage() {
 			{/* 编辑预约对话框 */}
 			{editingAppointment && (
 				<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-					<DialogContent className="max-w-3xl">
+					<DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
 						<DialogHeader>
 							<DialogTitle>编辑预约</DialogTitle>
 							<DialogDescription>

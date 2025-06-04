@@ -29,7 +29,7 @@ export function BasicInfoForm({
     contactName,
     contactPhone,
     contactAddress,
-    contactAddressDetails = [],
+    contactAddressDetails,
     documentTypes,
     notes,
     onDateTimeChange,
@@ -38,98 +38,98 @@ export function BasicInfoForm({
     onContactAddressChange,
     onContactAddressDetailsChange,
     onDocumentTypesChange,
-    onNotesChange
+    onNotesChange,
 }: BasicInfoFormProps) {
-    // 处理地址级联选择变更
-    const handleAddressChange = (value: string[]) => {
-        onContactAddressDetailsChange(value);
-        // 同时更新完整地址字符串
-        onContactAddressChange(value.join(" "));
-    };
-
     return (
-        <div className="grid gap-3">
-            <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="dateTime">预约时间 *</Label>
-                    <Input
-                        id="dateTime"
-                        name="dateTime"
-                        type="datetime-local"
-                        value={dateTime}
-                        onChange={(e) => onDateTimeChange(e.target.value)}
-                        required
-                    />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="contactName">联系人 *</Label>
-                    <Input
-                        id="contactName"
-                        name="contactName"
-                        value={contactName}
-                        onChange={(e) => onContactNameChange(e.target.value)}
-                        placeholder="请输入联系人姓名"
-                        required
-                    />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 左栏：基本信息 */}
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
+                    基本信息
+                </h3>
+
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="dateTime">预约时间 *</Label>
+                        <Input
+                            id="dateTime"
+                            type="datetime-local"
+                            value={dateTime}
+                            onChange={(e) => onDateTimeChange(e.target.value)}
+                            className="mt-1"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <Label htmlFor="contactName">联系人姓名 *</Label>
+                        <Input
+                            id="contactName"
+                            type="text"
+                            value={contactName}
+                            onChange={(e) => onContactNameChange(e.target.value)}
+                            placeholder="请输入联系人姓名"
+                            className="mt-1"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <Label htmlFor="contactPhone">联系电话 *</Label>
+                        <Input
+                            id="contactPhone"
+                            type="tel"
+                            value={contactPhone}
+                            onChange={(e) => onContactPhoneChange(e.target.value)}
+                            placeholder="请输入联系电话"
+                            className="mt-1"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <Label htmlFor="contactAddress">联系地址 *</Label>
+                        <AddressCascader
+                            value={contactAddressDetails}
+                            onChange={onContactAddressDetailsChange}
+                            options={beijingAddressData}
+                            placeholder="请选择地址"
+                            className="mt-1"
+                        />
+                        <Input
+                            id="contactAddress"
+                            type="text"
+                            value={contactAddress}
+                            onChange={(e) => onContactAddressChange(e.target.value)}
+                            placeholder="详细地址（街道门牌号等）"
+                            className="mt-2"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <Label htmlFor="notes">备注</Label>
+                        <Textarea
+                            id="notes"
+                            value={notes}
+                            onChange={(e) => onNotesChange(e.target.value)}
+                            placeholder="请输入备注信息（可选）"
+                            className="mt-1"
+                            rows={3}
+                        />
+                    </div>
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="contactPhone">联系电话 *</Label>
-                    <Input
-                        id="contactPhone"
-                        name="contactPhone"
-                        value={contactPhone}
-                        onChange={(e) => onContactPhoneChange(e.target.value)}
-                        placeholder="请输入联系电话"
-                        required
-                    />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="contactAddress">联系地址 *</Label>
-                    <AddressCascader
-                        value={contactAddressDetails}
-                        onChange={handleAddressChange}
-                        options={beijingAddressData}
-                        placeholder="请选择地址"
-                    />
 
-                </div>
+            {/* 右栏：文档类型选择 */}
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
+                    文档类型与数量
+                </h3>
 
-            </div>
-            <div className="flex flex-col gap-1.5">
-                <Input
-                    id="contactAddressDetail"
-                    name="contactAddressDetail"
-                    className="mt-2"
-                    value={contactAddressDetails.length > 0 ? contactAddress.replace(contactAddressDetails.join(" "), "").trim() : contactAddress}
-                    onChange={(e) => {
-                        const detailValue = e.target.value;
-                        const baseAddress = contactAddressDetails.join(" ");
-                        onContactAddressChange(contactAddressDetails.length > 0 ?
-                            `${baseAddress} ${detailValue}` : detailValue);
-                    }}
-                    placeholder="请输入详细地址"
-                    required
-                />
-            </div>
-
-            {/* 文件类型选择部分 */}
-            <DocumentTypesSelector
-                value={documentTypes}
-                onChange={onDocumentTypesChange}
-            />
-
-            {/* 备注字段 */}
-            <div className="flex flex-col gap-1.5">
-                <Label htmlFor="notes">备注</Label>
-                <Textarea
-                    id="notes"
-                    name="notes"
-                    value={notes}
-                    onChange={(e) => onNotesChange(e.target.value)}
-                    placeholder="请输入备注信息"
-                    rows={3}
+                <DocumentTypesSelector
+                    value={documentTypes}
+                    onChange={onDocumentTypesChange}
                 />
             </div>
         </div>

@@ -46,11 +46,16 @@ export function AppointmentEditDialog({
                 assignedVehicles: data.assignedVehicles,
                 assignedStaffJson,
                 assignedVehicleJson,
-                status: data.status, // 确保状态也被正确传递
+                status: data.status,
                 estimatedCompletionTime: data.estimatedCompletionTime
             });
 
-            // 转换数据格式
+            // 计算总文档数量（从新的数据结构中）
+            const totalDocumentCount = Object.values(data.documentTypes).reduce((total, category) => {
+                return total + Object.values(category.items).reduce((sum, count) => sum + count, 0);
+            }, 0);
+
+            // 转换数据格式 - 使用新的文档类型结构
             const submitData = {
                 id: appointment.id,
                 customerName: data.contactName,
@@ -58,20 +63,16 @@ export function AppointmentEditDialog({
                 contactPhone: data.contactPhone,
                 contactAddress: data.contactAddress,
                 notes: data.notes,
-                documentCount: data.documentCount ||
-                    Object.values(data.documentTypes).reduce((total, category) => total + (category.count || 0), 0),
+                documentCount: data.documentCount || totalDocumentCount,
                 documentTypesJson: JSON.stringify({
                     paper: {
-                        items: data.documentTypes.paper?.types || [],
-                        count: data.documentTypes.paper?.count || 0
+                        items: data.documentTypes.paper?.items || {}
                     },
                     electronic: {
-                        items: data.documentTypes.magnetic?.types || [],
-                        count: data.documentTypes.magnetic?.count || 0
+                        items: data.documentTypes.magnetic?.items || {}
                     },
                     other: {
-                        items: data.documentTypes.other?.types || [],
-                        count: data.documentTypes.other?.count || 0
+                        items: data.documentTypes.other?.items || {}
                     }
                 }),
                 // 添加管理员可以设置的字段

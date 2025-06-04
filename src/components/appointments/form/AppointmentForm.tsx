@@ -58,9 +58,9 @@ export function AppointmentForm({
         contactAddressDetails: [],
         documentCount: 1,
         documentTypes: {
-            paper: { types: [], count: 0 },
-            magnetic: { types: [], count: 0 },
-            other: { types: [], count: 0 }
+            paper: { items: {} },
+            magnetic: { items: {} },
+            other: { items: {} }
         },
         notes: "",
         status: "pending",
@@ -81,38 +81,60 @@ export function AppointmentForm({
 
             // 根据documentTypesJson初始化新的documentTypes结构
             let documentTypes: AppointmentFormData['documentTypes'] = {
-                paper: { types: [], count: 0 },
-                magnetic: { types: [], count: 0 },
-                other: { types: [], count: 0 }
+                paper: { items: {} },
+                magnetic: { items: {} },
+                other: { items: {} }
             };
 
-            // 尝试解析documentTypesJson
+            // 尝试解析documentTypesJson并适配新旧两种数据格式
             if (initialData.documentTypesJson) {
                 try {
                     const parsedData = JSON.parse(initialData.documentTypesJson);
 
-                    // 处理paper类别
-                    if (parsedData.paper) {
-                        documentTypes.paper = {
-                            types: parsedData.paper.items || [],
-                            count: parsedData.paper.count || 0
-                        };
-                    }
+                    // 处理新格式数据（每个子类型都有独立数量）
+                    Object.keys(documentTypes).forEach(category => {
+                        if (parsedData[category]) {
+                            // 检查是否为新格式（items对象包含每个类型的数量）
+                            if (parsedData[category].items && typeof parsedData[category].items === 'object') {
+                                // 新格式：直接使用items对象
+                                documentTypes[category].items = parsedData[category].items;
+                            }
+                            // 处理旧格式（types数组 + count数字）
+                            else if (parsedData[category].items && Array.isArray(parsedData[category].items) && parsedData[category].count) {
+                                // 旧格式：将types数组转换为items对象，每个类型分配相等数量
+                                const types = parsedData[category].items;
+                                const totalCount = parsedData[category].count;
+                                const countPerType = Math.ceil(totalCount / types.length);
 
-                    // 处理electronic/magnetic类别
+                                const items: { [key: string]: number } = {};
+                                types.forEach((type: string, index: number) => {
+                                    // 最后一个类型分配剩余数量
+                                    items[type] = index === types.length - 1
+                                        ? totalCount - (countPerType * (types.length - 1))
+                                        : countPerType;
+                                });
+                                documentTypes[category].items = items;
+                            }
+                        }
+                    });
+
+                    // 特殊处理电子介质的映射（旧数据中可能存储为electronic）
                     if (parsedData.electronic) {
-                        documentTypes.magnetic = {
-                            types: parsedData.electronic.items || [],
-                            count: parsedData.electronic.count || 0
-                        };
-                    }
+                        if (parsedData.electronic.items && typeof parsedData.electronic.items === 'object') {
+                            documentTypes.magnetic.items = parsedData.electronic.items;
+                        } else if (parsedData.electronic.items && Array.isArray(parsedData.electronic.items) && parsedData.electronic.count) {
+                            const types = parsedData.electronic.items;
+                            const totalCount = parsedData.electronic.count;
+                            const countPerType = Math.ceil(totalCount / types.length);
 
-                    // 处理other类别
-                    if (parsedData.other) {
-                        documentTypes.other = {
-                            types: parsedData.other.items || [],
-                            count: parsedData.other.count || 0
-                        };
+                            const items: { [key: string]: number } = {};
+                            types.forEach((type: string, index: number) => {
+                                items[type] = index === types.length - 1
+                                    ? totalCount - (countPerType * (types.length - 1))
+                                    : countPerType;
+                            });
+                            documentTypes.magnetic.items = items;
+                        }
                     }
                 } catch (error) {
                     console.error("解析documentTypesJson失败:", error);
@@ -154,55 +176,16 @@ export function AppointmentForm({
 
     // Handle form submission
     const handleSubmit = () => {
-        // 将documentTypes转换为JSON格式，符合需求格式
-        const documentTypesJson = JSON.stringify({
-            paper: {
-                items: formData.documentTypes.paper?.types || [],
-                count: formData.documentTypes.paper?.count || 0
-            },
-            electronic: {
-                items: formData.documentTypes.magnetic?.types || [],
-                count: formData.documentTypes.magnetic?.count || 0
-            },
-            other: {
-                items: formData.documentTypes.other?.types || [],
-                count: formData.documentTypes.other?.count || 0
-            }
-        });
-
-        // 准备分配的人员和车辆的JSON字符串
-        const assignedStaffJson = formData.assignedStaff && formData.assignedStaff.length > 0
-            ? JSON.stringify(formData.assignedStaff)
-            : null;
-
-        const assignedVehicleJson = formData.assignedVehicles && formData.assignedVehicles.length > 0
-            ? JSON.stringify(formData.assignedVehicles)
-            : null;
-
-        // 记录关键数据，确保数据被正确传递
-        console.log('提交表单数据:', {
-            assignedStaff: formData.assignedStaff,
-            assignedVehicles: formData.assignedVehicles,
-            assignedStaffJson,
-            assignedVehicleJson
-        });
-
-        // 准备提交数据
-        const submitData = {
-            ...formData,
-            documentTypesJson,
-            assignedStaffJson,
-            assignedVehicleJson
-        };
-
-        onSubmit(submitData);
+        onSubmit(formData);
     };
 
-    // 修改表单验证
+    // 修改表单验证 - 检查是否有任何文档类型且总数量大于0
     const isFormValid = () => {
-        const hasValidDocuments = Object.values(formData.documentTypes).some(
-            category => category.types.length > 0 && category.count > 0
-        );
+        const totalDocumentCount = Object.values(formData.documentTypes).reduce((total, category) => {
+            return total + Object.values(category.items).reduce((sum, count) => sum + count, 0);
+        }, 0);
+
+        const hasValidDocuments = totalDocumentCount > 0;
 
         return (
             formData.dateTime &&
