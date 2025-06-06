@@ -8,9 +8,10 @@ import {
 	updateStaff,
 } from "@/lib/db/staff.queries";
 import { NextRequest, NextResponse } from "next/server";
+import { withAdminAuth, AuthVerificationResult } from "@/lib/auth";
 
-// 获取所有员工
-export async function GET() {
+// 获取所有员工 - 仅管理员可访问
+const getStaffHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
 	try {
 		const staffList = getAllStaff();
 		return NextResponse.json({ success: true, staffList });
@@ -21,10 +22,12 @@ export async function GET() {
 			{ status: 500 },
 		);
 	}
-}
+};
 
-// 创建新员工
-export async function POST(request: NextRequest) {
+export const GET = withAdminAuth(getStaffHandler);
+
+// 创建新员工 - 仅管理员可访问
+const createStaffHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
 	try {
 		const body = await request.json();
 
@@ -81,10 +84,12 @@ export async function POST(request: NextRequest) {
 			{ status: 500 },
 		);
 	}
-}
+};
 
-// 更新员工
-export async function PUT(request: NextRequest) {
+export const POST = withAdminAuth(createStaffHandler);
+
+// 更新员工 - 仅管理员可访问
+const updateStaffHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
 	try {
 		const body = await request.json();
 
@@ -134,10 +139,12 @@ export async function PUT(request: NextRequest) {
 			{ status: 500 },
 		);
 	}
-}
+};
 
-// 删除员工
-export async function DELETE(request: NextRequest) {
+export const PUT = withAdminAuth(updateStaffHandler);
+
+// 删除员工 - 仅管理员可访问
+const deleteStaffHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
 	try {
 		// 从 URL 参数获取 ID
 		const url = new URL(request.url);
@@ -170,4 +177,6 @@ export async function DELETE(request: NextRequest) {
 			{ status: 500 },
 		);
 	}
-}
+};
+
+export const DELETE = withAdminAuth(deleteStaffHandler);

@@ -8,9 +8,10 @@ import {
 	updateVehicle,
 } from "@/lib/db/vehicle.queries";
 import { NextRequest, NextResponse } from "next/server";
+import { withAdminAuth, AuthVerificationResult } from "@/lib/auth";
 
-// 获取所有车辆
-export async function GET() {
+// 获取所有车辆 - 仅管理员可访问
+const getVehiclesHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
 	try {
 		const vehicles = getAllVehicles();
 		return NextResponse.json({ success: true, vehicles });
@@ -21,10 +22,12 @@ export async function GET() {
 			{ status: 500 },
 		);
 	}
-}
+};
 
-// 创建新车辆
-export async function POST(request: NextRequest) {
+export const GET = withAdminAuth(getVehiclesHandler);
+
+// 创建新车辆 - 仅管理员可访问
+const createVehicleHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
 	try {
 		const body = await request.json();
 
@@ -79,10 +82,12 @@ export async function POST(request: NextRequest) {
 			{ status: 500 },
 		);
 	}
-}
+};
 
-// 更新车辆
-export async function PUT(request: NextRequest) {
+export const POST = withAdminAuth(createVehicleHandler);
+
+// 更新车辆 - 仅管理员可访问
+const updateVehicleHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
 	try {
 		const body = await request.json();
 
@@ -166,10 +171,12 @@ export async function PUT(request: NextRequest) {
 			{ status: 500 },
 		);
 	}
-}
+};
 
-// 删除车辆
-export async function DELETE(request: NextRequest) {
+export const PUT = withAdminAuth(updateVehicleHandler);
+
+// 删除车辆 - 仅管理员可访问
+const deleteVehicleHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
 	try {
 		// 从 URL 参数获取 ID
 		const url = new URL(request.url);
@@ -202,4 +209,6 @@ export async function DELETE(request: NextRequest) {
 			{ status: 500 },
 		);
 	}
-}
+};
+
+export const DELETE = withAdminAuth(deleteVehicleHandler);

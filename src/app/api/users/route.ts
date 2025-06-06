@@ -1,9 +1,9 @@
 import { getAllUsers, createUser } from "@/lib/db/user.queries";
-import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db/db";
+import { NextRequest, NextResponse } from "next/server";
+import { withAdminAuth, AuthVerificationResult } from "@/lib/auth";
 
-// Get all users
-export async function GET() {
+// Get all users - 仅管理员可访问
+const getUsersHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
     try {
         const users = getAllUsers();
         return NextResponse.json({
@@ -17,10 +17,12 @@ export async function GET() {
             { status: 500 }
         );
     }
-}
+};
 
-// Create a new user
-export async function POST(request: Request) {
+export const GET = withAdminAuth(getUsersHandler);
+
+// Create a new user - 仅管理员可访问
+const createUserHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
     try {
         const body = await request.json();
         const { username, password, role = "user", name, phone, isGovUser = false } = body;
@@ -77,4 +79,6 @@ export async function POST(request: Request) {
             { status: 500 }
         );
     }
-} 
+};
+
+export const POST = withAdminAuth(createUserHandler); 

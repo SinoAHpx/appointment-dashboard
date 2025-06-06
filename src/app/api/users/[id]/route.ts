@@ -1,15 +1,18 @@
 import { updateUser, deleteUser } from "@/lib/db/user.queries";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { withAdminAuth, AuthVerificationResult } from "@/lib/auth";
 
-// Update a user by ID
-export async function PUT(
-    request: Request,
+// 更新用户 - 仅管理员可访问
+const updateUserHandler = async (
+    request: NextRequest,
+    auth: AuthVerificationResult,
     { params }: { params: Promise<{ id: string }> }
-) {
+) => {
     try {
-        const id = Number((await params).id)
+        const { id } = await params;
+        const userId = parseInt(id);
 
-        if (isNaN(id)) {
+        if (isNaN(userId)) {
             return NextResponse.json(
                 { success: false, message: "无效的用户ID" },
                 { status: 400 }
@@ -19,23 +22,14 @@ export async function PUT(
         const body = await request.json();
         const { username, password, role, name, phone, isGovUser } = body;
 
-        // Make sure at least one field is being updated
-        if (!username && !password && !role && !name && !phone && isGovUser === undefined) {
+        // 基本验证
+        if (username && username.length < 3) {
             return NextResponse.json(
-                { success: false, message: "没有提供需要更新的字段" },
+                { success: false, message: "用户名长度不能少于3个字符" },
                 { status: 400 }
             );
         }
 
-        // Validate role if provided
-        if (role && role !== "admin" && role !== "user") {
-            return NextResponse.json(
-                { success: false, message: "角色必须是 'admin' 或 'user'" },
-                { status: 400 }
-            );
-        }
-
-        // Handle password validation if provided
         if (password && password.length < 6) {
             return NextResponse.json(
                 { success: false, message: "密码长度不能少于6个字符" },
@@ -43,10 +37,25 @@ export async function PUT(
             );
         }
 
-        // Update the user
-        const updatedUser = updateUser(id, { username, password, role, name, phone, isGovUser });
+        if (role && role !== "admin" && role !== "user") {
+            return NextResponse.json(
+                { success: false, message: "角色必须是 'admin' 或 'user'" },
+                { status: 400 }
+            );
+        }
 
-        if (!updatedUser) {
+        // 构建更新数据对象
+        const updateData: any = {};
+        if (username !== undefined) updateData.username = username;
+        if (password !== undefined) updateData.password = password;
+        if (role !== undefined) updateData.role = role;
+        if (name !== undefined) updateData.name = name;
+        if (phone !== undefined) updateData.phone = phone;
+        if (isGovUser !== undefined) updateData.isGovUser = isGovUser;
+
+        const success = updateUser(userId, updateData);
+
+        if (!success) {
             return NextResponse.json(
                 { success: false, message: "用户不存在或更新失败" },
                 { status: 404 }
@@ -55,7 +64,6 @@ export async function PUT(
 
         return NextResponse.json({
             success: true,
-            user: updatedUser,
             message: "用户更新成功",
         });
     } catch (error) {
@@ -65,32 +73,36 @@ export async function PUT(
             { status: 500 }
         );
     }
-}
+};
 
-// Delete a user by ID
-export async function DELETE(
-    request: Request,
+export const PUT = withAdminAuth(updateUserHandler);
+
+// 删除用户 - 仅管理员可访问
+const deleteUserHandler = async (
+    request: NextRequest,
+    auth: AuthVerificationResult,
     { params }: { params: Promise<{ id: string }> }
-) {
+) => {
     try {
-        const id = Number((await params).id);
+        const { id } = await params;
+        const userId = parseInt(id);
 
-        if (isNaN(id)) {
+        if (isNaN(userId)) {
             return NextResponse.json(
                 { success: false, message: "无效的用户ID" },
                 { status: 400 }
             );
         }
 
-        // Check if trying to delete the admin user (ID 1)
-        if (id === 1) {
+        // 防止管理员删除自己的账户
+        if (userId === auth.userId) {
             return NextResponse.json(
-                { success: false, message: "不能删除管理员账户" },
-                { status: 403 }
+                { success: false, message: "不能删除自己的账户" },
+                { status: 400 }
             );
         }
 
-        const success = deleteUser(id);
+        const success = deleteUser(userId);
 
         if (!success) {
             return NextResponse.json(
@@ -110,4 +122,6 @@ export async function DELETE(
             { status: 500 }
         );
     }
-} 
+};
+
+export const DELETE = withAdminAuth(deleteUserHandler); 

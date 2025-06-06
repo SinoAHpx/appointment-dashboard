@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withDbConnection } from "@/lib/db/db";
 import { approveUser, rejectUser } from "@/lib/db/user.queries";
+import { withAdminAuth, AuthVerificationResult } from "@/lib/auth";
 
-// 审核用户
-export async function POST(request: NextRequest) {
+// 审核用户 - 仅管理员可访问
+const approvalHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
     try {
         const { userId, action, approvedBy, rejectionReason } = await request.json();
 
@@ -24,6 +25,14 @@ export async function POST(request: NextRequest) {
         if (action === "reject" && !rejectionReason) {
             return NextResponse.json(
                 { error: "拒绝用户时必须提供拒绝原因" },
+                { status: 400 }
+            );
+        }
+
+        // 确保审批者就是当前登录的管理员
+        if (approvedBy !== auth.userId) {
+            return NextResponse.json(
+                { error: "审批者信息不匹配" },
                 { status: 400 }
             );
         }
@@ -55,4 +64,6 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
-} 
+};
+
+export const POST = withAdminAuth(approvalHandler); 

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { findUserByUsernameWithPassword } from "./db/user.queries";
 
 // Auth verification result type
@@ -70,4 +70,67 @@ export async function verifyAuth(
 export async function verifyAdmin(request: NextRequest): Promise<boolean> {
     const auth = await verifyAuth(request);
     return auth.isAuthenticated && auth.isAdmin;
+}
+
+/**
+ * API权限验证包装器 - 用于保护需要认证的API端点
+ */
+export function withAuth<T extends any[]>(
+    handler: (request: NextRequest, auth: AuthVerificationResult, ...args: T) => Promise<NextResponse>
+) {
+    return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
+        try {
+            const auth = await verifyAuth(request);
+
+            if (!auth.isAuthenticated) {
+                return NextResponse.json(
+                    { success: false, message: "未授权访问" },
+                    { status: 401 }
+                );
+            }
+
+            return handler(request, auth, ...args);
+        } catch (error) {
+            console.error("API权限验证失败:", error);
+            return NextResponse.json(
+                { success: false, message: "服务器错误" },
+                { status: 500 }
+            );
+        }
+    };
+}
+
+/**
+ * API管理员权限验证包装器 - 用于保护需要管理员权限的API端点
+ */
+export function withAdminAuth<T extends any[]>(
+    handler: (request: NextRequest, auth: AuthVerificationResult, ...args: T) => Promise<NextResponse>
+) {
+    return async (request: NextRequest, ...args: T): Promise<NextResponse> => {
+        try {
+            const auth = await verifyAuth(request);
+
+            if (!auth.isAuthenticated) {
+                return NextResponse.json(
+                    { success: false, message: "未授权访问" },
+                    { status: 401 }
+                );
+            }
+
+            if (!auth.isAdmin) {
+                return NextResponse.json(
+                    { success: false, message: "需要管理员权限" },
+                    { status: 403 }
+                );
+            }
+
+            return handler(request, auth, ...args);
+        } catch (error) {
+            console.error("API管理员权限验证失败:", error);
+            return NextResponse.json(
+                { success: false, message: "服务器错误" },
+                { status: 500 }
+            );
+        }
+    };
 } 
