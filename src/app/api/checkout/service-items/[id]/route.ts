@@ -9,10 +9,11 @@ import {
 // 更新服务项目
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = parseInt(params.id);
+        const { id: idParam } = await params;
+        const id = parseInt(idParam);
 
         if (isNaN(id)) {
             return NextResponse.json(
@@ -57,10 +58,11 @@ export async function PUT(
 // 删除服务项目（软删除）
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = parseInt(params.id);
+        const { id: idParam } = await params;
+        const id = parseInt(idParam);
 
         if (isNaN(id)) {
             return NextResponse.json(

@@ -99,7 +99,7 @@ export async function initializeServiceItems(db: Database): Promise<void> {
             `);
 
             for (const item of DEFAULT_SERVICE_ITEMS) {
-                insertStmt.run(item.name, item.unit, item.price, item.description, item.isActive ? 1 : 0);
+                insertStmt.run(item.name, item.unit, item.price, item.description || null, item.isActive ? 1 : 0);
             }
         }
     });
@@ -195,7 +195,7 @@ export async function updateServiceItem(db: Database, id: number, data: UpdateSe
             }
             if (data.description !== undefined) {
                 updateFields.push("description = ?");
-                updateValues.push(data.description);
+                updateValues.push(data.description || null);
             }
             if (data.isActive !== undefined) {
                 updateFields.push("isActive = ?");

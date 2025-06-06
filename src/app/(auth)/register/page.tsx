@@ -47,13 +47,17 @@ const registerSchema = z
 		phone: z.string().min(11, {
 			message: "请输入有效的手机号码",
 		}),
-		contract: z.any().refine((file) => file instanceof File, {
+		contract: z.instanceof(File, {
 			message: "请上传合同图片",
-		}),
+		}).optional(),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
 		message: "两次输入的密码不匹配",
 		path: ["confirmPassword"],
+	})
+	.refine((data) => data.contract instanceof File, {
+		message: "请上传合同图片",
+		path: ["contract"],
 	});
 
 export default function RegisterPage() {

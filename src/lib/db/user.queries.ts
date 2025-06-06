@@ -129,7 +129,7 @@ export const approveUser = (
 ): Omit<User, "password"> | null => {
     try {
         const db = getDb();
-        const updateQuery = db.query<User, [number, string, number]>(
+        const updateQuery = db.query<User, [number, number]>(
             "UPDATE users SET approvalStatus = 'approved', approvedBy = ?, approvedAt = datetime('now') WHERE id = ? RETURNING id, username, name, phone, role, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, createdAt",
         );
 
@@ -151,7 +151,7 @@ export const rejectUser = (
 ): Omit<User, "password"> | null => {
     try {
         const db = getDb();
-        const updateQuery = db.query<User, [number, string, string, number]>(
+        const updateQuery = db.query<User, [number, string, number]>(
             "UPDATE users SET approvalStatus = 'rejected', approvedBy = ?, approvedAt = datetime('now'), rejectionReason = ? WHERE id = ? RETURNING id, username, name, phone, role, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, createdAt",
         );
 
