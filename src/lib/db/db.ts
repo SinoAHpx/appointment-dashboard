@@ -226,19 +226,34 @@ export async function withDbConnection<T>(callback: (db: Database) => Promise<T>
 }
 
 // 初始化数据库实例
-let db: Database;
+let db: Database | null = null;
 
-// 始终尝试在模块加载时初始化数据库实例
-try {
-  console.log("正在初始化数据库 (模块加载时)...");
-  db = getDb(); // getDb() 会在数据库不存在时创建并初始化表结构
-  console.log("数据库初始化成功 (模块加载时)，可以使用");
-} catch (error) {
-  console.error("数据库初始化过程中发生严重错误 (模块加载时):", error);
-  // 抛出错误以阻止应用在数据库不可用的情况下启动
-  throw new Error(
-    `数据库初始化失败 (模块加载时): ${error instanceof Error ? error.message : String(error)}`
-  );
+// 在模块加载时初始化数据库实例，但在构建阶段跳过
+if (process.env.NEXT_PHASE !== 'phase-production-build') {
+  try {
+    console.log("正在初始化数据库 (模块加载时)...");
+    db = getDb(); // getDb() 会在数据库不存在时创建并初始化表结构
+    console.log("数据库初始化成功 (模块加载时)，可以使用");
+  } catch (error) {
+    console.error("数据库初始化过程中发生严重错误 (模块加载时):", error);
+    // 抛出错误以阻止应用在数据库不可用的情况下启动
+    throw new Error(
+      `数据库初始化失败 (模块加载时): ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+} else {
+  console.log("构建阶段跳过数据库初始化");
+}
+
+/**
+ * 获取数据库实例的辅助函数，用于运行时访问
+ */
+export function getDbInstance(): Database {
+  if (!db) {
+    // 如果 db 为 null（可能是在构建阶段），则创建新的实例
+    db = getDb();
+  }
+  return db;
 }
 
 export { db };
