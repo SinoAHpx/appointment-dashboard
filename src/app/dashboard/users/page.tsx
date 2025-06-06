@@ -94,6 +94,10 @@ export default function UsersPage() {
 	const [isChangingPassword, setIsChangingPassword] = useState(false);
 	const [newPassword, setNewPassword] = useState("");
 
+	// Initial管理员密码修改状态
+	const [isInitialAdminPasswordDialogOpen, setIsInitialAdminPasswordDialogOpen] = useState(false);
+	const [initialAdminNewPassword, setInitialAdminNewPassword] = useState("");
+
 	// 每页数量
 	const perPage = 10;
 	// 总页数
@@ -285,6 +289,38 @@ export default function UsersPage() {
 			}
 		} catch (error) {
 			toast.error(`删除用户失败: ${(error as Error).message}`);
+		}
+	};
+
+	// 开始修改Initial管理员密码
+	const handleStartInitialAdminPasswordChange = () => {
+		setIsInitialAdminPasswordDialogOpen(true);
+		setInitialAdminNewPassword("");
+	};
+
+	// 处理Initial管理员密码修改
+	const handleUpdateInitialAdminPassword = async () => {
+		// 表单验证
+		if (initialAdminNewPassword.length < 6) {
+			toast.error("密码长度不能少于6个字符");
+			return;
+		}
+
+		try {
+			const updateData = {
+				password: initialAdminNewPassword,
+			};
+
+			const success = await updateUser(1, updateData);
+			if (success) {
+				toast.success("管理员密码修改成功");
+				setIsInitialAdminPasswordDialogOpen(false);
+				setInitialAdminNewPassword("");
+			} else {
+				toast.error("修改密码失败");
+			}
+		} catch (error) {
+			toast.error(`修改密码失败: ${(error as Error).message}`);
 		}
 	};
 
@@ -499,22 +535,36 @@ export default function UsersPage() {
 													<TableCell>{formatDate(user.createdAt)}</TableCell>
 													<TableCell className="text-right">
 														<div className="flex justify-end gap-2">
-															<Button
-																variant="outline"
-																size="icon"
-																onClick={() => handleStartEdit(user)}
-																disabled={user.id === 1}
-																title={user.id === 1 ? "不能编辑管理员账户" : "编辑用户"}
-															>
-																<Edit size={16} />
-															</Button>
-															<ConfirmDeleteDialog
-																title="删除用户"
-																description="确定要删除这个用户吗？删除后无法恢复。"
-																onConfirm={() => handleDeleteUser(user.id)}
-																trigger={<Trash size={16} />}
-																disabled={user.id === 1}
-															/>
+															{user.id === 1 ? (
+																// Initial管理员账号只能修改密码
+																<Button
+																	variant="outline"
+																	size="sm"
+																	onClick={handleStartInitialAdminPasswordChange}
+																	title="修改管理员密码"
+																>
+																	修改密码
+																</Button>
+															) : (
+																// 其他用户可以完整编辑
+																<>
+																	<Button
+																		variant="outline"
+																		size="icon"
+																		onClick={() => handleStartEdit(user)}
+																		title="编辑用户"
+																	>
+																		<Edit size={16} />
+																	</Button>
+																	<ConfirmDeleteDialog
+																		title="删除用户"
+																		description="确定要删除这个用户吗？删除后无法恢复。"
+																		onConfirm={() => handleDeleteUser(user.id)}
+																		trigger={<Trash size={16} />}
+																		disabled={false}
+																	/>
+																</>
+															)}
 														</div>
 													</TableCell>
 												</TableRow>
@@ -669,6 +719,41 @@ export default function UsersPage() {
 								<Button variant="outline">取消</Button>
 							</DialogClose>
 							<Button onClick={handleUpdateUser}>更新</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
+
+				{/* Initial管理员密码修改对话框 */}
+				<Dialog open={isInitialAdminPasswordDialogOpen} onOpenChange={setIsInitialAdminPasswordDialogOpen}>
+					<DialogContent className="sm:max-w-[400px]">
+						<DialogHeader>
+							<DialogTitle>
+								修改管理员密码
+							</DialogTitle>
+							<DialogDescription>
+								为初始管理员账号设置新密码
+							</DialogDescription>
+						</DialogHeader>
+						<div className="grid gap-4 py-4">
+							<div className="flex flex-col gap-2">
+								<Label htmlFor="initial-admin-password">新密码 *</Label>
+								<Input
+									id="initial-admin-password"
+									type="password"
+									value={initialAdminNewPassword}
+									onChange={(e) => setInitialAdminNewPassword(e.target.value)}
+									placeholder="请输入新密码（至少6个字符）"
+									required
+								/>
+							</div>
+						</div>
+						<DialogFooter>
+							<DialogClose asChild>
+								<Button variant="outline">取消</Button>
+							</DialogClose>
+							<Button onClick={handleUpdateInitialAdminPassword}>
+								更新密码
+							</Button>
 						</DialogFooter>
 					</DialogContent>
 				</Dialog>
