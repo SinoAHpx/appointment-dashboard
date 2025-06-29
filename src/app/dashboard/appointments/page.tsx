@@ -12,6 +12,7 @@ import {
 import { AppointmentForm, type AppointmentFormData } from "@/components/appointments/form/AppointmentForm";
 import { AppointmentSearch } from "@/components/appointments/AppointmentSearch";
 import { UserAppointmentsList } from "@/components/appointments/UserAppointmentsList";
+import { HistoryAppointmentsList } from "@/components/appointments/HistoryAppointmentsList";
 import { AppointmentTabs } from "@/components/appointments/AppointmentTabs";
 import {
 	type Appointment,
@@ -42,6 +43,7 @@ export default function AppointmentsPage() {
 	const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [showHistory, setShowHistory] = useState(false);
 
 	// 过滤预约数据
 	const filteredAppointments = filterAppointments(appointments, searchQuery);
@@ -71,6 +73,16 @@ export default function AppointmentsPage() {
 		} finally {
 			setIsRefreshing(false);
 		}
+	};
+
+	// 处理显示历史预约
+	const handleShowHistory = () => {
+		setShowHistory(true);
+	};
+
+	// 处理返回当前预约
+	const handleBackToCurrent = () => {
+		setShowHistory(false);
 	};
 
 	// 处理新建预约提交
@@ -264,10 +276,32 @@ export default function AppointmentsPage() {
 		return null;
 	}
 
+	// 如果显示历史预约，渲染历史预约组件
+	if (showHistory) {
+		if (isAdmin()) {
+			// 管理员在历史预约页面使用搜索过滤
+			return (
+				<HistoryAppointmentsList
+					appointments={filteredAppointments}
+					isLoading={isLoading}
+					onBack={handleBackToCurrent}
+				/>
+			);
+		} else {
+			// 普通用户历史预约不使用搜索过滤（内置搜索）
+			return (
+				<HistoryAppointmentsList
+					appointments={appointments}
+					isLoading={isLoading}
+					onBack={handleBackToCurrent}
+				/>
+			);
+		}
+	}
+
 	return (
 		<div className="space-y-6">
-
-			{/* 搜索框 */}
+			{/* 搜索框（只在当前预约页面显示） */}
 			<div className="flex justify-between items-center">
 				<div className="flex items-center gap-2">
 					<AppointmentSearch
@@ -320,6 +354,7 @@ export default function AppointmentsPage() {
 				<UserAppointmentsList
 					appointments={filteredAppointments}
 					isLoading={isLoading}
+					onShowHistory={handleShowHistory}
 				/>
 			)}
 

@@ -19,7 +19,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { type Appointment } from "@/lib/stores/appointments";
-import { documentTypes, formatDateTime, getStatusColor, getStatusLabel } from "@/lib/utils/appointments/helpers";
+import { formatDateTime, getStatusColor, getStatusLabel } from "@/lib/utils/appointments/helpers";
 import { Edit, Trash, Eye } from "lucide-react";
 import {
     Pagination,
@@ -78,8 +78,6 @@ export function AdminAppointmentTable({
                             <TableHead>联系人</TableHead>
                             <TableHead>联系电话</TableHead>
                             <TableHead>地址</TableHead>
-                            <TableHead>文件数量</TableHead>
-                            <TableHead>文件类型</TableHead>
                             <TableHead>状态</TableHead>
                             <TableHead className="text-right">操作</TableHead>
                         </TableRow>
@@ -87,13 +85,13 @@ export function AdminAppointmentTable({
                     <TableBody>
                         {isLoading ? (
                             <TableRow>
-                                <TableCell colSpan={9} className="text-center py-6">
+                                <TableCell colSpan={7} className="text-center py-6">
                                     加载中...
                                 </TableCell>
                             </TableRow>
                         ) : appointments.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={9} className="text-center py-6">
+                                <TableCell colSpan={7} className="text-center py-6">
                                     暂无预约记录
                                 </TableCell>
                             </TableRow>
@@ -111,12 +109,6 @@ export function AdminAppointmentTable({
                                     <TableCell className="max-w-xs truncate">
                                         {appointment.contactAddress}
                                     </TableCell>
-                                    <TableCell>{appointment.documentCount}</TableCell>
-                                    <TableCell>
-                                        {documentTypes.find(
-                                            (t) => t.value === appointment.documentType,
-                                        )?.label || appointment.documentType}
-                                    </TableCell>
                                     <TableCell>
                                         {renderStatusCell(appointment)}
                                     </TableCell>
@@ -130,9 +122,12 @@ export function AdminAppointmentTable({
                                                             trigger={
                                                                 <Button
                                                                     variant="outline"
-                                                                    size="icon"
                                                                 >
-                                                                    <Eye size={16} />
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Eye size={16} />
+                                                                        详情
+                                                                    </div>
+
                                                                 </Button>
                                                             }
                                                         />
