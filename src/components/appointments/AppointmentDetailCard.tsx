@@ -51,9 +51,14 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
 
         try {
             const docTypes = JSON.parse(appointment.documentTypesJson);
-            const hasPaper = docTypes.paper?.items?.length > 0 && docTypes.paper?.count > 0;
-            const hasElectronic = docTypes.electronic?.items?.length > 0 && docTypes.electronic?.count > 0;
-            const hasOther = docTypes.other?.items?.length > 0 && docTypes.other?.count > 0;
+
+            // 新数据结构：items 是对象，需要检查对象中是否有键且值大于0
+            const hasPaper = docTypes.paper?.items && Object.keys(docTypes.paper.items).length > 0 &&
+                Object.values(docTypes.paper.items).some((count: any) => count > 0);
+            const hasElectronic = docTypes.electronic?.items && Object.keys(docTypes.electronic.items).length > 0 &&
+                Object.values(docTypes.electronic.items).some((count: any) => count > 0);
+            const hasOther = docTypes.other?.items && Object.keys(docTypes.other.items).length > 0 &&
+                Object.values(docTypes.other.items).some((count: any) => count > 0);
 
             return {
                 docTypes,
@@ -167,9 +172,14 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                                             <div className="flex items-start gap-2 bg-white p-1.5 rounded-md shadow-sm">
                                                 <FileText size={16} className="text-amber-500 mt-0.5" />
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium">纸介质：<Badge variant="outline" className="ml-1 bg-amber-50">{docTypes.paper.count}个</Badge></span>
+                                                    <span className="font-medium">纸介质：<Badge variant="outline" className="ml-1 bg-amber-50">
+                                                        {Object.values(docTypes.paper.items).reduce((sum: number, count: any) => sum + count, 0)}个
+                                                    </Badge></span>
                                                     <span className="text-sm text-gray-600">
-                                                        {docTypes.paper.items.map((item: string) => getTypeDisplayName('paper', item)).join('、')}
+                                                        {Object.entries(docTypes.paper.items)
+                                                            .filter(([_, count]) => count > 0)
+                                                            .map(([type, count]) => `${getTypeDisplayName('paper', type)}(${count})`)
+                                                            .join('、')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -179,9 +189,14 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                                             <div className="flex items-start gap-2 bg-white p-1.5 rounded-md shadow-sm">
                                                 <FileText size={16} className="text-blue-500 mt-0.5" />
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium">磁介质：<Badge variant="outline" className="ml-1 bg-blue-50">{docTypes.electronic.count}个</Badge></span>
+                                                    <span className="font-medium">磁介质：<Badge variant="outline" className="ml-1 bg-blue-50">
+                                                        {Object.values(docTypes.electronic.items).reduce((sum: number, count: any) => sum + count, 0)}个
+                                                    </Badge></span>
                                                     <span className="text-sm text-gray-600">
-                                                        {docTypes.electronic.items.map((item: string) => getTypeDisplayName('magnetic', item)).join('、')}
+                                                        {Object.entries(docTypes.electronic.items)
+                                                            .filter(([_, count]) => count > 0)
+                                                            .map(([type, count]) => `${getTypeDisplayName('magnetic', type)}(${count})`)
+                                                            .join('、')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -191,9 +206,14 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                                             <div className="flex items-start gap-2 bg-white p-1.5 rounded-md shadow-sm">
                                                 <FileText size={16} className="text-purple-500 mt-0.5" />
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium">其他介质：<Badge variant="outline" className="ml-1 bg-purple-50">{docTypes.other.count}个</Badge></span>
+                                                    <span className="font-medium">其他介质：<Badge variant="outline" className="ml-1 bg-purple-50">
+                                                        {Object.values(docTypes.other.items).reduce((sum: number, count: any) => sum + count, 0)}个
+                                                    </Badge></span>
                                                     <span className="text-sm text-gray-600">
-                                                        {docTypes.other.items.map((item: string) => getTypeDisplayName('other', item)).join('、')}
+                                                        {Object.entries(docTypes.other.items)
+                                                            .filter(([_, count]) => count > 0)
+                                                            .map(([type, count]) => `${getTypeDisplayName('other', type)}(${count})`)
+                                                            .join('、')}
                                                     </span>
                                                 </div>
                                             </div>
