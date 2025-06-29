@@ -62,7 +62,7 @@ export function getStatusData(status: string) {
             };
         case "confirmed":
             return {
-                label: "已确认",
+                label: "已预约",
                 color: "bg-blue-100 text-blue-800 border-blue-300",
                 icon: "check-circle",
             };
@@ -115,7 +115,7 @@ export function getStatusLabel(status: string) {
         case "pending":
             return "待确认";
         case "confirmed":
-            return "已确认";
+            return "已预约";
         case "in_progress":
             return "处理中";
         case "completed":

@@ -121,7 +121,7 @@ export function AdminProcessingForm({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="pending">待确认</SelectItem>
-                            <SelectItem value="confirmed">已确认</SelectItem>
+                            <SelectItem value="confirmed">已预约</SelectItem>
                             <SelectItem value="in_progress">处理中</SelectItem>
                             <SelectItem value="completed">已完成</SelectItem>
                             <SelectItem value="cancelled">已取消</SelectItem>

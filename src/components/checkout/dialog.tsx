@@ -174,7 +174,7 @@ export function CheckoutDialog({ appointment, trigger, className }: CheckoutDial
                                         <span className="text-muted-foreground">状态:</span>
                                         <span className="font-medium capitalize">
                                             {appointment.status === "pending" && "待确认"}
-                                            {appointment.status === "confirmed" && "已确认"}
+                                            {appointment.status === "confirmed" && "已预约"}
                                             {appointment.status === "completed" && "已完成"}
                                             {appointment.status === "cancelled" && "已取消"}
                                             {appointment.status === "in_progress" && "处理中"}

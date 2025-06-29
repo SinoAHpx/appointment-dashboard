@@ -142,7 +142,7 @@ export function DataExport() {
     const getStatusText = (status: Appointment["status"]): string => {
         const statusMap: Record<Appointment["status"], string> = {
             pending: "待处理",
-            confirmed: "已确认",
+            confirmed: "已预约",
             in_progress: "处理中",
             completed: "已完成",
             cancelled: "已取消",
