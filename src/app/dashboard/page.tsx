@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
+import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
 
 export default function DashboardPage() {
     const { isAuthenticated, isAdmin, user } = useAuthStore();
@@ -106,7 +107,7 @@ export default function DashboardPage() {
                         onClick={() => handleCardClick("/dashboard/appointments")}
                     >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">今日预约</CardTitle>
+                            <CardTitle className="text-sm font-medium">今日执行</CardTitle>
                             <Clock className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -165,7 +166,7 @@ export default function DashboardPage() {
                         <CardContent>
                             <div className="flex flex-col space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <span>今日预约</span>
+                                    <span>今日执行</span>
                                     <span className="font-medium">{todaysAppointments.length}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
@@ -249,6 +250,17 @@ export default function DashboardPage() {
                         </div>
                     )}
                 </div>
+
+                {/* 数据可视化图表部分 */}
+                {isReady && (
+                    <div className="space-y-6">
+                        <div className="flex flex-col gap-2">
+                            <h2 className="text-2xl font-bold">数据统计</h2>
+                            <p className="text-muted-foreground">预约系统数据可视化分析</p>
+                        </div>
+                        <DashboardCharts appointments={appointments} />
+                    </div>
+                )}
             </div>
         </AuthGuard>
     );
