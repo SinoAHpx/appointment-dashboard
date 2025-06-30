@@ -4,7 +4,7 @@ import { createUser } from "@/lib/db/user.queries";
 
 export async function POST(request: NextRequest) {
     try {
-        const { username, password, name, phone, email } = await request.json();
+        const { username, password, name, phone, email, billingType } = await request.json();
 
         // 验证必填字段
         if (!username || !password || !name || !phone) {
@@ -30,9 +30,17 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // 验证计费模式
+        if (billingType && billingType !== "yearly" && billingType !== "per_service") {
+            return NextResponse.json(
+                { error: "无效的计费模式" },
+                { status: 400 }
+            );
+        }
+
         // 创建用户（默认为pending状态）
         const user = await withDbConnection((db) => {
-            return createUser(username, password, "user", name, phone, false, "pending");
+            return createUser(username, password, "user", name, phone, false, "pending", billingType || "per_service");
         });
 
         if (!user) {

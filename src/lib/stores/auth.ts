@@ -9,6 +9,9 @@ export interface User {
     role: "admin" | "user" | "waste_disposal_merchant";
     phone?: string | null;
     isGovUser?: boolean;
+    billingType?: "yearly" | "per_service";
+    contractStartDate?: string | null;
+    contractEndDate?: string | null;
 }
 
 // 认证状态类型定义

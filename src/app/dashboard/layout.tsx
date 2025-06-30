@@ -12,7 +12,8 @@ import {
     Users,
     FileDown,
     FileText,
-    JapaneseYen
+    JapaneseYen,
+    Trash2
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -73,10 +74,13 @@ export default function DashboardLayout({
         { name: "数据导出", path: "/dashboard/exports", icon: FileDown },
     ];
 
-    // 根据用户角色过滤导航项目 - 普通用户只能访问预约页面
+    // 根据用户角色过滤导航项目 - 普通用户只能访问预约页面和销毁任务
     const navItems = isAdmin()
         ? allNavItems
-        : [{ name: "我的预约", path: "/dashboard/appointments", icon: Calendar }];
+        : [
+            { name: "我的预约", path: "/dashboard/appointments", icon: Calendar },
+            { name: "销毁任务", path: "/dashboard/destruction", icon: Trash2 }
+        ];
 
     // 标题文本根据用户角色不同
     const headerTitle = isAdmin() ? "预约管理系统" : "中国融通销毁中心预约登记系统";

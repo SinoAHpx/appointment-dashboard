@@ -29,6 +29,8 @@ import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/lib/stores";
 import { toast } from "sonner";
 import { Upload, FileImage } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 const registerSchema = z
 	.object({
@@ -47,6 +49,9 @@ const registerSchema = z
 		phone: z.string().min(11, {
 			message: "请输入有效的手机号码",
 		}),
+		billingType: z.enum(["yearly", "per_service"], {
+			required_error: "请选择计费模式",
+		}),
 		contract: z.instanceof(File, {
 			message: "请上传合同图片",
 		}).optional(),
@@ -55,8 +60,14 @@ const registerSchema = z
 		message: "两次输入的密码不匹配",
 		path: ["confirmPassword"],
 	})
-	.refine((data) => data.contract instanceof File, {
-		message: "请上传合同图片",
+	.refine((data) => {
+		// 年费用户必须上传合同
+		if (data.billingType === "yearly") {
+			return data.contract instanceof File;
+		}
+		return true;
+	}, {
+		message: "年费用户必须上传合同",
 		path: ["contract"],
 	});
 
@@ -74,6 +85,7 @@ export default function RegisterPage() {
 			confirmPassword: "",
 			name: "",
 			phone: "",
+			billingType: "per_service",
 		},
 	});
 
@@ -120,6 +132,7 @@ export default function RegisterPage() {
 					password: values.password,
 					name: values.name,
 					phone: values.phone,
+					billingType: values.billingType,
 				}),
 			});
 
@@ -254,6 +267,31 @@ export default function RegisterPage() {
 												placeholder="请再次输入密码"
 												{...field}
 											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="billingType"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>计费模式</FormLabel>
+										<FormControl>
+											<RadioGroup
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<div className="flex items-center space-x-2">
+													<RadioGroupItem value="yearly" id="billingType-yearly" />
+													<Label htmlFor="billingType-yearly">年费</Label>
+												</div>
+												<div className="flex items-center space-x-2">
+													<RadioGroupItem value="per_service" id="billingType-per_service" />
+													<Label htmlFor="billingType-per_service">按服务</Label>
+												</div>
+											</RadioGroup>
 										</FormControl>
 										<FormMessage />
 									</FormItem>

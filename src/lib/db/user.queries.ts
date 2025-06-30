@@ -13,6 +13,9 @@ export interface User {
     approvedBy?: number | null;
     approvedAt?: string | null;
     rejectionReason?: string | null;
+    billingType?: "yearly" | "per_service";
+    contractStartDate?: string | null;
+    contractEndDate?: string | null;
     createdAt: string;
 }
 
@@ -91,7 +94,8 @@ export const createUser = (
     name: string = "",
     phone: string | null = null,
     isGovUser: boolean = false,
-    approvalStatus: User["approvalStatus"] = "pending"
+    approvalStatus: User["approvalStatus"] = "pending",
+    billingType: User["billingType"] = "per_service"
 ): Omit<User, "password"> | null => {
     try {
         const db = getDb();
@@ -103,12 +107,12 @@ export const createUser = (
         }
 
         // Insert new user
-        const insertQuery = db.query<User, [string, string, User["role"], string, string | null, boolean, User["approvalStatus"]]>(
-            "INSERT INTO users (username, password, role, name, phone, isGovUser, approvalStatus) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id, username, role, name, phone, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, createdAt",
+        const insertQuery = db.query<User, [string, string, User["role"], string, string | null, boolean, User["approvalStatus"], User["billingType"]]>(
+            "INSERT INTO users (username, password, role, name, phone, isGovUser, approvalStatus, billingType) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, username, role, name, phone, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, billingType, contractStartDate, contractEndDate, createdAt",
         );
 
         // Return user without password
-        const newUser = insertQuery.get(username, password, role, name, phone, isGovUser, approvalStatus);
+        const newUser = insertQuery.get(username, password, role, name, phone, isGovUser, approvalStatus, billingType);
         if (!newUser) return null;
 
         // Omit password from the returned user

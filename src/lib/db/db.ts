@@ -45,6 +45,23 @@ function initDb(db: Database) {
       // 字段已存在，忽略错误
     }
 
+    // 为用户表添加计费模式字段
+    try {
+      db.run(`ALTER TABLE users ADD COLUMN billingType TEXT CHECK( billingType IN ('yearly', 'per_service') ) DEFAULT 'per_service'`);
+    } catch (e) {
+      // 字段已存在，忽略错误
+    }
+    try {
+      db.run(`ALTER TABLE users ADD COLUMN contractStartDate DATETIME`);
+    } catch (e) {
+      // 字段已存在，忽略错误
+    }
+    try {
+      db.run(`ALTER TABLE users ADD COLUMN contractEndDate DATETIME`);
+    } catch (e) {
+      // 字段已存在，忽略错误
+    }
+
     // 更新用户角色约束以支持尾料处置商
     try {
       // SQLite 不支持直接修改 CHECK 约束，所以我们需要重建表
@@ -65,7 +82,10 @@ function initDb(db: Database) {
             approvalStatus TEXT CHECK( approvalStatus IN ('pending', 'approved', 'rejected') ) DEFAULT 'approved',
             approvedBy INTEGER,
             approvedAt DATETIME,
-            rejectionReason TEXT
+            rejectionReason TEXT,
+            billingType TEXT CHECK( billingType IN ('yearly', 'per_service') ) DEFAULT 'per_service',
+            contractStartDate DATETIME,
+            contractEndDate DATETIME
           );
         `);
 
@@ -189,6 +209,65 @@ function initDb(db: Database) {
       INSERT OR IGNORE INTO system_info (id, notes, company_name, company_address, company_phone, company_email)
       VALUES (1, '上门分拣服务需由我方评估工作量并与委托方沟通确定人数后，再安排相应分拣工人开展分拣和装包工作；\n按规定，为起到内部监督作用，分拣或装卸，单次单项服务不得低于2人；\n未选择分拣服务，默认已按销毁标准分类完毕。上门装车时，如发现待销物品分类不合规，则现场退回；\n未选择装卸服务，则现场装车、卸载环节自行负责，不提供相应帮助。',
       '中国融通安全保密技术中心', '北京市海淀区xxxxxx', '010-50806767', 'service@datarecovery.com.cn');
+    `);
+
+    // 创建销毁任务表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS destruction_tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        taskId TEXT UNIQUE NOT NULL,
+        userId INTEGER NOT NULL,
+        customerName TEXT NOT NULL,
+        contactPhone TEXT NOT NULL,
+        contactAddress TEXT NOT NULL,
+        scheduledDate DATETIME NOT NULL,
+        serviceType TEXT NOT NULL,
+        itemDescription TEXT,
+        estimatedWeight REAL,
+        specialRequirements TEXT,
+        status TEXT CHECK( status IN ('pending', 'scheduled', 'in_progress', 'completed', 'cancelled') ) NOT NULL DEFAULT 'pending',
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
+      );
+    `);
+
+    // 创建销毁记录表（记录现场服务详情）
+    db.run(`
+      CREATE TABLE IF NOT EXISTS destruction_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        taskId INTEGER NOT NULL,
+        checkInTime DATETIME,
+        checkOutTime DATETIME,
+        actualWeight REAL,
+        itemCount INTEGER,
+        itemDetails TEXT,
+        witnessName TEXT,
+        witnessSignature TEXT,
+        photoUrls TEXT,
+        assignedStaffJson TEXT,
+        assignedVehicleJson TEXT,
+        notes TEXT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (taskId) REFERENCES destruction_tasks (id) ON DELETE CASCADE
+      );
+    `);
+
+    // 创建销毁证明表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS destruction_certificates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        taskId INTEGER NOT NULL,
+        certificateNumber TEXT UNIQUE NOT NULL,
+        generatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        fileUrl TEXT,
+        destructionMethod TEXT,
+        destructionDate DATETIME,
+        operatorName TEXT,
+        supervisorName TEXT,
+        status TEXT CHECK( status IN ('draft', 'issued', 'revoked') ) NOT NULL DEFAULT 'issued',
+        FOREIGN KEY (taskId) REFERENCES destruction_tasks (id) ON DELETE CASCADE
+      );
     `);
 
     // 创建默认管理员账户
