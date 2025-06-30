@@ -7,7 +7,7 @@ export interface User {
     password: string;
     name: string;
     phone?: string | null;
-    role: "admin" | "user";
+    role: "admin" | "user" | "waste_disposal_merchant";
     isGovUser: boolean;
     approvalStatus: "pending" | "approved" | "rejected";
     approvedBy?: number | null;

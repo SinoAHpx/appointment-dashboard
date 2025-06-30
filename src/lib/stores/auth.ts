@@ -6,7 +6,7 @@ export interface User {
     id: string | number;
     username: string;
     name: string;
-    role: "admin" | "user";
+    role: "admin" | "user" | "waste_disposal_merchant";
     phone?: string | null;
     isGovUser?: boolean;
 }

@@ -37,9 +37,9 @@ const updateUserHandler = async (
             );
         }
 
-        if (role && role !== "admin" && role !== "user") {
+        if (role && role !== "admin" && role !== "user" && role !== "waste_disposal_merchant") {
             return NextResponse.json(
-                { success: false, message: "角色必须是 'admin' 或 'user'" },
+                { success: false, message: "角色必须是 'admin'、'user' 或 'waste_disposal_merchant'" },
                 { status: 400 }
             );
         }

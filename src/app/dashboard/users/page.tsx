@@ -84,7 +84,7 @@ export default function UsersPage() {
 		password: "",
 		name: "",
 		phone: "",
-		role: "user" as "user" | "admin",
+		role: "user" as "user" | "admin" | "waste_disposal_merchant",
 		isGovUser: false,
 	});
 
@@ -139,21 +139,21 @@ export default function UsersPage() {
 
 	// 处理角色选择变更
 	const handleRoleChange = (value: string) => {
-		if (value === "admin" || value === "user") {
+		if (value === "admin" || value === "user" || value === "waste_disposal_merchant") {
 			setNewUser((prev) => ({
 				...prev,
-				role: value as "admin" | "user",
+				role: value as "admin" | "user" | "waste_disposal_merchant",
 			}));
 		}
 	};
 
 	// 处理编辑用户角色选择变更
 	const handleEditRoleChange = (value: string) => {
-		if (value === "admin" || value === "user") {
+		if (value === "admin" || value === "user" || value === "waste_disposal_merchant") {
 			if (editingUser) {
 				setEditingUser({
 					...editingUser,
-					role: value as "admin" | "user",
+					role: value as "admin" | "user" | "waste_disposal_merchant",
 				});
 			}
 		}
@@ -203,7 +203,7 @@ export default function UsersPage() {
 					password: "",
 					name: "",
 					phone: "",
-					role: "user" as "user" | "admin",
+					role: "user" as "user" | "admin" | "waste_disposal_merchant",
 					isGovUser: false,
 				});
 			} else {
@@ -430,6 +430,7 @@ export default function UsersPage() {
 													<SelectContent>
 														<SelectItem value="user">普通用户</SelectItem>
 														<SelectItem value="admin">管理员</SelectItem>
+														<SelectItem value="waste_disposal_merchant">尾料处置商</SelectItem>
 													</SelectContent>
 												</Select>
 											</div>
@@ -508,6 +509,11 @@ export default function UsersPage() {
 																<>
 																	<ShieldAlert size={16} className="text-red-500" />
 																	<span>管理员</span>
+																</>
+															) : user.role === "waste_disposal_merchant" ? (
+																<>
+																	<FileImage size={16} className="text-purple-500" />
+																	<span>尾料处置商</span>
 																</>
 															) : (
 																<>
@@ -697,6 +703,7 @@ export default function UsersPage() {
 											<SelectContent>
 												<SelectItem value="user">普通用户</SelectItem>
 												<SelectItem value="admin">管理员</SelectItem>
+												<SelectItem value="waste_disposal_merchant">尾料处置商</SelectItem>
 											</SelectContent>
 										</Select>
 									</div>

@@ -17,7 +17,7 @@ function initDb(db: Database) {
         password TEXT NOT NULL,
         name TEXT DEFAULT '',
         phone TEXT UNIQUE,
-        role TEXT CHECK( role IN ('admin', 'user') ) NOT NULL DEFAULT 'user',
+        role TEXT CHECK( role IN ('admin', 'user', 'waste_disposal_merchant') ) NOT NULL DEFAULT 'user',
         isGovUser BOOLEAN NOT NULL DEFAULT 0,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
       );
@@ -43,6 +43,44 @@ function initDb(db: Database) {
       db.run(`ALTER TABLE users ADD COLUMN rejectionReason TEXT`);
     } catch (e) {
       // 字段已存在，忽略错误
+    }
+
+    // 更新用户角色约束以支持尾料处置商
+    try {
+      // SQLite 不支持直接修改 CHECK 约束，所以我们需要重建表
+      // 但为了安全起见，我们先检查是否已经有尾料处置商用户
+      const wasteDisposalUsers = db.query("SELECT COUNT(*) as count FROM users WHERE role = 'waste_disposal_merchant'").get() as { count: number };
+      if (wasteDisposalUsers.count === 0) {
+        // 如果没有尾料处置商用户，我们可以安全地重建表
+        db.run(`
+          CREATE TABLE IF NOT EXISTS users_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            name TEXT DEFAULT '',
+            phone TEXT UNIQUE,
+            role TEXT CHECK( role IN ('admin', 'user', 'waste_disposal_merchant') ) NOT NULL DEFAULT 'user',
+            isGovUser BOOLEAN NOT NULL DEFAULT 0,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            approvalStatus TEXT CHECK( approvalStatus IN ('pending', 'approved', 'rejected') ) DEFAULT 'approved',
+            approvedBy INTEGER,
+            approvedAt DATETIME,
+            rejectionReason TEXT
+          );
+        `);
+
+        // 复制数据
+        db.run(`
+          INSERT INTO users_new SELECT * FROM users;
+        `);
+
+        // 删除旧表并重命名新表
+        db.run(`DROP TABLE users;`);
+        db.run(`ALTER TABLE users_new RENAME TO users;`);
+      }
+    } catch (e) {
+      // 如果更新失败，记录错误但不中断程序
+      console.warn("更新用户角色约束失败，但系统仍可正常运行:", e);
     }
 
     // 创建合同表
