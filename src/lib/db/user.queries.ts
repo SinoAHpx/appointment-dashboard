@@ -107,7 +107,7 @@ export const createUser = (
         }
 
         // Insert new user
-        const insertQuery = db.query<User, [string, string, User["role"], string, string | null, boolean, User["approvalStatus"], User["billingType"]]>(
+        const insertQuery = db.query<User, any>(
             "INSERT INTO users (username, password, role, name, phone, isGovUser, approvalStatus, billingType) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, username, role, name, phone, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, billingType, contractStartDate, contractEndDate, createdAt",
         );
 

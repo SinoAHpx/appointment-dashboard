@@ -177,7 +177,7 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                                                     </Badge></span>
                                                     <span className="text-sm text-gray-600">
                                                         {Object.entries(docTypes.paper.items)
-                                                            .filter(([_, count]) => count > 0)
+                                                            .filter(([_, count]) => typeof count === 'number' && count > 0)
                                                             .map(([type, count]) => `${getTypeDisplayName('paper', type)}(${count})`)
                                                             .join('、')}
                                                     </span>
@@ -194,7 +194,7 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                                                     </Badge></span>
                                                     <span className="text-sm text-gray-600">
                                                         {Object.entries(docTypes.electronic.items)
-                                                            .filter(([_, count]) => count > 0)
+                                                            .filter(([_, count]) => typeof count === 'number' && count > 0)
                                                             .map(([type, count]) => `${getTypeDisplayName('magnetic', type)}(${count})`)
                                                             .join('、')}
                                                     </span>
@@ -211,7 +211,7 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                                                     </Badge></span>
                                                     <span className="text-sm text-gray-600">
                                                         {Object.entries(docTypes.other.items)
-                                                            .filter(([_, count]) => count > 0)
+                                                            .filter(([_, count]) => typeof count === 'number' && count > 0)
                                                             .map(([type, count]) => `${getTypeDisplayName('other', type)}(${count})`)
                                                             .join('、')}
                                                     </span>
