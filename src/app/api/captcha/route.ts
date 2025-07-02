@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createCanvas } from "canvas";
-
-// 生成随机字符串
-function generateRandomString(length: number): string {
-    const chars = '1234567890ABCDEFGHJKLMNPQRSTUVWXYZ';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
+import { generateCaptchaText } from "@/lib/utils";
 
 // 生成随机颜色
 function getRandomColor(): string {
@@ -31,7 +22,7 @@ export async function GET(request: NextRequest) {
         ctx.fillRect(0, 0, width, height);
 
         // 生成验证码文本
-        const captchaText = generateRandomString(4);
+        const captchaText = generateCaptchaText(4);
 
         // 绘制验证码字符
         ctx.font = 'bold 24px Arial';
@@ -72,7 +63,7 @@ export async function GET(request: NextRequest) {
         const buffer = canvas.toBuffer('image/png');
 
         // 创建响应对象
-        const response = new NextResponse(buffer, {
+        const response = new NextResponse(new Uint8Array(buffer), {
             headers: {
                 'Content-Type': 'image/png',
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -82,13 +73,28 @@ export async function GET(request: NextRequest) {
         });
 
         // 设置验证码cookie，有效期5分钟
-        response.cookies.set('captcha-text', captchaText, {
+        // 修复production环境下的cookie配置问题
+        const isProduction = process.env.NODE_ENV === 'production';
+        const cookieOptions = {
             maxAge: 300, // 5分钟
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            // 只有在HTTPS环境下才启用secure
+            secure: isProduction && (request.url.startsWith('https://') || process.env.VERCEL === '1'),
+            // 使用lax而不是strict，避免在某些情况下cookie无法传输
+            sameSite: 'lax' as const,
             path: '/'
-        });
+        };
+
+        response.cookies.set('captcha-text', captchaText, cookieOptions);
+
+        // 添加调试日志（仅在开发环境）
+        if (!isProduction) {
+            console.log('验证码生成:', {
+                text: captchaText,
+                cookieOptions,
+                url: request.url
+            });
+        }
 
         return response;
     } catch (error) {
