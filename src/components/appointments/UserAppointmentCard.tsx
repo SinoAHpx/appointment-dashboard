@@ -16,7 +16,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
 
     const { staffList, fetchStaff } = useStaffStore();
     const { vehicles, fetchVehicles } = useVehicleStore();
-    const { info, fetchInfo } = useSystemInfoStore();
+    const { info, fetchInfo, isLoading, error } = useSystemInfoStore();
 
     // 获取员工和车辆数据
     useEffect(() => {
@@ -28,8 +28,14 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
 
     // 获取系统信息
     useEffect(() => {
+        console.log("UserAppointmentCard: 开始获取系统信息");
         fetchInfo();
     }, [fetchInfo]);
+
+    // 调试系统信息状态
+    useEffect(() => {
+        console.log("UserAppointmentCard: 系统信息状态变化", { info });
+    }, [info]);
 
     // 获取分配的员工信息
     const assignedStaffInfo = appointment.assignedStaff?.map(staffId => {
@@ -60,13 +66,13 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
         try {
             const docTypes = JSON.parse(appointment.documentTypesJson);
 
-            // 新数据结构：items 是对象，需要检查对象中是否有键且值大于0
+            // 新数据结构：items 是对象，每个值是 { count: number, customName?: string }
             const hasPaper = docTypes.paper?.items && Object.keys(docTypes.paper.items).length > 0 &&
-                Object.values(docTypes.paper.items).some((count: any) => count > 0);
+                Object.values(docTypes.paper.items).some((item: any) => (item?.count || item || 0) > 0);
             const hasElectronic = docTypes.electronic?.items && Object.keys(docTypes.electronic.items).length > 0 &&
-                Object.values(docTypes.electronic.items).some((count: any) => count > 0);
+                Object.values(docTypes.electronic.items).some((item: any) => (item?.count || item || 0) > 0);
             const hasOther = docTypes.other?.items && Object.keys(docTypes.other.items).length > 0 &&
-                Object.values(docTypes.other.items).some((count: any) => count > 0);
+                Object.values(docTypes.other.items).some((item: any) => (item?.count || item || 0) > 0);
 
             return {
                 docTypes,
@@ -82,8 +88,14 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
 
     const { docTypes, hasPaper, hasElectronic, hasOther } = getDocumentTypesInfo();
 
-    // 获取文档类型的显示名称
-    const getTypeDisplayName = (category: string, typeValue: string) => {
+    // 获取文档类型的显示名称，支持自定义名称
+    const getTypeDisplayName = (category: string, typeValue: string, customName?: string) => {
+        // 如果有自定义名称，直接使用
+        if (customName) {
+            return customName;
+        }
+
+        // 否则查找预定义的类型名称
         const typeObj = documentTypesByCategory[category as keyof typeof documentTypesByCategory]?.find(t => t.value === typeValue);
         return typeObj?.label || typeValue;
     };
@@ -181,12 +193,16 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                                                 <FileText size={16} className="text-amber-500 mt-0.5" />
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">纸介质：<Badge variant="outline" className="ml-1 bg-amber-50">
-                                                        {Object.values(docTypes.paper.items).reduce((sum: number, count: any) => sum + count, 0)}个
+                                                        {Object.values(docTypes.paper.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)}个
                                                     </Badge></span>
                                                     <span className="text-sm text-gray-600">
                                                         {Object.entries(docTypes.paper.items)
-                                                            .filter(([_, count]) => typeof count === 'number' && count > 0)
-                                                            .map(([type, count]) => `${getTypeDisplayName('paper', type)}(${count})`)
+                                                            .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
+                                                            .map(([type, item]) => {
+                                                                const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                                                                const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                                                                return `${getTypeDisplayName('paper', type, customName)}(${count})`;
+                                                            })
                                                             .join('、')}
                                                     </span>
                                                 </div>
@@ -198,12 +214,16 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                                                 <FileText size={16} className="text-blue-500 mt-0.5" />
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">磁介质：<Badge variant="outline" className="ml-1 bg-blue-50">
-                                                        {Object.values(docTypes.electronic.items).reduce((sum: number, count: any) => sum + count, 0)}个
+                                                        {Object.values(docTypes.electronic.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)}个
                                                     </Badge></span>
                                                     <span className="text-sm text-gray-600">
                                                         {Object.entries(docTypes.electronic.items)
-                                                            .filter(([_, count]) => typeof count === 'number' && count > 0)
-                                                            .map(([type, count]) => `${getTypeDisplayName('magnetic', type)}(${count})`)
+                                                            .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
+                                                            .map(([type, item]) => {
+                                                                const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                                                                const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                                                                return `${getTypeDisplayName('magnetic', type, customName)}(${count})`;
+                                                            })
                                                             .join('、')}
                                                     </span>
                                                 </div>
@@ -215,12 +235,16 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                                                 <FileText size={16} className="text-purple-500 mt-0.5" />
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">其他介质：<Badge variant="outline" className="ml-1 bg-purple-50">
-                                                        {Object.values(docTypes.other.items).reduce((sum: number, count: any) => sum + count, 0)}个
+                                                        {Object.values(docTypes.other.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)}个
                                                     </Badge></span>
                                                     <span className="text-sm text-gray-600">
                                                         {Object.entries(docTypes.other.items)
-                                                            .filter(([_, count]) => typeof count === 'number' && count > 0)
-                                                            .map(([type, count]) => `${getTypeDisplayName('other', type)}(${count})`)
+                                                            .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
+                                                            .map(([type, item]) => {
+                                                                const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                                                                const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                                                                return `${getTypeDisplayName('other', type, customName)}(${count})`;
+                                                            })
                                                             .join('、')}
                                                     </span>
                                                 </div>
@@ -348,37 +372,53 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                     <div className="p-3 flex flex-col flex-grow">
                         <div className="space-y-2 text-sm text-gray-700 mb-3">
                             <p className="font-medium text-gray-700 mb-1">重要事项：</p>
-                            <div className="max-h-[200px] overflow-y-auto pr-2 space-y-2">
-                                {info?.notes.split('\n').map((note, index) => (
-                                    <div key={index} className="flex gap-2">
-                                        <span className="font-medium">{index + 1}.</span>
-                                        <span>{note}</span>
-                                    </div>
-                                ))}
-                            </div>
+                            {isLoading ? (
+                                <div className="text-gray-500">正在加载系统信息...</div>
+                            ) : error ? (
+                                <div className="text-red-500">加载系统信息失败: {error}</div>
+                            ) : info?.notes ? (
+                                <div className="max-h-[200px] overflow-y-auto pr-2 space-y-2">
+                                    {info.notes.split('\n').map((note, index) => (
+                                        <div key={index} className="flex gap-2">
+                                            <span className="font-medium">{index + 1}.</span>
+                                            <span>{note}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-gray-500">暂无系统信息</div>
+                            )}
                         </div>
 
                         {/* 公司信息 */}
                         <div className="mt-auto pt-3 border-t border-gray-200">
                             <div className="font-medium text-gray-700 mb-1">公司信息</div>
-                            <div className="space-y-1.5 text-xs text-gray-600">
-                                <div className="flex items-center gap-2">
-                                    <Building size={14} className="text-gray-500" />
-                                    <span>{info?.company_name}</span>
+                            {isLoading ? (
+                                <div className="text-gray-500 text-xs">正在加载公司信息...</div>
+                            ) : error ? (
+                                <div className="text-red-500 text-xs">加载公司信息失败</div>
+                            ) : info ? (
+                                <div className="space-y-1.5 text-xs text-gray-600">
+                                    <div className="flex items-center gap-2">
+                                        <Building size={14} className="text-gray-500" />
+                                        <span>{info.company_name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <MapPin size={14} className="text-gray-500" />
+                                        <span>地址：{info.company_address}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Phone size={14} className="text-gray-500" />
+                                        <span>电话：{info.company_phone}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Mail size={14} className="text-gray-500" />
+                                        <span>邮箱：{info.company_email}</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <MapPin size={14} className="text-gray-500" />
-                                    <span>地址：{info?.company_address}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Phone size={14} className="text-gray-500" />
-                                    <span>电话：{info?.company_phone}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Mail size={14} className="text-gray-500" />
-                                    <span>邮箱：{info?.company_email}</span>
-                                </div>
-                            </div>
+                            ) : (
+                                <div className="text-gray-500 text-xs">暂无公司信息</div>
+                            )}
                         </div>
                     </div>
 

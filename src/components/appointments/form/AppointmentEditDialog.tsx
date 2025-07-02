@@ -52,7 +52,10 @@ export function AppointmentEditDialog({
 
             // 计算总文档数量（从新的数据结构中）
             const totalDocumentCount = Object.values(data.documentTypes).reduce((total, category) => {
-                return total + Object.values(category.items).reduce((sum, count) => sum + count, 0);
+                return total + Object.values(category.items).reduce((sum, item) => {
+                    // 适配新的数据结构：item 现在是对象 { count: number; customName?: string }
+                    return sum + (item?.count || 0);
+                }, 0);
             }, 0);
 
             // 转换数据格式 - 使用新的文档类型结构

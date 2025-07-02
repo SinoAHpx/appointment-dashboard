@@ -94,10 +94,27 @@ export function AppointmentForm({
                     // 处理新格式数据（每个子类型都有独立数量）
                     Object.keys(documentTypes).forEach(category => {
                         if (parsedData[category]) {
-                            // 检查是否为新格式（items对象包含每个类型的数量）
+                            // 检查是否为新格式（items对象包含每个类型的详细信息）
                             if (parsedData[category].items && typeof parsedData[category].items === 'object') {
-                                // 新格式：直接使用items对象
-                                documentTypes[category].items = parsedData[category].items;
+                                // 适配新旧格式：检查items对象的值类型
+                                const items = parsedData[category].items;
+                                const convertedItems: { [key: string]: { count: number; customName?: string } } = {};
+
+                                Object.entries(items).forEach(([key, value]) => {
+                                    if (typeof value === 'number') {
+                                        // 旧格式：值是数字
+                                        convertedItems[key] = { count: value };
+                                    } else if (typeof value === 'object' && value !== null) {
+                                        // 新格式：值是对象
+                                        const valueObj = value as { count?: number; customName?: string };
+                                        convertedItems[key] = {
+                                            count: valueObj.count || 0,
+                                            customName: valueObj.customName
+                                        };
+                                    }
+                                });
+
+                                documentTypes[category].items = convertedItems;
                             }
                             // 处理旧格式（types数组 + count数字）
                             else if (parsedData[category].items && Array.isArray(parsedData[category].items) && parsedData[category].count) {
@@ -106,12 +123,14 @@ export function AppointmentForm({
                                 const totalCount = parsedData[category].count;
                                 const countPerType = Math.ceil(totalCount / types.length);
 
-                                const items: { [key: string]: number } = {};
+                                const items: { [key: string]: { count: number } } = {};
                                 types.forEach((type: string, index: number) => {
                                     // 最后一个类型分配剩余数量
-                                    items[type] = index === types.length - 1
-                                        ? totalCount - (countPerType * (types.length - 1))
-                                        : countPerType;
+                                    items[type] = {
+                                        count: index === types.length - 1
+                                            ? totalCount - (countPerType * (types.length - 1))
+                                            : countPerType
+                                    };
                                 });
                                 documentTypes[category].items = items;
                             }
@@ -121,17 +140,37 @@ export function AppointmentForm({
                     // 特殊处理电子介质的映射（旧数据中可能存储为electronic）
                     if (parsedData.electronic) {
                         if (parsedData.electronic.items && typeof parsedData.electronic.items === 'object') {
-                            documentTypes.magnetic.items = parsedData.electronic.items;
+                            // 适配新旧格式：检查items对象的值类型
+                            const items = parsedData.electronic.items;
+                            const convertedItems: { [key: string]: { count: number; customName?: string } } = {};
+
+                            Object.entries(items).forEach(([key, value]) => {
+                                if (typeof value === 'number') {
+                                    // 旧格式：值是数字
+                                    convertedItems[key] = { count: value };
+                                } else if (typeof value === 'object' && value !== null) {
+                                    // 新格式：值是对象
+                                    const valueObj = value as { count?: number; customName?: string };
+                                    convertedItems[key] = {
+                                        count: valueObj.count || 0,
+                                        customName: valueObj.customName
+                                    };
+                                }
+                            });
+
+                            documentTypes.magnetic.items = convertedItems;
                         } else if (parsedData.electronic.items && Array.isArray(parsedData.electronic.items) && parsedData.electronic.count) {
                             const types = parsedData.electronic.items;
                             const totalCount = parsedData.electronic.count;
                             const countPerType = Math.ceil(totalCount / types.length);
 
-                            const items: { [key: string]: number } = {};
+                            const items: { [key: string]: { count: number } } = {};
                             types.forEach((type: string, index: number) => {
-                                items[type] = index === types.length - 1
-                                    ? totalCount - (countPerType * (types.length - 1))
-                                    : countPerType;
+                                items[type] = {
+                                    count: index === types.length - 1
+                                        ? totalCount - (countPerType * (types.length - 1))
+                                        : countPerType
+                                };
                             });
                             documentTypes.magnetic.items = items;
                         }
@@ -182,7 +221,10 @@ export function AppointmentForm({
     // 修改表单验证 - 检查是否有任何文档类型且总数量大于0
     const isFormValid = () => {
         const totalDocumentCount = Object.values(formData.documentTypes).reduce((total, category) => {
-            return total + Object.values(category.items).reduce((sum, count) => sum + count, 0);
+            return total + Object.values(category.items).reduce((sum, item) => {
+                // 适配新的数据结构：item 可能是数字（旧格式）或对象（新格式）
+                return sum + (typeof item === 'number' ? item : item?.count || 0);
+            }, 0);
         }, 0);
 
         const hasValidDocuments = totalDocumentCount > 0;

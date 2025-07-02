@@ -1,0 +1,40 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+数据库当中 documentTypesJson 的数据结构是这样子的：
+
+"""
+{
+  "paper": {
+    "items": {
+      "large": {
+        "count": 1
+      },
+      "small": {
+        "count": 1
+      }
+    }
+  },
+  "electronic": {
+    "items": {
+      "printer": {
+        "count": 1
+      }
+    }
+  },
+  "other": {
+    "items": {
+      "custom_1751426884018": {
+        "count": 8,
+        "customName": "1111"
+      },
+      "mixed": {
+        "count": 1
+      }
+    }
+  }
+}
+
+"""

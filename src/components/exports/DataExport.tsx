@@ -66,27 +66,66 @@ export function DataExport() {
             const parts = [];
 
             // 处理纸介质
-            if (data.paper && data.paper.items && data.paper.items.length > 0) {
-                // 将value映射为label
-                const itemsLabels = data.paper.items.map((value: string) => valueToLabel("paper", value));
-                const itemsText = itemsLabels.join("、");
-                parts.push(`纸介质 ${itemsText} ${data.paper.count}个`);
+            if (data.paper && data.paper.items && Object.keys(data.paper.items).length > 0) {
+                const itemsWithCounts = Object.entries(data.paper.items)
+                    .filter(([_, item]) => {
+                        const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                        return count > 0;
+                    })
+                    .map(([type, item]) => {
+                        const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                        const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                        const displayName = customName || valueToLabel("paper", type);
+                        return `${displayName}(${count})`;
+                    });
+
+                if (itemsWithCounts.length > 0) {
+                    const totalCount = Object.values(data.paper.items)
+                        .reduce((sum, item) => sum + (typeof item === 'number' ? item : ((item as any)?.count || 0)), 0);
+                    parts.push(`纸介质 ${itemsWithCounts.join("、")} 共${totalCount}个`);
+                }
             }
 
             // 处理电子/磁介质
-            if (data.electronic && data.electronic.items && data.electronic.items.length > 0) {
-                // 将value映射为label
-                const itemsLabels = data.electronic.items.map((value: string) => valueToLabel("magnetic", value));
-                const itemsText = itemsLabels.join("、");
-                parts.push(`磁介质 ${itemsText} ${data.electronic.count}个`);
+            if (data.electronic && data.electronic.items && Object.keys(data.electronic.items).length > 0) {
+                const itemsWithCounts = Object.entries(data.electronic.items)
+                    .filter(([_, item]) => {
+                        const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                        return count > 0;
+                    })
+                    .map(([type, item]) => {
+                        const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                        const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                        const displayName = customName || valueToLabel("magnetic", type);
+                        return `${displayName}(${count})`;
+                    });
+
+                if (itemsWithCounts.length > 0) {
+                    const totalCount = Object.values(data.electronic.items)
+                        .reduce((sum, item) => sum + (typeof item === 'number' ? item : ((item as any)?.count || 0)), 0);
+                    parts.push(`磁介质 ${itemsWithCounts.join("、")} 共${totalCount}个`);
+                }
             }
 
             // 处理其他类型
-            if (data.other && data.other.items && data.other.items.length > 0) {
-                // 将value映射为label
-                const itemsLabels = data.other.items.map((value: string) => valueToLabel("other", value));
-                const itemsText = itemsLabels.join("、");
-                parts.push(`其他介质 ${itemsText} ${data.other.count}个`);
+            if (data.other && data.other.items && Object.keys(data.other.items).length > 0) {
+                const itemsWithCounts = Object.entries(data.other.items)
+                    .filter(([_, item]) => {
+                        const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                        return count > 0;
+                    })
+                    .map(([type, item]) => {
+                        const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                        const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                        const displayName = customName || valueToLabel("other", type);
+                        return `${displayName}(${count})`;
+                    });
+
+                if (itemsWithCounts.length > 0) {
+                    const totalCount = Object.values(data.other.items)
+                        .reduce((sum, item) => sum + (typeof item === 'number' ? item : ((item as any)?.count || 0)), 0);
+                    parts.push(`其他介质 ${itemsWithCounts.join("、")} 共${totalCount}个`);
+                }
             }
 
             return parts.length > 0 ? parts.join("，") : "无数据";

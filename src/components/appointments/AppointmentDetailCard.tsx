@@ -52,13 +52,13 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
         try {
             const docTypes = JSON.parse(appointment.documentTypesJson);
 
-            // 新数据结构：items 是对象，需要检查对象中是否有键且值大于0
+            // 新数据结构：items 是对象，每个值是 { count: number, customName?: string }
             const hasPaper = docTypes.paper?.items && Object.keys(docTypes.paper.items).length > 0 &&
-                Object.values(docTypes.paper.items).some((count: any) => count > 0);
+                Object.values(docTypes.paper.items).some((item: any) => (item?.count || item || 0) > 0);
             const hasElectronic = docTypes.electronic?.items && Object.keys(docTypes.electronic.items).length > 0 &&
-                Object.values(docTypes.electronic.items).some((count: any) => count > 0);
+                Object.values(docTypes.electronic.items).some((item: any) => (item?.count || item || 0) > 0);
             const hasOther = docTypes.other?.items && Object.keys(docTypes.other.items).length > 0 &&
-                Object.values(docTypes.other.items).some((count: any) => count > 0);
+                Object.values(docTypes.other.items).some((item: any) => (item?.count || item || 0) > 0);
 
             return {
                 docTypes,
@@ -74,8 +74,14 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
 
     const { docTypes, hasPaper, hasElectronic, hasOther } = getDocumentTypesInfo();
 
-    // 获取文档类型的显示名称
-    const getTypeDisplayName = (category: string, typeValue: string) => {
+    // 获取文档类型的显示名称，支持自定义名称
+    const getTypeDisplayName = (category: string, typeValue: string, customName?: string) => {
+        // 如果有自定义名称，直接使用
+        if (customName) {
+            return customName;
+        }
+
+        // 否则查找预定义的类型名称
         const typeObj = documentTypesByCategory[category as keyof typeof documentTypesByCategory]?.find(t => t.value === typeValue);
         return typeObj?.label || typeValue;
     };
@@ -173,12 +179,16 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                                                 <FileText size={16} className="text-amber-500 mt-0.5" />
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">纸介质：<Badge variant="outline" className="ml-1 bg-amber-50">
-                                                        {Object.values(docTypes.paper.items).reduce((sum: number, count: any) => sum + count, 0)}个
+                                                        {Object.values(docTypes.paper.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)}个
                                                     </Badge></span>
                                                     <span className="text-sm text-gray-600">
                                                         {Object.entries(docTypes.paper.items)
-                                                            .filter(([_, count]) => typeof count === 'number' && count > 0)
-                                                            .map(([type, count]) => `${getTypeDisplayName('paper', type)}(${count})`)
+                                                            .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
+                                                            .map(([type, item]) => {
+                                                                const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                                                                const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                                                                return `${getTypeDisplayName('paper', type, customName)}(${count})`;
+                                                            })
                                                             .join('、')}
                                                     </span>
                                                 </div>
@@ -190,12 +200,16 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                                                 <FileText size={16} className="text-blue-500 mt-0.5" />
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">磁介质：<Badge variant="outline" className="ml-1 bg-blue-50">
-                                                        {Object.values(docTypes.electronic.items).reduce((sum: number, count: any) => sum + count, 0)}个
+                                                        {Object.values(docTypes.electronic.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)}个
                                                     </Badge></span>
                                                     <span className="text-sm text-gray-600">
                                                         {Object.entries(docTypes.electronic.items)
-                                                            .filter(([_, count]) => typeof count === 'number' && count > 0)
-                                                            .map(([type, count]) => `${getTypeDisplayName('magnetic', type)}(${count})`)
+                                                            .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
+                                                            .map(([type, item]) => {
+                                                                const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                                                                const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                                                                return `${getTypeDisplayName('magnetic', type, customName)}(${count})`;
+                                                            })
                                                             .join('、')}
                                                     </span>
                                                 </div>
@@ -207,12 +221,16 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                                                 <FileText size={16} className="text-purple-500 mt-0.5" />
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">其他介质：<Badge variant="outline" className="ml-1 bg-purple-50">
-                                                        {Object.values(docTypes.other.items).reduce((sum: number, count: any) => sum + count, 0)}个
+                                                        {Object.values(docTypes.other.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)}个
                                                     </Badge></span>
                                                     <span className="text-sm text-gray-600">
                                                         {Object.entries(docTypes.other.items)
-                                                            .filter(([_, count]) => typeof count === 'number' && count > 0)
-                                                            .map(([type, count]) => `${getTypeDisplayName('other', type)}(${count})`)
+                                                            .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
+                                                            .map(([type, item]) => {
+                                                                const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                                                                const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                                                                return `${getTypeDisplayName('other', type, customName)}(${count})`;
+                                                            })
                                                             .join('、')}
                                                     </span>
                                                 </div>
