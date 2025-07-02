@@ -186,11 +186,29 @@ export function AppointmentForm({
 
             // 处理来自数据库的人员和车辆数据
             if (initialData.assignedStaff && Array.isArray(initialData.assignedStaff)) {
-                assignedStaff = initialData.assignedStaff;
+                assignedStaff = initialData.assignedStaff.map(id => String(id));
+            } else if ((initialData as any).assignedStaffJson) {
+                try {
+                    const parsed = JSON.parse((initialData as any).assignedStaffJson);
+                    if (Array.isArray(parsed)) {
+                        assignedStaff = parsed.map(id => String(id));
+                    }
+                } catch (e) {
+                    console.error("解析assignedStaffJson失败:", e);
+                }
             }
 
             if (initialData.assignedVehicles && Array.isArray(initialData.assignedVehicles)) {
-                assignedVehicles = initialData.assignedVehicles;
+                assignedVehicles = initialData.assignedVehicles.map(id => String(id));
+            } else if ((initialData as any).assignedVehicleJson) {
+                try {
+                    const parsed = JSON.parse((initialData as any).assignedVehicleJson);
+                    if (Array.isArray(parsed)) {
+                        assignedVehicles = parsed.map(id => String(id));
+                    }
+                } catch (e) {
+                    console.error("解析assignedVehicleJson失败:", e);
+                }
             }
 
             setFormData({

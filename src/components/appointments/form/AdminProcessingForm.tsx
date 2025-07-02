@@ -91,7 +91,7 @@ export function AdminProcessingForm({
         if (!assignedStaff?.length) return "选择处理人员";
 
         return assignedStaff.map(id => {
-            const staff = availableStaff.find(s => s.id === id);
+            const staff = availableStaff.find(s => s.id === String(id));
             return staff?.name || "未知人员";
         }).join(", ");
     };
@@ -101,7 +101,7 @@ export function AdminProcessingForm({
         if (!assignedVehicles?.length) return "选择派遣车辆";
 
         return assignedVehicles.map(id => {
-            const vehicle = availableVehicles.find(v => v.id === id);
+            const vehicle = availableVehicles.find(v => v.id === String(id));
             return vehicle ? `${vehicle.plateNumber}` : "未知车辆";
         }).join(", ");
     };
@@ -199,7 +199,7 @@ export function AdminProcessingForm({
                     {assignedStaff && assignedStaff.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                             {assignedStaff.map(staffId => {
-                                const staff = availableStaff.find(s => s.id === staffId);
+                                const staff = availableStaff.find(s => s.id === String(staffId));
                                 return staff && (
                                     <Badge key={staffId} variant="secondary" className="text-xs">
                                         {staff.name}
@@ -264,7 +264,7 @@ export function AdminProcessingForm({
                     {assignedVehicles && assignedVehicles.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                             {assignedVehicles.map(vehicleId => {
-                                const vehicle = availableVehicles.find(v => v.id === vehicleId);
+                                const vehicle = availableVehicles.find(v => v.id === String(vehicleId));
                                 return vehicle && (
                                     <Badge key={vehicleId} variant="secondary" className="text-xs">
                                         {vehicle.plateNumber}

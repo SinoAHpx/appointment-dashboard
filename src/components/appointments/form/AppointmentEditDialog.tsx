@@ -42,12 +42,20 @@ export function AppointmentEditDialog({
 
             // 记录重要的提交数据，用于调试
             console.log("AppointmentEditDialog 提交数据:", {
+                appointmentId: appointment.id,
                 assignedStaff: data.assignedStaff,
                 assignedVehicles: data.assignedVehicles,
                 assignedStaffJson,
                 assignedVehicleJson,
                 status: data.status,
                 estimatedCompletionTime: data.estimatedCompletionTime
+            });
+
+            console.log("AppointmentEditDialog 原始数据:", {
+                appointmentId: appointment.id,
+                originalAssignedStaff: appointment.assignedStaff,
+                originalAssignedVehicles: appointment.assignedVehicles,
+                originalStatus: appointment.status
             });
 
             // 计算总文档数量（从新的数据结构中）

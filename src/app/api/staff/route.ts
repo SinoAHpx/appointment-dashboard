@@ -8,11 +8,19 @@ import {
 	updateStaff,
 } from "@/lib/db/staff.queries";
 import { NextRequest, NextResponse } from "next/server";
-import { withAdminAuth, AuthVerificationResult } from "@/lib/auth";
+import { withAdminAuth, verifyAuth, AuthVerificationResult } from "@/lib/auth";
 
-// 获取所有员工 - 仅管理员可访问
-const getStaffHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
+// 获取所有员工 - 登录用户即可访问
+export async function GET(request: NextRequest) {
 	try {
+		const auth = await verifyAuth(request);
+		if (!auth.isAuthenticated) {
+			return NextResponse.json(
+				{ success: false, message: "未授权访问" },
+				{ status: 401 }
+			);
+		}
+
 		const staffList = getAllStaff();
 		return NextResponse.json({ success: true, staffList });
 	} catch (error) {
@@ -22,9 +30,7 @@ const getStaffHandler = async (request: NextRequest, auth: AuthVerificationResul
 			{ status: 500 },
 		);
 	}
-};
-
-export const GET = withAdminAuth(getStaffHandler);
+}
 
 // 创建新员工 - 仅管理员可访问
 const createStaffHandler = async (request: NextRequest, auth: AuthVerificationResult) => {

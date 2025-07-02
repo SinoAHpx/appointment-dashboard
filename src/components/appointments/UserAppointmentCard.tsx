@@ -39,7 +39,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
 
     // 获取分配的员工信息
     const assignedStaffInfo = appointment.assignedStaff?.map(staffId => {
-        const staff = staffList.find(s => s.id === staffId);
+        const staff = staffList.find(s => s.id === String(staffId));
         if (!staff) return null;
         return {
             name: staff.name,
@@ -49,7 +49,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
 
     // 获取分配的车辆信息
     const assignedVehiclesInfo = appointment.assignedVehicles?.map(vehicleId => {
-        const vehicle = vehicles.find(v => v.id === vehicleId);
+        const vehicle = vehicles.find(v => v.id === String(vehicleId));
         if (!vehicle) return null;
         return {
             plateNumber: vehicle.plateNumber,

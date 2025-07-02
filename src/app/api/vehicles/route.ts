@@ -8,11 +8,19 @@ import {
 	updateVehicle,
 } from "@/lib/db/vehicle.queries";
 import { NextRequest, NextResponse } from "next/server";
-import { withAdminAuth, AuthVerificationResult } from "@/lib/auth";
+import { withAdminAuth, verifyAuth, AuthVerificationResult } from "@/lib/auth";
 
-// 获取所有车辆 - 仅管理员可访问
-const getVehiclesHandler = async (request: NextRequest, auth: AuthVerificationResult) => {
+// 获取所有车辆 - 登录用户即可访问
+export async function GET(request: NextRequest) {
 	try {
+		const auth = await verifyAuth(request);
+		if (!auth.isAuthenticated) {
+			return NextResponse.json(
+				{ success: false, message: "未授权访问" },
+				{ status: 401 }
+			);
+		}
+
 		const vehicles = getAllVehicles();
 		return NextResponse.json({ success: true, vehicles });
 	} catch (error) {
@@ -22,9 +30,7 @@ const getVehiclesHandler = async (request: NextRequest, auth: AuthVerificationRe
 			{ status: 500 },
 		);
 	}
-};
-
-export const GET = withAdminAuth(getVehiclesHandler);
+}
 
 // 创建新车辆 - 仅管理员可访问
 const createVehicleHandler = async (request: NextRequest, auth: AuthVerificationResult) => {

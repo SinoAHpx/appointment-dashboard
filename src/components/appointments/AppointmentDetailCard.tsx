@@ -25,7 +25,7 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
 
     // Get assigned staff names and info
     const assignedStaffInfo = appointment.assignedStaff?.map(staffId => {
-        const staff = staffList.find(s => s.id === staffId);
+        const staff = staffList.find(s => s.id === String(staffId));
         if (!staff) return null;
         return {
             name: staff.name,
@@ -35,7 +35,7 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
 
     // Get assigned vehicles info
     const assignedVehiclesInfo = appointment.assignedVehicles?.map(vehicleId => {
-        const vehicle = vehicles.find(v => v.id === vehicleId);
+        const vehicle = vehicles.find(v => v.id === String(vehicleId));
         if (!vehicle) return null;
         return {
             plateNumber: vehicle.plateNumber,
