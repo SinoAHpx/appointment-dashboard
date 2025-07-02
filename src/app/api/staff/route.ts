@@ -59,7 +59,7 @@ const createStaffHandler = async (request: NextRequest, auth: AuthVerificationRe
 			);
 		}
 
-		// 创建新员工数据对象
+		// 创建新员工数据对象 - isAvailable 和 status 独立处理
 		const newStaffData: NewStaffData = {
 			name: body.name,
 			phone: body.phone,
@@ -68,6 +68,7 @@ const createStaffHandler = async (request: NextRequest, auth: AuthVerificationRe
 			status: ["active", "inactive", "on_leave"].includes(body.status)
 				? (body.status as Staff["status"])
 				: "active",
+			isAvailable: body.isAvailable !== undefined ? body.isAvailable : true, // isAvailable 独立设置
 		};
 
 		const newStaff = addStaff(newStaffData);
@@ -114,7 +115,7 @@ const updateStaffHandler = async (request: NextRequest, auth: AuthVerificationRe
 		if (body.idCard !== undefined) updateData.idCard = body.idCard;
 		if (body.position !== undefined) updateData.position = body.position;
 
-		// 验证状态值有效性
+		// 验证状态值有效性 - status 独立处理
 		if (body.status !== undefined) {
 			if (!["active", "inactive", "on_leave"].includes(body.status)) {
 				return NextResponse.json(
@@ -123,6 +124,17 @@ const updateStaffHandler = async (request: NextRequest, auth: AuthVerificationRe
 				);
 			}
 			updateData.status = body.status as Staff["status"];
+		}
+
+		// isAvailable 独立处理，不再与 status 自动关联
+		if (body.isAvailable !== undefined) {
+			if (typeof body.isAvailable !== "boolean") {
+				return NextResponse.json(
+					{ success: false, message: "isAvailable 必须是布尔值" },
+					{ status: 400 },
+				);
+			}
+			updateData.isAvailable = body.isAvailable;
 		}
 
 		const updatedStaff = updateStaff(parseInt(body.id), updateData);

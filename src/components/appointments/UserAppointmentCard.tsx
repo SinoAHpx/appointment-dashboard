@@ -143,7 +143,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
                                 <Info size={14} className="text-blue-500" />
                                 <span>预约基本信息</span>
                             </h3>
-                            <div className="grid grid-cols-1 gap-2 pl-1">
+                            <div className="grid grid-cols-2 gap-2 pl-1">
                                 <div className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded-md transition-colors group">
                                     <Calendar size={18} className="text-blue-500 group-hover:scale-110 transition-transform" />
                                     <div className="flex flex-col">

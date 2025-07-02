@@ -11,8 +11,6 @@ import {
 } from "@/lib/db/appointment.queries";
 import { verifyAdmin, verifyAuth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { updateStaff } from "@/lib/db/staff.queries";
-import { updateVehicle } from "@/lib/db/vehicle.queries";
 
 // 获取所有预约
 export async function GET(request: NextRequest) {
@@ -159,7 +157,7 @@ export async function POST(request: NextRequest) {
 				body.status,
 			)
 				? (body.status as Appointment["status"])
-				: "pending",	
+				: "pending",
 			estimatedCompletionTime: body.estimatedCompletionTime || null,
 			processingNotes: body.processingNotes || null,
 			contactPhone: body.contactPhone || null,
@@ -332,44 +330,6 @@ export async function PUT(request: NextRequest) {
 				{ success: false, message: "更新预约失败，预约可能不存在" },
 				{ status: 400 },
 			);
-		}
-
-		if (auth.isAdmin) {
-			const staffToMakeAvailable = oldAssignedStaffIds.filter(id => !newAssignedStaffIds.includes(id));
-			const staffToMakeUnavailable = newAssignedStaffIds.filter(id => !oldAssignedStaffIds.includes(id));
-
-			staffToMakeAvailable.forEach(staffId => {
-				try {
-					updateStaff(staffId, { isAvailable: true });
-				} catch (e) {
-					console.error(`Error making staff ${staffId} available:`, e);
-				}
-			});
-			staffToMakeUnavailable.forEach(staffId => {
-				try {
-					updateStaff(staffId, { isAvailable: false });
-				} catch (e) {
-					console.error(`Error making staff ${staffId} unavailable:`, e);
-				}
-			});
-
-			const vehiclesToMakeAvailable = oldAssignedVehicleIds.filter(id => !newAssignedVehicleIds.includes(id));
-			const vehiclesToMakeUnavailable = newAssignedVehicleIds.filter(id => !oldAssignedVehicleIds.includes(id));
-
-			vehiclesToMakeAvailable.forEach(vehicleId => {
-				try {
-					updateVehicle(vehicleId, { isAvailable: true });
-				} catch (e) {
-					console.error(`Error making vehicle ${vehicleId} available:`, e);
-				}
-			});
-			vehiclesToMakeUnavailable.forEach(vehicleId => {
-				try {
-					updateVehicle(vehicleId, { isAvailable: false });
-				} catch (e) {
-					console.error(`Error making vehicle ${vehicleId} unavailable:`, e);
-				}
-			});
 		}
 
 		return NextResponse.json({

@@ -10,7 +10,7 @@ export interface Staff {
     idCard: string;
     position: string;
     status: "active" | "inactive" | "on_leave";
-    isAvailable: boolean; // 前端用于显示状态
+    isAvailable: boolean; // 独立的可用性字段，不再与status自动关联
     createdAt: string;
 }
 
@@ -25,6 +25,7 @@ interface StaffState {
         phone: string;
         idCard: string;
         position?: string;
+        status?: "active" | "inactive" | "on_leave";
         isAvailable?: boolean;
     }) => Promise<boolean>;
     updateStaff: (
@@ -50,7 +51,7 @@ export const useStaffStore = create<StaffState>()(
                     const data = await response.json();
 
                     if (data.success) {
-                        // 将API返回的数据映射到前端模型
+                        // 将API返回的数据映射到前端模型，isAvailable 直接使用数据库值
                         const mappedStaffList = data.staffList.map((staff: DbStaff) => ({
                             id: staff.id.toString(),
                             name: staff.name,
@@ -58,7 +59,7 @@ export const useStaffStore = create<StaffState>()(
                             idCard: staff.idCard,
                             position: staff.position || '',
                             status: staff.status,
-                            isAvailable: staff.status === 'active',
+                            isAvailable: staff.isAvailable, // 直接使用数据库的 isAvailable 值
                             createdAt: staff.createdAt,
                         }));
                         set({ staffList: mappedStaffList, isLoading: false });
@@ -79,7 +80,8 @@ export const useStaffStore = create<StaffState>()(
                         phone: staffData.phone,
                         idCard: staffData.idCard,
                         position: staffData.position || null,
-                        status: staffData.isAvailable ? 'active' : 'inactive',
+                        status: staffData.status || 'active', // status 独立设置
+                        isAvailable: staffData.isAvailable !== undefined ? staffData.isAvailable : true, // isAvailable 独立设置
                     };
 
                     // Use API endpoint
@@ -102,7 +104,7 @@ export const useStaffStore = create<StaffState>()(
                             idCard: data.staff.idCard,
                             position: data.staff.position || '',
                             status: data.staff.status,
-                            isAvailable: data.staff.status === 'active',
+                            isAvailable: data.staff.isAvailable, // 直接使用 API 返回的 isAvailable
                             createdAt: data.staff.createdAt,
                         };
 
@@ -123,18 +125,15 @@ export const useStaffStore = create<StaffState>()(
             updateStaff: async (id, staffData) => {
                 set({ isLoading: true, error: null });
                 try {
-                    // Map frontend model to API model
+                    // Map frontend model to API model - isAvailable 和 status 独立处理
                     const apiData: any = {};
 
                     if (staffData.name !== undefined) apiData.name = staffData.name;
                     if (staffData.phone !== undefined) apiData.phone = staffData.phone;
                     if (staffData.idCard !== undefined) apiData.idCard = staffData.idCard;
                     if (staffData.position !== undefined) apiData.position = staffData.position;
-                    if (staffData.isAvailable !== undefined) {
-                        apiData.status = staffData.isAvailable ? 'active' : 'inactive';
-                    } else if (staffData.status !== undefined) {
-                        apiData.status = staffData.status;
-                    }
+                    if (staffData.status !== undefined) apiData.status = staffData.status;
+                    if (staffData.isAvailable !== undefined) apiData.isAvailable = staffData.isAvailable;
 
                     // Use API endpoint
                     const response = await fetch("/api/staff", {
@@ -156,7 +155,7 @@ export const useStaffStore = create<StaffState>()(
                             idCard: responseData.staff.idCard,
                             position: responseData.staff.position || '',
                             status: responseData.staff.status,
-                            isAvailable: responseData.staff.status === 'active',
+                            isAvailable: responseData.staff.isAvailable, // 直接使用 API 返回的 isAvailable
                             createdAt: responseData.staff.createdAt,
                         };
 
