@@ -270,6 +270,61 @@ function initDb(db: Database) {
       );
     `);
 
+    // 创建尾料批次表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS waste_batches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        batchNumber TEXT UNIQUE NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        estimatedWeight REAL,
+        location TEXT,
+        wasteType TEXT NOT NULL,
+        category TEXT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        createdBy INTEGER NOT NULL,
+        status TEXT CHECK( status IN ('draft', 'published', 'auction_in_progress', 'auction_ended', 'allocated') ) NOT NULL DEFAULT 'draft',
+        FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE CASCADE
+      );
+    `);
+
+    // 创建竞价表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS waste_auctions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        batchId INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        startTime DATETIME NOT NULL,
+        endTime DATETIME NOT NULL,
+        basePrice DECIMAL(10,2) DEFAULT 0,
+        reservePrice DECIMAL(10,2),
+        status TEXT CHECK( status IN ('pending', 'active', 'ended', 'cancelled') ) NOT NULL DEFAULT 'pending',
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        createdBy INTEGER NOT NULL,
+        winnerId INTEGER,
+        winningBid DECIMAL(10,2),
+        FOREIGN KEY (batchId) REFERENCES waste_batches (id) ON DELETE CASCADE,
+        FOREIGN KEY (createdBy) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (winnerId) REFERENCES users (id) ON DELETE SET NULL
+      );
+    `);
+
+    // 创建出价表
+    db.run(`
+      CREATE TABLE IF NOT EXISTS waste_bids (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        auctionId INTEGER NOT NULL,
+        bidderId INTEGER NOT NULL,
+        bidAmount DECIMAL(10,2) NOT NULL,
+        bidTime DATETIME DEFAULT CURRENT_TIMESTAMP,
+        notes TEXT,
+        status TEXT CHECK( status IN ('active', 'outbid', 'winning', 'cancelled') ) NOT NULL DEFAULT 'active',
+        FOREIGN KEY (auctionId) REFERENCES waste_auctions (id) ON DELETE CASCADE,
+        FOREIGN KEY (bidderId) REFERENCES users (id) ON DELETE CASCADE
+      );
+    `);
+
     // 创建默认管理员账户
     const adminCheck = db.query("SELECT id FROM users WHERE username = ?").get("admin");
     if (!adminCheck) {

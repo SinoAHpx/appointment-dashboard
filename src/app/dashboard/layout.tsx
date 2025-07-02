@@ -13,7 +13,9 @@ import {
     FileDown,
     FileText,
     JapaneseYen,
-    Trash2
+    Trash2,
+    Gavel,
+    Package
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -41,12 +43,21 @@ export default function DashboardLayout({
         return () => clearTimeout(timer);
     }, []);
 
-    // 检查是否为常规用户，并且不在预约页面，如果是则重定向到预约页面
+    // 检查用户角色并重定向到对应的默认页面
     useEffect(() => {
-        if (isReady && isAuthenticated && !isAdmin() && pathname === "/dashboard") {
-            router.push("/dashboard/appointments");
+        if (isReady && isAuthenticated && pathname === "/dashboard") {
+            if (isAdmin()) {
+                // 管理员保持在概览页面
+                return;
+            } else if (user?.role === 'waste_disposal_merchant') {
+                // 尾料处置商重定向到竞价大厅
+                router.push("/dashboard/auctions");
+            } else {
+                // 普通用户重定向到预约页面
+                router.push("/dashboard/appointments");
+            }
         }
-    }, [isReady, isAuthenticated, isAdmin, pathname, router]);
+    }, [isReady, isAuthenticated, isAdmin, user?.role, pathname, router]);
 
     const handleLogout = async () => {
         try {
@@ -62,25 +73,43 @@ export default function DashboardLayout({
         }
     };
 
-    // 所有可用的导航项目
-    const allNavItems = [
+    // 所有可用的导航项目（管理员）
+    const adminNavItems = [
         { name: "系统概览", path: "/dashboard", icon: Home },
         { name: "预约管理", path: "/dashboard/appointments", icon: Calendar },
         { name: "用户管理", path: "/dashboard/users", icon: Users },
         { name: "人员管理", path: "/dashboard/staff", icon: Briefcase },
         { name: "车辆管理", path: "/dashboard/vehicles", icon: Car },
         { name: "报价管理", path: "/dashboard/checkout", icon: JapaneseYen },
+        { name: "尾料竞价", path: "/dashboard/waste-auctions", icon: Gavel },
         { name: "信息管理", path: "/dashboard/info", icon: FileText },
         { name: "数据导出", path: "/dashboard/exports", icon: FileDown },
     ];
 
-    // 根据用户角色过滤导航项目 - 普通用户只能访问预约页面和销毁任务
-    const navItems = isAdmin()
-        ? allNavItems
-        : [
-            { name: "我的预约", path: "/dashboard/appointments", icon: Calendar },
-            { name: "销毁任务", path: "/dashboard/destruction", icon: Trash2 }
-        ];
+    // 普通用户导航项目
+    const userNavItems = [
+        { name: "我的预约", path: "/dashboard/appointments", icon: Calendar },
+        { name: "销毁任务", path: "/dashboard/destruction", icon: Trash2 }
+    ];
+
+    // 尾料处置商导航项目
+    const wasteDisposalNavItems = [
+        { name: "竞价大厅", path: "/dashboard/auctions", icon: Gavel },
+        { name: "我的出价", path: "/dashboard/my-bids", icon: Package },
+    ];
+
+    // 根据用户角色过滤导航项目
+    const getNavItems = () => {
+        if (isAdmin()) {
+            return adminNavItems;
+        } else if (user?.role === 'waste_disposal_merchant') {
+            return wasteDisposalNavItems;
+        } else {
+            return userNavItems;
+        }
+    };
+
+    const navItems = getNavItems();
 
     // 标题文本根据用户角色不同
     const headerTitle = isAdmin() ? "预约管理系统" : "中国融通销毁中心预约登记系统";
@@ -115,8 +144,8 @@ export default function DashboardLayout({
                             </div>
                         </header>
                         <div className="flex flex-1">
-                            {/* 只有管理员才显示侧边导航栏 */}
-                            {isAdmin() ? (
+                            {/* 管理员和尾料处置商显示侧边导航栏 */}
+                            {(isAdmin() || user?.role === 'waste_disposal_merchant') ? (
                                 <aside className="w-64 bg-white border-r border-gray-200 shadow-sm">
                                     <nav className="p-4">
                                         <ul className="space-y-2">
@@ -142,7 +171,7 @@ export default function DashboardLayout({
                                     </nav>
                                 </aside>
                             ) : null}
-                            <main className={`flex-1 bg-gray-50 p-6 ${!isAdmin() ? 'w-full' : ''}`}>
+                            <main className={`flex-1 bg-gray-50 p-6 ${!(isAdmin() || user?.role === 'waste_disposal_merchant') ? 'w-full' : ''}`}>
                                 {children}
                             </main>
                         </div>
