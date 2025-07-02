@@ -60,16 +60,15 @@ export function middleware(request: NextRequest) {
 
     // 检查是否访问受保护路径
     if (isProtectedPath(pathname)) {
-        // 检查当前URL是否有特殊查询参数，避免重定向循环
+        // 检查当前URL是否有特殊查询参数，避免重定向循环 (This logic is no longer needed)
         const url = new URL(request.url);
-        const bypassAuth = url.searchParams.has('bypassAuthCheck');
 
         // 如果请求URL已经有回调参数，可能是正在重定向，跳过处理
         const isRedirectingToLogin = url.pathname === '/login' &&
             url.searchParams.has('callbackUrl');
 
-        // 如果已经在重定向过程中或有绕过检查参数，不再继续处理
-        if (isRedirectingToLogin || bypassAuth) {
+        // 如果已经在重定向过程中，不再继续处理
+        if (isRedirectingToLogin) {
             return NextResponse.next();
         }
 

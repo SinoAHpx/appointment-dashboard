@@ -78,42 +78,20 @@ export default function LoginPage() {
 			const result = await response.json();
 
 			if (result.success && result.user) {
-				// 手动调用store的login方法来设置状态
+				// 1. 更新Zustand中的用户状态
 				useAuthStore.getState().setUser(result.user);
 
 				toast("登录成功", {
-					description: `欢迎回来，${values.username}`,
+					description: `欢迎回来，${result.user.username}`,
 				});
 
-				// 获取URL参数中的回调地址
+				// 2. 获取回调URL，如果没有则默认为/dashboard
 				const searchParams = new URLSearchParams(window.location.search);
 				const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
-				// 增加足够的延时确保状态和cookie都已更新
-				setTimeout(() => {
-					try {
-						// 添加特殊参数避免中间件重定向循环
-						const redirectUrl = new URL(
-							callbackUrl.startsWith('/') ? callbackUrl : `/${callbackUrl}`,
-							window.location.origin
-						);
-						redirectUrl.searchParams.set('bypassAuthCheck', 'true');
-
-						// 使用路由器导航，而不是强制刷新页面
-						router.push(redirectUrl.pathname + redirectUrl.search);
-
-						// 几秒后移除特殊参数，使用history.replaceState以避免刷新
-						setTimeout(() => {
-							const cleanUrl = new URL(window.location.href);
-							cleanUrl.searchParams.delete('bypassAuthCheck');
-							window.history.replaceState({}, '', cleanUrl.toString());
-						}, 1000);
-					} catch (error) {
-						console.error('重定向失败:', error);
-						// 如果自定义URL有问题，回退到dashboard
-						router.push('/dashboard');
-					}
-				}, 800); // 延长等待时间确保cookie已设置
+				// 3. 使用router.push进行干净的重定向
+				// AuthGuard将处理新页面的授权检查
+				router.push(callbackUrl);
 			} else {
 				toast("登录失败", {
 					description: result.message || "用户名或密码不正确",
