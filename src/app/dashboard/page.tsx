@@ -18,19 +18,18 @@ import {
 import { CalendarDays, Car, Clock, UserCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
 
 export default function DashboardPage() {
-    const { isAuthenticated, isAdmin, user } = useAuthStore();
+    const { isAdmin, user } = useAuthStore();
     const router = useRouter();
-    const [isReady, setIsReady] = useState(false);
 
     // Fetch data from stores
     const { appointments, fetchAppointments } = useAppointmentStore();
-    const { staffList } = useStaffStore();
-    const { vehicles } = useVehicleStore();
+    const { staffList, fetchStaff } = useStaffStore();
+    const { vehicles, fetchVehicles } = useVehicleStore();
 
     // Calculate stats (example logic, replace with more robust logic if needed)
     const today = new Date().toISOString().split("T")[0];
@@ -44,32 +43,19 @@ export default function DashboardPage() {
     const availableVehicles = vehicles.filter((vehicle) => vehicle.isAvailable);
 
     useEffect(() => {
-        // 在客户端渲染后标记组件已准备好
-        const timer = setTimeout(() => {
-            setIsReady(true);
-        }, 100);
-        return () => clearTimeout(timer);
-    }, []);
+        // 只有管理员才获取所有数据
+        if (isAdmin()) {
+            const fetchAllData = async () => {
+                await Promise.all([
+                    fetchAppointments(),
+                    fetchStaff(),
+                    fetchVehicles(),
+                ]);
+            };
 
-    // 如果是普通用户，直接重定向到预约页面
-    useEffect(() => {
-        if (isReady && isAuthenticated && !isAdmin()) {
-            router.push("/dashboard/appointments");
+            fetchAllData();
         }
-    }, [isReady, isAuthenticated, isAdmin, router]);
-
-    // 普通用户不应该看到此页面，仅管理员可见
-    if (!isAdmin()) {
-        return (
-            <div className="flex items-center justify-center min-h-[50vh]">
-                <p>正在加载中，请稍候...</p>
-            </div>
-        );
-    }
-
-    useEffect(() => {
-        fetchAppointments();
-    }, [fetchAppointments]);
+    }, [isAdmin, fetchAppointments, fetchStaff, fetchVehicles]);
 
     const handleCardClick = (path: string) => {
         router.push(path);
@@ -252,15 +238,13 @@ export default function DashboardPage() {
                 </div>
 
                 {/* 数据可视化图表部分 */}
-                {isReady && (
-                    <div className="space-y-6">
-                        <div className="flex flex-col gap-2">
-                            <h2 className="text-2xl font-bold">数据统计</h2>
-                            <p className="text-muted-foreground">预约系统数据可视化分析</p>
-                        </div>
-                        <DashboardCharts appointments={appointments} />
+                <div className="space-y-6">
+                    <div className="flex flex-col gap-2">
+                        <h2 className="text-2xl font-bold">数据统计</h2>
+                        <p className="text-muted-foreground">预约系统数据可视化分析</p>
                     </div>
-                )}
+                    <DashboardCharts appointments={appointments} />
+                </div>
             </div>
         </AuthGuard>
     );
