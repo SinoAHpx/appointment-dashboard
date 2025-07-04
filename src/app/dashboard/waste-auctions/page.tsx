@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Package, Gavel, Users, Trophy } from "lucide-react";
+import { Plus, Package, Gavel, Users, Trophy, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/lib/stores";
 
@@ -63,6 +63,24 @@ interface WasteBid {
     };
 }
 
+// 新增：供应商报价接口
+interface SupplierQuote {
+    supplier: string;
+    paperMedia: number | null;    // 纸介质报价
+    discMedia: number | null;     // 光盘介质报价
+    magneticMedia: number | null; // 磁介质报价
+}
+
+// 新增：分析结果接口
+interface AnalysisResult {
+    strategy: string;
+    suppliers: string[];
+    totalRevenue: number;
+    adminCosts: number;
+    netIncome: number;
+    details: string;
+}
+
 export default function WasteAuctionsPage() {
     const { user } = useAuthStore();
     const [batches, setBatches] = useState<WasteBatch[]>([]);
@@ -72,6 +90,27 @@ export default function WasteAuctionsPage() {
     const [showCreateBatchDialog, setShowCreateBatchDialog] = useState(false);
     const [showCreateAuctionDialog, setShowCreateAuctionDialog] = useState(false);
     const [selectedBatchId, setSelectedBatchId] = useState<string>("");
+
+    // 新增：处置方案分析状态
+    const [quotes, setQuotes] = useState<SupplierQuote[]>([
+        { supplier: "A公司", paperMedia: null, discMedia: null, magneticMedia: null },
+        { supplier: "B公司", paperMedia: null, discMedia: null, magneticMedia: null },
+        { supplier: "C公司", paperMedia: null, discMedia: null, magneticMedia: null },
+    ]);
+    const [wasteWeights, setWasteWeights] = useState({
+        paperMedia: 8,    // 纸介质重量（吨）
+        discMedia: 4,     // 光盘介质重量（吨）
+        magneticMedia: 6, // 磁介质重量（吨）
+    });
+    const [analysisResults, setAnalysisResults] = useState<{
+        itemOptimal: AnalysisResult | null;
+        packageOptimal: AnalysisResult | null;
+        recommendation: string;
+    }>({
+        itemOptimal: null,
+        packageOptimal: null,
+        recommendation: "",
+    });
 
     // 表单状态
     const [batchForm, setBatchForm] = useState({
@@ -248,6 +287,135 @@ export default function WasteAuctionsPage() {
         return typeMap[type] || type;
     };
 
+    // 新增：更新供应商报价
+    const updateQuote = (supplierIndex: number, media: keyof Omit<SupplierQuote, 'supplier'>, value: string) => {
+        const newQuotes = [...quotes];
+        newQuotes[supplierIndex] = {
+            ...newQuotes[supplierIndex],
+            [media]: value === "" ? null : parseFloat(value),
+        };
+        setQuotes(newQuotes);
+    };
+
+    // 新增：分析处置方案
+    const analyzeDisposalStrategy = () => {
+        const ADMIN_COST_PER_SUPPLIER = 600;
+
+        // 步骤1：分析"分项最优"策略
+        const mediaTypes = ['paperMedia', 'discMedia', 'magneticMedia'] as const;
+        const itemOptimalDetails: { [key: string]: { supplier: string; quote: number } } = {};
+        let itemOptimalRevenue = 0;
+        const involvedSuppliers = new Set<string>();
+
+        mediaTypes.forEach(media => {
+            let bestQuote = -1;
+            let bestSupplier = "";
+
+            quotes.forEach(quote => {
+                if (quote[media] !== null && quote[media]! > bestQuote) {
+                    bestQuote = quote[media]!;
+                    bestSupplier = quote.supplier;
+                }
+            });
+
+            if (bestQuote > -1) {
+                itemOptimalDetails[media] = { supplier: bestSupplier, quote: bestQuote };
+                itemOptimalRevenue += bestQuote;
+                involvedSuppliers.add(bestSupplier);
+            }
+        });
+
+        const itemOptimalAdminCosts = involvedSuppliers.size * ADMIN_COST_PER_SUPPLIER;
+        const itemOptimalNetIncome = itemOptimalRevenue - itemOptimalAdminCosts;
+
+        const itemOptimalResult: AnalysisResult = {
+            strategy: "分项最优",
+            suppliers: Array.from(involvedSuppliers),
+            totalRevenue: itemOptimalRevenue,
+            adminCosts: itemOptimalAdminCosts,
+            netIncome: itemOptimalNetIncome,
+            details: `纸介质: ${itemOptimalDetails.paperMedia?.supplier || '无'} (¥${itemOptimalDetails.paperMedia?.quote || 0}), 光盘介质: ${itemOptimalDetails.discMedia?.supplier || '无'} (¥${itemOptimalDetails.discMedia?.quote || 0}), 磁介质: ${itemOptimalDetails.magneticMedia?.supplier || '无'} (¥${itemOptimalDetails.magneticMedia?.quote || 0})`
+        };
+
+        // 步骤2：分析"整体打包"策略
+        let packageOptimalResult: AnalysisResult | null = null;
+        let bestPackageSupplier = "";
+        let bestPackageRevenue = -1;
+
+        quotes.forEach(quote => {
+            // 检查该供应商是否对所有介质都有报价
+            if (quote.paperMedia !== null && quote.discMedia !== null && quote.magneticMedia !== null) {
+                const totalRevenue = quote.paperMedia + quote.discMedia + quote.magneticMedia;
+                if (totalRevenue > bestPackageRevenue) {
+                    bestPackageRevenue = totalRevenue;
+                    bestPackageSupplier = quote.supplier;
+                }
+            }
+        });
+
+        if (bestPackageRevenue > -1) {
+            const packageAdminCosts = ADMIN_COST_PER_SUPPLIER; // 只与一家公司合作
+            const packageNetIncome = bestPackageRevenue - packageAdminCosts;
+
+            packageOptimalResult = {
+                strategy: "整体打包",
+                suppliers: [bestPackageSupplier],
+                totalRevenue: bestPackageRevenue,
+                adminCosts: packageAdminCosts,
+                netIncome: packageNetIncome,
+                details: `由 ${bestPackageSupplier} 处理所有介质，总收入 ¥${bestPackageRevenue}`
+            };
+        }
+
+        // 步骤3：最终决策
+        let recommendation = "";
+        if (packageOptimalResult && itemOptimalResult) {
+            if (packageOptimalResult.netIncome > itemOptimalResult.netIncome) {
+                recommendation = `建议选择"整体打包"策略，与 ${bestPackageSupplier} 合作，净收入更高 (¥${packageOptimalResult.netIncome} vs ¥${itemOptimalResult.netIncome})`;
+            } else if (itemOptimalResult.netIncome > packageOptimalResult.netIncome) {
+                recommendation = `建议选择"分项最优"策略，与 ${Array.from(involvedSuppliers).join('、')} 合作，净收入更高 (¥${itemOptimalResult.netIncome} vs ¥${packageOptimalResult.netIncome})`;
+            } else {
+                recommendation = `两种策略净收入相同 (¥${itemOptimalResult.netIncome})，可选择任一策略`;
+            }
+        } else if (itemOptimalResult && !packageOptimalResult) {
+            recommendation = `只能选择"分项最优"策略，因为没有供应商能处理所有介质类型`;
+        } else {
+            recommendation = `无法进行分析，请检查报价数据是否完整`;
+        }
+
+        setAnalysisResults({
+            itemOptimal: itemOptimalResult,
+            packageOptimal: packageOptimalResult,
+            recommendation,
+        });
+
+        toast.success("分析完成！");
+    };
+
+    // 新增：重置分析数据
+    const resetAnalysis = () => {
+        setQuotes([
+            { supplier: "A公司", paperMedia: null, discMedia: null, magneticMedia: null },
+            { supplier: "B公司", paperMedia: null, discMedia: null, magneticMedia: null },
+            { supplier: "C公司", paperMedia: null, discMedia: null, magneticMedia: null },
+        ]);
+        setAnalysisResults({
+            itemOptimal: null,
+            packageOptimal: null,
+            recommendation: "",
+        });
+    };
+
+    // 新增：加载示例数据
+    const loadExampleData = () => {
+        setQuotes([
+            { supplier: "A公司", paperMedia: 8000, discMedia: 7200, magneticMedia: 36000 },
+            { supplier: "B公司", paperMedia: 8100, discMedia: null, magneticMedia: 33000 },
+            { supplier: "C公司", paperMedia: 6400, discMedia: 8000, magneticMedia: null },
+        ]);
+        toast.success("已加载示例数据");
+    };
+
     if (loading) {
         return <div className="flex justify-center items-center h-96">加载中...</div>;
     }
@@ -267,6 +435,10 @@ export default function WasteAuctionsPage() {
                     <TabsTrigger value="auctions" className="flex items-center gap-2">
                         <Gavel size={16} />
                         竞价管理
+                    </TabsTrigger>
+                    <TabsTrigger value="analysis" className="flex items-center gap-2">
+                        <Calculator size={16} />
+                        处置方案分析
                     </TabsTrigger>
                 </TabsList>
 
@@ -597,6 +769,153 @@ export default function WasteAuctionsPage() {
                             </DialogContent>
                         </Dialog>
                     )}
+                </TabsContent>
+
+                {/* 新增：处置方案分析 */}
+                <TabsContent value="analysis" className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-semibold">废料处置方案分析</h2>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={loadExampleData}>
+                                加载示例数据
+                            </Button>
+                            <Button variant="outline" onClick={resetAnalysis}>
+                                重置数据
+                            </Button>
+                            <Button onClick={analyzeDisposalStrategy}>
+                                <Calculator size={16} className="mr-2" />
+                                开始分析
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* 算法说明 */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 className="font-semibold text-blue-900 mb-2">分析算法说明</h3>
+                        <div className="text-sm text-blue-800 space-y-1">
+                            <p><strong>目标：</strong> 实现净收入最大化（总收入 - 行政成本）</p>
+                            <p><strong>行政成本：</strong> 每与一家供应商签约需支付 600 元管理费</p>
+                            <p><strong>分项最优策略：</strong> 每种介质选择最高报价供应商</p>
+                            <p><strong>整体打包策略：</strong> 选择一家能处理所有介质的供应商</p>
+                            <p><strong>决策依据：</strong> 比较两种策略的最终净收入，选择更高者</p>
+                        </div>
+                    </div>
+
+                    {/* 数据输入区域 */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* 供应商报价输入 */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>供应商报价输入</CardTitle>
+                                <CardDescription>
+                                    请输入各供应商对不同介质的回收报价（元）
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {quotes.map((quote, index) => (
+                                    <div key={quote.supplier} className="space-y-3">
+                                        <h4 className="font-medium">{quote.supplier}</h4>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <Label htmlFor={`${quote.supplier}-paper`} className="text-xs">
+                                                    纸介质 ({wasteWeights.paperMedia}吨)
+                                                </Label>
+                                                <Input
+                                                    id={`${quote.supplier}-paper`}
+                                                    type="number"
+                                                    placeholder="报价"
+                                                    value={quote.paperMedia || ""}
+                                                    onChange={(e) => updateQuote(index, 'paperMedia', e.target.value)}
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor={`${quote.supplier}-disc`} className="text-xs">
+                                                    光盘介质 ({wasteWeights.discMedia}吨)
+                                                </Label>
+                                                <Input
+                                                    id={`${quote.supplier}-disc`}
+                                                    type="number"
+                                                    placeholder="报价"
+                                                    value={quote.discMedia || ""}
+                                                    onChange={(e) => updateQuote(index, 'discMedia', e.target.value)}
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor={`${quote.supplier}-magnetic`} className="text-xs">
+                                                    磁介质 ({wasteWeights.magneticMedia}吨)
+                                                </Label>
+                                                <Input
+                                                    id={`${quote.supplier}-magnetic`}
+                                                    type="number"
+                                                    placeholder="报价"
+                                                    value={quote.magneticMedia || ""}
+                                                    onChange={(e) => updateQuote(index, 'magneticMedia', e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+
+                        {/* 分析结果展示 */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>分析结果</CardTitle>
+                                <CardDescription>
+                                    处置方案对比分析
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {analysisResults.itemOptimal && (
+                                    <div className="space-y-3">
+                                        <div className="border rounded-lg p-3">
+                                            <h4 className="font-medium text-blue-600 mb-2">
+                                                分项最优策略
+                                            </h4>
+                                            <div className="text-sm space-y-1">
+                                                <p><strong>合作供应商：</strong> {analysisResults.itemOptimal.suppliers.join('、')}</p>
+                                                <p><strong>总收入：</strong> ¥{analysisResults.itemOptimal.totalRevenue}</p>
+                                                <p><strong>行政成本：</strong> ¥{analysisResults.itemOptimal.adminCosts}</p>
+                                                <p><strong>净收入：</strong> ¥{analysisResults.itemOptimal.netIncome}</p>
+                                                <p className="text-xs text-gray-600">{analysisResults.itemOptimal.details}</p>
+                                            </div>
+                                        </div>
+
+                                        {analysisResults.packageOptimal && (
+                                            <div className="border rounded-lg p-3">
+                                                <h4 className="font-medium text-green-600 mb-2">
+                                                    整体打包策略
+                                                </h4>
+                                                <div className="text-sm space-y-1">
+                                                    <p><strong>合作供应商：</strong> {analysisResults.packageOptimal.suppliers.join('、')}</p>
+                                                    <p><strong>总收入：</strong> ¥{analysisResults.packageOptimal.totalRevenue}</p>
+                                                    <p><strong>行政成本：</strong> ¥{analysisResults.packageOptimal.adminCosts}</p>
+                                                    <p><strong>净收入：</strong> ¥{analysisResults.packageOptimal.netIncome}</p>
+                                                    <p className="text-xs text-gray-600">{analysisResults.packageOptimal.details}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                            <h4 className="font-medium text-yellow-800 mb-1">
+                                                最终建议
+                                            </h4>
+                                            <p className="text-sm text-yellow-700">
+                                                {analysisResults.recommendation}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!analysisResults.itemOptimal && (
+                                    <div className="text-center text-gray-500 py-8">
+                                        请输入供应商报价后点击"开始分析"
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
                 </TabsContent>
             </Tabs>
         </div>

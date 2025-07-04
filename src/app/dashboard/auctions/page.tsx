@@ -177,6 +177,35 @@ export default function AuctionsPage() {
                 </Button>
             </div>
 
+            {/* 废料处置方案分析算法说明 */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-blue-900 border-b border-blue-200 pb-2">
+                        废料处置最优决策算法说明
+                    </h3>
+                    <div className="text-sm text-blue-800 space-y-3">
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <p><strong>优化目标：</strong>实现净收入最大化，即总收入减去行政成本的差值达到最大值。</p>
+                                <p><strong>成本约束：</strong>每与一家供应商签订处置合同，需承担固定行政管理费用600元。</p>
+                            </div>
+                            <div className="space-y-2">
+                                <p><strong>分项最优策略：</strong>针对每种废料介质，分别选择报价最高的供应商进行处置。</p>
+                                <p><strong>整体打包策略：</strong>选择一家能够处理全部介质类型的供应商统一处置。</p>
+                            </div>
+                        </div>
+                        <div className="pt-3 border-t border-blue-200">
+                            <p className="font-medium mb-2">算法决策流程：</p>
+                            <div className="space-y-1 text-xs leading-relaxed">
+                                <p><strong>步骤一：</strong>计算分项最优策略净收入 = 各介质最高报价之和 - (涉及供应商数量 × 600元)</p>
+                                <p><strong>步骤二：</strong>计算整体打包策略净收入 = 单一供应商总报价 - 600元</p>
+                                <p><strong>步骤三：</strong>比较两种策略的净收入值，选择数值较大者作为最优处置方案</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {auctions.length === 0 ? (
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12">
