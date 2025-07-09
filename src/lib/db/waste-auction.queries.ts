@@ -31,7 +31,7 @@ export interface WasteAuction {
     winnerId?: number | null;
     winningBid?: number | null;
     // 关联数据
-    batch?: WasteBatch;
+    batch?: Partial<WasteBatch>;
     bidCount?: number;
     highestBid?: number;
 }
@@ -477,10 +477,10 @@ export function setAuctionWinner(auctionId: number, winnerId: number, winningBid
             SET winnerId = ?, winningBid = ?, status = 'ended'
             WHERE id = ?
         `);
-        updateAuctionQuery.run(winnerId, winningBid, auctionId);
+        updateAuctionQuery.run(winnerId, winningBid, 'ended', auctionId);
 
         // 更新所有出价状态
-        const updateBidsQuery = db.query<any, [number]>(`
+        const updateBidsQuery = db.query<any, [number, number]>(`
             UPDATE waste_bids 
             SET status = CASE 
                 WHEN bidderId = ? THEN 'winning'
