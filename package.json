@@ -7,7 +7,9 @@
 		"build": "bun --bun next build",
 		"start": "bun --bun next start",
 		"lint": "next lint",
-		"seed": "bun run scripts/seed-test-data.ts"
+		"seed": "bun run scripts/seed-test-data.ts",
+		"seed:1k": "bun run scripts/seed-test-data.ts 1000",
+		"seed:100k": "bun run scripts/seed-test-data.ts 100000"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^5.0.1",
