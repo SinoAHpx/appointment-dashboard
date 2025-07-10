@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Package, Gavel, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/lib/stores";
@@ -562,43 +563,45 @@ export default function WasteAuctionsPage() {
                                         查看该竞价的所有出价情况
                                     </DialogDescription>
                                 </DialogHeader>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>出价人</TableHead>
-                                            <TableHead>出价金额</TableHead>
-                                            <TableHead>出价时间</TableHead>
-                                            <TableHead>状态</TableHead>
-                                            <TableHead>备注</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {selectedAuctionBids.map((bid) => (
-                                            <TableRow key={bid.id}>
-                                                <TableCell>
-                                                    <div>
-                                                        <div className="font-medium">{bid.bidder?.name}</div>
-                                                        <div className="text-sm text-gray-500">{bid.bidder?.username}</div>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="font-medium">¥{bid.bidAmount}</TableCell>
-                                                <TableCell>{new Date(bid.bidTime).toLocaleString()}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={bid.status === 'active' ? 'default' : 'secondary'}>
-                                                        {bid.status === 'active' ? '有效' : '已被超越'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>{bid.notes || '-'}</TableCell>
+                                <ScrollArea className="h-[400px]">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>出价人</TableHead>
+                                                <TableHead>出价金额</TableHead>
+                                                <TableHead>出价时间</TableHead>
+                                                <TableHead>状态</TableHead>
+                                                <TableHead>备注</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {selectedAuctionBids.map((bid) => (
+                                                <TableRow key={bid.id}>
+                                                    <TableCell>
+                                                        <div>
+                                                            <div className="font-medium">{bid.bidder?.name}</div>
+                                                            <div className="text-sm text-gray-500">{bid.bidder?.username}</div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="font-medium">¥{bid.bidAmount}</TableCell>
+                                                    <TableCell>{new Date(bid.bidTime).toLocaleString()}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={bid.status === 'active' ? 'default' : 'secondary'}>
+                                                            {bid.status === 'active' ? '有效' : '已被超越'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>{bid.notes || '-'}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </ScrollArea>
                             </DialogContent>
                         </Dialog>
                     )}
                 </TabsContent>
 
-                
+
             </Tabs>
         </div>
     );
