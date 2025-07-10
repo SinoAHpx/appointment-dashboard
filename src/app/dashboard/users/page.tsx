@@ -145,6 +145,8 @@ export default function UsersPage() {
 			setNewUser((prev) => ({
 				...prev,
 				role: value as "admin" | "user" | "waste_disposal_merchant",
+				// 如果角色不是普通用户，重置政府用户标记
+				isGovUser: value === "user" ? prev.isGovUser : false,
 			}));
 		}
 	};
@@ -156,6 +158,8 @@ export default function UsersPage() {
 				setEditingUser({
 					...editingUser,
 					role: value as "admin" | "user" | "waste_disposal_merchant",
+					// 如果角色不是普通用户，重置政府用户标记
+					isGovUser: value === "user" ? editingUser.isGovUser : false,
 				});
 			}
 		}
@@ -437,14 +441,16 @@ export default function UsersPage() {
 												</Select>
 											</div>
 										</div>
-										<div className="flex items-center justify-between">
-											<Label htmlFor="isGovUser">是否为政府用户</Label>
-											<Switch
-												id="isGovUser"
-												checked={newUser.isGovUser}
-												onCheckedChange={(checked) => setNewUser(prev => ({ ...prev, isGovUser: checked }))}
-											/>
-										</div>
+										{newUser.role === "user" && (
+											<div className="flex items-center justify-between">
+												<Label htmlFor="isGovUser">是否为政府用户</Label>
+												<Switch
+													id="isGovUser"
+													checked={newUser.isGovUser}
+													onCheckedChange={(checked) => setNewUser(prev => ({ ...prev, isGovUser: checked }))}
+												/>
+											</div>
+										)}
 									</div>
 									<DialogFooter>
 										<DialogClose asChild>
@@ -715,16 +721,18 @@ export default function UsersPage() {
 									</div>
 								</div>
 
-								<div className="flex items-center justify-between">
-									<Label htmlFor="edit-isGovUser">是否为政府用户</Label>
-									<Switch
-										id="edit-isGovUser"
-										checked={editingUser.isGovUser}
-										onCheckedChange={(checked) =>
-											setEditingUser(prev => prev ? { ...prev, isGovUser: checked } : null)
-										}
-									/>
-								</div>
+								{editingUser.role === "user" && (
+									<div className="flex items-center justify-between">
+										<Label htmlFor="edit-isGovUser">是否为政府用户</Label>
+										<Switch
+											id="edit-isGovUser"
+											checked={editingUser.isGovUser}
+											onCheckedChange={(checked) =>
+												setEditingUser(prev => prev ? { ...prev, isGovUser: checked } : null)
+											}
+										/>
+									</div>
+								)}
 							</div>
 						)}
 						<DialogFooter>
