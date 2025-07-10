@@ -1,10 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { ChevronRight, Check, ChevronsUpDown } from "lucide-react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { ChevronRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Command, CommandGroup, CommandItem } from "@/components/ui/command";
+import {
+    Command,
+    CommandDialog,
+    CommandGroup,
+    CommandItem,
+    CommandList,
+    CommandEmpty,
+    CommandInput
+} from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { AddressOption } from "@/lib/utils/beijing-address-data";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -79,19 +86,17 @@ export function AddressCascader({
     };
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    className={cn("w-full justify-between", className)}
-                >
-                    <span className="truncate">{getDisplayText()}</span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="p-0 w-auto min-w-[320px]" align="start">
+        <>
+            <Button
+                variant="outline"
+                onClick={() => setOpen(true)}
+                className={cn("w-full justify-between", className)}
+            >
+                <span className="truncate">{getDisplayText()}</span>
+                <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+
+            <CommandDialog open={open} onOpenChange={setOpen}>
                 <div className="flex border-b">
                     {levelOptions.map((options, index) => (
                         <Button
@@ -107,8 +112,12 @@ export function AddressCascader({
                         </Button>
                     )).slice(0, value.length + 1)}
                 </div>
-                <Command>
-                    <ScrollArea className="h-[200px]">
+
+                <CommandInput placeholder="搜索地址..." />
+
+                <CommandList>
+                    <ScrollArea className="h-[400px]">
+                        <CommandEmpty>未找到相关地址</CommandEmpty>
                         <CommandGroup>
                             {levelOptions[activeLevel]?.map((option) => (
                                 <CommandItem
@@ -128,8 +137,8 @@ export function AddressCascader({
                             ))}
                         </CommandGroup>
                     </ScrollArea>
-                </Command>
-            </PopoverContent>
-        </Popover>
+                </CommandList>
+            </CommandDialog>
+        </>
     );
-} 
+}

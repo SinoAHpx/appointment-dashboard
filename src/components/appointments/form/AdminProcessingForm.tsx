@@ -9,16 +9,13 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     Command,
+    CommandDialog,
     CommandEmpty,
     CommandGroup,
     CommandInput,
     CommandItem,
+    CommandList,
 } from "@/components/ui/command";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
 import {
     Select,
     SelectContent,
@@ -53,8 +50,8 @@ export function AdminProcessingForm({
     const { staffList } = useStaffStore();
     const { vehicles } = useVehicleStore();
 
-    const [staffSelectOpen, setStaffSelectOpen] = useState(false);
-    const [vehicleSelectOpen, setVehicleSelectOpen] = useState(false);
+    const [staffDialogOpen, setStaffDialogOpen] = useState(false);
+    const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
 
     // 过滤可用的员工和车辆
     const availableStaff = staffList.filter(staff => staff.isAvailable);
@@ -148,52 +145,16 @@ export function AdminProcessingForm({
                 {/* 指派人员 - 多选 */}
                 <div className="flex flex-col gap-1.5">
                     <Label>指派人员</Label>
-                    <Popover open={staffSelectOpen} onOpenChange={setStaffSelectOpen}>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                className="justify-between"
-                            >
-                                <div className="max-w-[90%] truncate text-left">
-                                    {getSelectedStaffNames()}
-                                </div>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" align="start">
-                            <Command>
-                                <CommandInput placeholder="搜索人员..." />
-                                <CommandEmpty>未找到匹配的人员</CommandEmpty>
-                                <CommandGroup>
-                                    <ScrollArea className="h-[200px]" type="hover">
-                                        {availableStaff.length ? availableStaff.map(staff => (
-                                            <CommandItem
-                                                key={staff.id}
-                                                value={staff.id}
-                                                onSelect={() => handleStaffSelection(staff.id)}
-                                                className="cursor-pointer"
-                                            >
-                                                <Check
-                                                    className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        assignedStaff?.includes(staff.id)
-                                                            ? "opacity-100"
-                                                            : "opacity-0"
-                                                    )}
-                                                />
-                                                {staff.name} ({staff.position})
-                                            </CommandItem>
-                                        )) : (
-                                            <div className="p-2 text-sm text-muted-foreground">
-                                                暂无可用人员
-                                            </div>
-                                        )}
-                                    </ScrollArea>
-                                </CommandGroup>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <Button
+                        variant="outline"
+                        onClick={() => setStaffDialogOpen(true)}
+                        className="justify-between"
+                    >
+                        <div className="max-w-[90%] truncate text-left">
+                            {getSelectedStaffNames()}
+                        </div>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
 
                     {/* 显示已选人员 */}
                     {assignedStaff && assignedStaff.length > 0 && (
@@ -213,52 +174,16 @@ export function AdminProcessingForm({
                 {/* 指派车辆 - 多选 */}
                 <div className="flex flex-col gap-1.5">
                     <Label>指派车辆</Label>
-                    <Popover open={vehicleSelectOpen} onOpenChange={setVehicleSelectOpen}>
-                        <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                className="justify-between"
-                            >
-                                <div className="max-w-[90%] truncate text-left">
-                                    {getSelectedVehiclesInfo()}
-                                </div>
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" align="start">
-                            <Command>
-                                <CommandInput placeholder="搜索车辆..." />
-                                <CommandEmpty>未找到匹配的车辆</CommandEmpty>
-                                <CommandGroup>
-                                    <ScrollArea className="h-[200px]" type="hover">
-                                        {availableVehicles.length ? availableVehicles.map(vehicle => (
-                                            <CommandItem
-                                                key={vehicle.id}
-                                                value={vehicle.id}
-                                                onSelect={() => handleVehicleSelection(vehicle.id)}
-                                                className="cursor-pointer"
-                                            >
-                                                <Check
-                                                    className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        assignedVehicles?.includes(vehicle.id)
-                                                            ? "opacity-100"
-                                                            : "opacity-0"
-                                                    )}
-                                                />
-                                                {vehicle.plateNumber} ({vehicle.model})
-                                            </CommandItem>
-                                        )) : (
-                                            <div className="p-2 text-sm text-muted-foreground">
-                                                暂无可用车辆
-                                            </div>
-                                        )}
-                                    </ScrollArea>
-                                </CommandGroup>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                    <Button
+                        variant="outline"
+                        onClick={() => setVehicleDialogOpen(true)}
+                        className="justify-between"
+                    >
+                        <div className="max-w-[90%] truncate text-left">
+                            {getSelectedVehiclesInfo()}
+                        </div>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
 
                     {/* 显示已选车辆 */}
                     {assignedVehicles && assignedVehicles.length > 0 && (
@@ -275,6 +200,84 @@ export function AdminProcessingForm({
                     )}
                 </div>
             </div>
+
+            {/* 人员选择对话框 */}
+            <CommandDialog
+                open={staffDialogOpen}
+                onOpenChange={setStaffDialogOpen}
+                title="选择处理人员"
+                description="搜索并选择需要指派的处理人员"
+            >
+                <CommandInput placeholder="搜索人员..." />
+                <CommandList>
+                    <ScrollArea className="h-[400px]">
+                        <CommandEmpty>未找到匹配的人员</CommandEmpty>
+                        <CommandGroup>
+                            {availableStaff.length ? availableStaff.map(staff => (
+                                <CommandItem
+                                    key={staff.id}
+                                    value={staff.id}
+                                    onSelect={() => handleStaffSelection(staff.id)}
+                                    className="cursor-pointer"
+                                >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            assignedStaff?.includes(staff.id)
+                                                ? "opacity-100"
+                                                : "opacity-0"
+                                        )}
+                                    />
+                                    {staff.name} ({staff.position})
+                                </CommandItem>
+                            )) : (
+                                <div className="p-2 text-sm text-muted-foreground">
+                                    暂无可用人员
+                                </div>
+                            )}
+                        </CommandGroup>
+                    </ScrollArea>
+                </CommandList>
+            </CommandDialog>
+
+            {/* 车辆选择对话框 */}
+            <CommandDialog
+                open={vehicleDialogOpen}
+                onOpenChange={setVehicleDialogOpen}
+                title="选择派遣车辆"
+                description="搜索并选择需要派遣的车辆"
+            >
+                <CommandInput placeholder="搜索车辆..." />
+                <CommandList>
+                    <ScrollArea className="h-[400px]">
+                        <CommandEmpty>未找到匹配的车辆</CommandEmpty>
+                        <CommandGroup>
+                            {availableVehicles.length ? availableVehicles.map(vehicle => (
+                                <CommandItem
+                                    key={vehicle.id}
+                                    value={vehicle.id}
+                                    onSelect={() => handleVehicleSelection(vehicle.id)}
+                                    className="cursor-pointer"
+                                >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            assignedVehicles?.includes(vehicle.id)
+                                                ? "opacity-100"
+                                                : "opacity-0"
+                                        )}
+                                    />
+                                    {vehicle.plateNumber} ({vehicle.model})
+                                </CommandItem>
+                            )) : (
+                                <div className="p-2 text-sm text-muted-foreground">
+                                    暂无可用车辆
+                                </div>
+                            )}
+                        </CommandGroup>
+                    </ScrollArea>
+                </CommandList>
+            </CommandDialog>
         </div>
     );
 } 
