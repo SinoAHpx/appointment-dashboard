@@ -106,13 +106,16 @@ export const createUser = (
             return null; // Username already taken
         }
 
+        // 将空的手机号转换为 null 以避免 UNIQUE 约束冲突
+        const normalizedPhone = phone && phone.trim() !== "" ? phone : null;
+
         // Insert new user
         const insertQuery = db.query<User, any>(
             "INSERT INTO users (username, password, role, name, phone, isGovUser, approvalStatus, billingType) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, username, role, name, phone, isGovUser, approvalStatus, approvedBy, approvedAt, rejectionReason, billingType, contractStartDate, contractEndDate, createdAt",
         );
 
         // Return user without password
-        const newUser = insertQuery.get(username, password, role, name, phone, isGovUser, approvalStatus, billingType);
+        const newUser = insertQuery.get(username, password, role, name, normalizedPhone, isGovUser, approvalStatus, billingType);
         if (!newUser) return null;
 
         // Omit password from the returned user
@@ -198,7 +201,9 @@ export const updateUser = (
         }
         if (data.phone !== undefined) {
             updateClause += "phone = ?, ";
-            values.push(data.phone);
+            // 将空的手机号转换为 null 以避免 UNIQUE 约束冲突
+            const normalizedPhone = data.phone && data.phone.trim() !== "" ? data.phone : null;
+            values.push(normalizedPhone);
         }
         if (data.isGovUser !== undefined) {
             updateClause += "isGovUser = ?, ";
