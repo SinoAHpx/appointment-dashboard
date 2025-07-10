@@ -102,7 +102,7 @@ export function AdminAppointmentTable({
                                 <TableRow key={appointment.id}>
                                     <TableCell>
                                         <Badge variant="outline" className="font-mono font-medium">
-                                            {appointment.appointmentId || `APT-${appointment.id}`}
+                                            {appointment.appointmentId || appointment.id}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{formatDateTime(appointment.dateTime)}</TableCell>

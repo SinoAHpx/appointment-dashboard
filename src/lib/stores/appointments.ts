@@ -95,7 +95,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                         // Map fetched appointments to ensure consistency and defaults
                         const formattedAppointments = data.appointments.map((app: any): Appointment => ({
                             id: app.id?.toString() ?? '',
-                            appointmentId: app.appointmentId || `APT-${app.id}`, // Fallback if no appointmentId
+                            appointmentId: app.appointmentId || app.id, // Fallback if no appointmentId
                             dateTime: app.appointmentTime || '', // Map and default
                             contactName: app.customerName || '', // Map and default
                             contactPhone: app.contactPhone || '',
@@ -141,7 +141,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                         // Format appointment data
                         const appointment: Appointment = {
                             id: data.appointment.id?.toString() ?? '',
-                            appointmentId: data.appointment.appointmentId || `APT-${data.appointment.id}`,
+                            appointmentId: data.appointment.appointmentId || data.appointment.id,
                             dateTime: data.appointment.appointmentTime || '',
                             contactName: data.appointment.customerName || '',
                             contactPhone: data.appointment.contactPhone || '',
@@ -219,7 +219,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                         // Map the returned appointment data to our frontend format
                         const formattedAppointment: Appointment = {
                             id: data.appointment.id.toString(),
-                            appointmentId: data.appointment.appointmentId || `APT-${data.appointment.id}`,
+                            appointmentId: data.appointment.appointmentId || data.appointment.id,
                             dateTime: data.appointment.appointmentTime || '',
                             contactName: data.appointment.customerName || '',
                             contactPhone: data.appointment.contactPhone || '',
@@ -299,7 +299,7 @@ export const useAppointmentStore = create<AppointmentState>()(
                         // Map the returned appointment to our frontend format
                         const formattedAppointment: Appointment = {
                             id: responseData.appointment.id.toString(),
-                            appointmentId: responseData.appointment.appointmentId || `APT-${responseData.appointment.id}`,
+                            appointmentId: responseData.appointment.appointmentId || responseData.appointment.id,
                             dateTime: responseData.appointment.appointmentTime || '',
                             contactName: responseData.appointment.customerName || '',
                             contactPhone: responseData.appointment.contactPhone || '',

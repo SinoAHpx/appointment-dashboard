@@ -1,4 +1,5 @@
 import { getDb } from "./db";
+import { randomUUID } from "crypto";
 
 // Define the Appointment type based on the database schema
 export interface Appointment {
@@ -89,10 +90,8 @@ export const getAllAppointments = (): Appointment[] => {
  * Generates a unique appointment ID with prefix
  */
 export const generateAppointmentId = (): string => {
-	const prefix = 'APT';
-	const timestamp = Date.now().toString().slice(-6);
-	const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-	return `${prefix}-${timestamp}-${random}`;
+	// 使用crypto模块生成UUID，移除分隔符并转为大写
+	return randomUUID().replace(/-/g, '').toUpperCase();
 };
 
 /**

@@ -32,7 +32,7 @@ export function AppointmentDetailsDialog({
             </DialogTrigger>
             <DialogContent className="sm:max-w-[80%] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>预约详情 {appointment.appointmentId || `APT-${appointment.id}`}</DialogTitle>
+                    <DialogTitle>预约详情 {appointment.appointmentId || appointment.id}</DialogTitle>
                 </DialogHeader>
                 <div className="py-4">
                     <AppointmentDetailCard appointment={appointment} />

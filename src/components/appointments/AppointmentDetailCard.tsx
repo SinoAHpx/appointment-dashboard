@@ -113,7 +113,7 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                         <div className="flex items-center gap-2">
                             <Bookmark className="text-blue-600" size={20} />
                             <h1 className="text-xl font-bold text-gray-800">
-                                {appointment.appointmentId || `APT-${appointment.id}`}
+                                {appointment.appointmentId || appointment.id}
                             </h1>
                         </div>
                         <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${statusData.color} shadow-sm`}>
