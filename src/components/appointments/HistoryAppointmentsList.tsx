@@ -3,9 +3,11 @@
 import { ArrowLeft, FileText, Search } from "lucide-react";
 import { UserAppointmentCard } from "./UserAppointmentCard";
 import { type Appointment } from "@/lib/stores/appointments";
+import { getSmartPaginationPages } from "@/lib/utils";
 import {
     Pagination,
     PaginationContent,
+    PaginationEllipsis,
     PaginationItem,
     PaginationLink,
     PaginationNext,
@@ -216,35 +218,24 @@ export function HistoryAppointmentsList({
                                             className={page <= 1 ? "pointer-events-none opacity-50" : ""}
                                         />
                                     </PaginationItem>
-                                    {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
-                                        let pageNum: number;
-
-                                        // 智能分页显示逻辑
-                                        if (totalPages <= 5) {
-                                            pageNum = i + 1;
-                                        } else if (page <= 3) {
-                                            pageNum = i + 1;
-                                        } else if (page >= totalPages - 2) {
-                                            pageNum = totalPages - 4 + i;
-                                        } else {
-                                            pageNum = page - 2 + i;
-                                        }
-
-                                        return (
-                                            <PaginationItem key={pageNum}>
+                                    {getSmartPaginationPages(page, totalPages).map((item) => (
+                                        <PaginationItem key={item.key}>
+                                            {item.type === 'ellipsis' ? (
+                                                <PaginationEllipsis />
+                                            ) : (
                                                 <PaginationLink
                                                     href="#"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        handlePageChange(pageNum);
+                                                        handlePageChange(item.value);
                                                     }}
-                                                    isActive={page === pageNum}
+                                                    isActive={page === item.value}
                                                 >
-                                                    {pageNum}
+                                                    {item.value}
                                                 </PaginationLink>
-                                            </PaginationItem>
-                                        );
-                                    })}
+                                            )}
+                                        </PaginationItem>
+                                    ))}
                                     <PaginationItem>
                                         <PaginationNext
                                             href="#"

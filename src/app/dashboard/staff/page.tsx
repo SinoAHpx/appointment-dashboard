@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import {
 	Pagination,
 	PaginationContent,
+	PaginationEllipsis,
 	PaginationItem,
 	PaginationLink,
 	PaginationNext,
@@ -33,6 +34,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { type Staff, useAuthStore, useStaffStore } from "@/lib/store";
+import { getSmartPaginationPages } from "@/lib/utils";
 import {
 	Briefcase,
 	Check,
@@ -411,18 +413,22 @@ export default function StaffPage() {
 										<PaginationItem>
 											<PaginationPrevious
 												onClick={() => setPage((p) => Math.max(1, p - 1))}
-												isActive={page === 1}
+												className={page <= 1 ? "pointer-events-none opacity-50" : ""}
 											/>
 										</PaginationItem>
 
-										{Array.from({ length: totalPages }).map((_, i) => (
-											<PaginationItem key={`staff-page-${i}`}>
-												<PaginationLink
-													onClick={() => setPage(i + 1)}
-													isActive={page === i + 1}
-												>
-													{i + 1}
-												</PaginationLink>
+										{getSmartPaginationPages(page, totalPages).map((item) => (
+											<PaginationItem key={item.key}>
+												{item.type === 'ellipsis' ? (
+													<PaginationEllipsis />
+												) : (
+													<PaginationLink
+														onClick={() => setPage(item.value)}
+														isActive={page === item.value}
+													>
+														{item.value}
+													</PaginationLink>
+												)}
 											</PaginationItem>
 										))}
 
@@ -431,7 +437,7 @@ export default function StaffPage() {
 												onClick={() =>
 													setPage((p) => Math.min(totalPages, p + 1))
 												}
-												isActive={page === totalPages}
+												className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
 											/>
 										</PaginationItem>
 									</PaginationContent>

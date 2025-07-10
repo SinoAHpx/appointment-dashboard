@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import {
 	Pagination,
 	PaginationContent,
+	PaginationEllipsis,
 	PaginationItem,
 	PaginationLink,
 	PaginationNext,
@@ -41,6 +42,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminUser, useUserStore, useAuthStore } from "@/lib/stores";
+import { getSmartPaginationPages } from "@/lib/utils";
 import { ContractManagement } from "@/components/contracts/contract-management";
 import { format } from "date-fns";
 import {
@@ -586,18 +588,22 @@ export default function UsersPage() {
 												<PaginationItem>
 													<PaginationPrevious
 														onClick={() => setPage((p) => Math.max(1, p - 1))}
-														isActive={page === 1}
+														className={page <= 1 ? "pointer-events-none opacity-50" : ""}
 													/>
 												</PaginationItem>
 
-												{Array.from({ length: totalPages }).map((_, i) => (
-													<PaginationItem key={`page-${i}`}>
-														<PaginationLink
-															onClick={() => setPage(i + 1)}
-															isActive={page === i + 1}
-														>
-															{i + 1}
-														</PaginationLink>
+												{getSmartPaginationPages(page, totalPages).map((item) => (
+													<PaginationItem key={item.key}>
+														{item.type === 'ellipsis' ? (
+															<PaginationEllipsis />
+														) : (
+															<PaginationLink
+																onClick={() => setPage(item.value)}
+																isActive={page === item.value}
+															>
+																{item.value}
+															</PaginationLink>
+														)}
 													</PaginationItem>
 												))}
 
@@ -606,7 +612,7 @@ export default function UsersPage() {
 														onClick={() =>
 															setPage((p) => Math.min(totalPages, p + 1))
 														}
-														isActive={page === totalPages}
+														className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
 													/>
 												</PaginationItem>
 											</PaginationContent>

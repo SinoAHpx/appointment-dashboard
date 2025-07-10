@@ -20,10 +20,12 @@ import {
 } from "@/components/ui/tooltip";
 import { type Appointment } from "@/lib/stores/appointments";
 import { formatDateTime, getStatusColor, getStatusLabel } from "@/lib/utils/appointments/helpers";
+import { getSmartPaginationPages } from "@/lib/utils";
 import { Edit, Trash, Eye } from "lucide-react";
 import {
     Pagination,
     PaginationContent,
+    PaginationEllipsis,
     PaginationItem,
     PaginationLink,
     PaginationNext,
@@ -127,7 +129,7 @@ export function AdminAppointmentTable({
                                                                         <Eye size={16} />
                                                                         详情
                                                                     </div>
- 
+
                                                                 </Button>
                                                             }
                                                         />
@@ -192,18 +194,22 @@ export function AdminAppointmentTable({
                                     className={page <= 1 ? "pointer-events-none opacity-50" : ""}
                                 />
                             </PaginationItem>
-                            {Array.from({ length: totalPages }).map((_, i) => (
-                                <PaginationItem key={i}>
-                                    <PaginationLink
-                                        href="#"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            onPageChange(i + 1);
-                                        }}
-                                        isActive={page === i + 1}
-                                    >
-                                        {i + 1}
-                                    </PaginationLink>
+                            {getSmartPaginationPages(page, totalPages).map((item) => (
+                                <PaginationItem key={item.key}>
+                                    {item.type === 'ellipsis' ? (
+                                        <PaginationEllipsis />
+                                    ) : (
+                                        <PaginationLink
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                onPageChange(item.value);
+                                            }}
+                                            isActive={page === item.value}
+                                        >
+                                            {item.value}
+                                        </PaginationLink>
+                                    )}
                                 </PaginationItem>
                             ))}
                             <PaginationItem>

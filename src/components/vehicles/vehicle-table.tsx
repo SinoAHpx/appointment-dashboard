@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
     Pagination,
     PaginationContent,
+    PaginationEllipsis,
     PaginationItem,
     PaginationLink,
     PaginationNext,
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { type Vehicle } from "@/lib/store";
 import { Check, Edit, Trash, X } from "lucide-react";
+import { getSmartPaginationPages } from "@/lib/utils";
 import { ConfirmDeleteDialog } from "@/components/ui/confirm-delete-dialog";
 
 interface VehicleTableProps {
@@ -145,18 +147,22 @@ export function VehicleTable({
                             <PaginationItem>
                                 <PaginationPrevious
                                     onClick={() => setPage(Math.max(1, page - 1))}
-                                    isActive={page === 1}
+                                    className={page <= 1 ? "pointer-events-none opacity-50" : ""}
                                 />
                             </PaginationItem>
 
-                            {Array.from({ length: totalPages }).map((_, i) => (
-                                <PaginationItem key={`vehicle-page-${i}`}>
-                                    <PaginationLink
-                                        onClick={() => setPage(i + 1)}
-                                        isActive={page === i + 1}
-                                    >
-                                        {i + 1}
-                                    </PaginationLink>
+                            {getSmartPaginationPages(page, totalPages).map((item) => (
+                                <PaginationItem key={item.key}>
+                                    {item.type === 'ellipsis' ? (
+                                        <PaginationEllipsis />
+                                    ) : (
+                                        <PaginationLink
+                                            onClick={() => setPage(item.value)}
+                                            isActive={page === item.value}
+                                        >
+                                            {item.value}
+                                        </PaginationLink>
+                                    )}
                                 </PaginationItem>
                             ))}
 
@@ -165,7 +171,7 @@ export function VehicleTable({
                                     onClick={() =>
                                         setPage(Math.min(totalPages, page + 1))
                                     }
-                                    isActive={page === totalPages}
+                                    className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
                                 />
                             </PaginationItem>
                         </PaginationContent>

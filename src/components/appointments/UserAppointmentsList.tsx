@@ -3,9 +3,11 @@
 import { FileText, History } from "lucide-react";
 import { UserAppointmentCard } from "./UserAppointmentCard";
 import { type Appointment } from "@/lib/stores/appointments";
+import { getSmartPaginationPages } from "@/lib/utils";
 import {
     Pagination,
     PaginationContent,
+    PaginationEllipsis,
     PaginationItem,
     PaginationLink,
     PaginationNext,
@@ -115,18 +117,22 @@ export function UserAppointmentsList({
                                             className={page <= 1 ? "pointer-events-none opacity-50" : ""}
                                         />
                                     </PaginationItem>
-                                    {Array.from({ length: totalPages }).map((_, i) => (
-                                        <PaginationItem key={i}>
-                                            <PaginationLink
-                                                href="#"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    handlePageChange(i + 1);
-                                                }}
-                                                isActive={page === i + 1}
-                                            >
-                                                {i + 1}
-                                            </PaginationLink>
+                                    {getSmartPaginationPages(page, totalPages).map((item) => (
+                                        <PaginationItem key={item.key}>
+                                            {item.type === 'ellipsis' ? (
+                                                <PaginationEllipsis />
+                                            ) : (
+                                                <PaginationLink
+                                                    href="#"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handlePageChange(item.value);
+                                                    }}
+                                                    isActive={page === item.value}
+                                                >
+                                                    {item.value}
+                                                </PaginationLink>
+                                            )}
                                         </PaginationItem>
                                     ))}
                                     <PaginationItem>
