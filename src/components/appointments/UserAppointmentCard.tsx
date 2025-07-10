@@ -117,7 +117,7 @@ export function UserAppointmentCard({ appointment }: { appointment: Appointment 
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-[95%] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-[95%] mx-auto mb-6">
             {/* 主要信息列 */}
             <div className="relative">
                 {/* 信息内容区域 - 使用卡片式设计 */}
