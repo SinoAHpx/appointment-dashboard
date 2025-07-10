@@ -10,7 +10,14 @@ const adminOnlyPaths = [
     "/dashboard/staff",
     "/dashboard/vehicles",
     "/dashboard/info",
-    "/dashboard/exports"
+    "/dashboard/exports",
+    "/dashboard/waste-auctions" // 尾料竞价管理（管理员专用）
+];
+
+// 尾料处置商专用路径 - 只有尾料处置商和管理员才能访问
+const wasteDisposalPaths = [
+    "/dashboard/auctions",
+    "/dashboard/my-bids"
 ];
 
 // 检查路径是否是受保护路径或其子路径
@@ -29,8 +36,23 @@ const isAdminOnlyPath = (path: string) => {
     );
 };
 
+// 检查路径是否是尾料处置商专用路径或其子路径
+const isWasteDisposalPath = (path: string) => {
+    return wasteDisposalPaths.some(
+        (wasteDisposalPath) =>
+            path === wasteDisposalPath || path.startsWith(`${wasteDisposalPath}/`)
+    );
+};
+
+// 认证结果类型定义
+interface AuthResult {
+    isAuthenticated: boolean;
+    user: { role: string } | null;
+    isAdmin: boolean;
+}
+
 // 解析认证cookie并返回用户信息
-const parseAuthCookie = (cookieValue: string) => {
+const parseAuthCookie = (cookieValue: string): AuthResult => {
     try {
         // 尝试URL解码
         let session;
@@ -84,7 +106,7 @@ export function middleware(request: NextRequest) {
             return NextResponse.redirect(loginUrl);
         }
 
-        let authResult = { isAuthenticated: false, user: null, isAdmin: false };
+        let authResult: AuthResult = { isAuthenticated: false, user: null, isAdmin: false };
 
         // 首先尝试解析httpOnly cookie
         if (authSession) {
@@ -108,10 +130,36 @@ export function middleware(request: NextRequest) {
         if (isAdminOnlyPath(pathname)) {
             if (!authResult.isAdmin) {
                 console.log(`非管理员用户尝试访问管理员专用路径: ${pathname}`);
-                // 普通用户尝试访问管理员页面，重定向到用户可访问的页面
+                // 根据用户角色重定向到对应的默认页面
+                let redirectPath = "/dashboard/appointments"; // 普通用户默认页面
+                if (authResult.user?.role === 'waste_disposal_merchant') {
+                    redirectPath = "/dashboard/auctions"; // 尾料处置商默认页面
+                }
+                const dashboardUrl = new URL(redirectPath, request.url);
+                return NextResponse.redirect(dashboardUrl);
+            }
+        }
+
+        // 检查尾料处置商专用路径
+        if (isWasteDisposalPath(pathname)) {
+            const isWasteDisposalMerchant = authResult.user?.role === 'waste_disposal_merchant';
+            if (!authResult.isAdmin && !isWasteDisposalMerchant) {
+                console.log(`普通用户尝试访问尾料处置商专用路径: ${pathname}`);
+                // 普通用户尝试访问尾料处置商页面，重定向到预约页面
                 const dashboardUrl = new URL("/dashboard/appointments", request.url);
                 return NextResponse.redirect(dashboardUrl);
             }
+        }
+
+        // 处理对根 /dashboard 路径的访问，根据角色重定向
+        if (pathname === "/dashboard") {
+            if (authResult.user?.role === 'waste_disposal_merchant') {
+                return NextResponse.redirect(new URL("/dashboard/auctions", request.url));
+            }
+            if (authResult.user?.role === 'user') {
+                return NextResponse.redirect(new URL("/dashboard/appointments", request.url));
+            }
+            // 管理员将停留在 /dashboard 概览页面，无需重定向
         }
 
         // 用户已认证且有相应权限，允许访问

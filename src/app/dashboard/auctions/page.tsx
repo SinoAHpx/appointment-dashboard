@@ -49,7 +49,6 @@ export default function AuctionsPage() {
     // 获取活跃竞价
     const fetchActiveAuctions = async () => {
         try {
-            setLoading(true);
             const response = await fetch("/api/waste-auctions?active=true");
             if (response.ok) {
                 const data = await response.json();

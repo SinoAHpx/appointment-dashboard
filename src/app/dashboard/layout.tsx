@@ -43,22 +43,6 @@ export default function DashboardLayout({
         return () => clearTimeout(timer);
     }, []);
 
-    // 检查用户角色并重定向到对应的默认页面
-    useEffect(() => {
-        if (isReady && isAuthenticated && pathname === "/dashboard") {
-            if (isAdmin()) {
-                // 管理员保持在概览页面
-                return;
-            } else if (user?.role === 'waste_disposal_merchant') {
-                // 尾料处置商重定向到竞价大厅
-                router.push("/dashboard/auctions");
-            } else {
-                // 普通用户重定向到预约页面
-                router.push("/dashboard/appointments");
-            }
-        }
-    }, [isReady, isAuthenticated, isAdmin, user?.role, pathname, router]);
-
     const handleLogout = async () => {
         try {
             await logout();
