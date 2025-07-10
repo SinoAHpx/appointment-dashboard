@@ -123,12 +123,17 @@ export default function AppointmentsPage() {
 				}
 			}
 
+			// 合并地址：AddressCascader选择的地址 + 详细地址
+			const fullAddress = [...(formData.contactAddressDetails || []), formData.contactAddress]
+				.filter(Boolean)
+				.join(" ");
+
 			// 准备符合AppointmentFormData类型的提交数据
 			const submitData = {
 				dateTime: formData.dateTime,
 				contactName: formData.contactName,
 				contactPhone: formData.contactPhone,
-				contactAddress: formData.contactAddress,
+				contactAddress: fullAddress, // 使用合并后的完整地址
 				documentCount: formData.documentCount || totalDocumentCount,
 				documentCategory: documentCategory,
 				documentType: documentType,
@@ -194,8 +199,8 @@ export default function AppointmentsPage() {
 			});
 
 			// 从新的documentTypes结构中获取documentCategory和documentType (向后兼容)
-			let documentCategory = 'paper'; // 默认值
-			let documentType = 'confidential'; // 默认值
+			let documentCategory = "paper"; // 默认值
+			let documentType = "confidential"; // 默认值
 
 			// 遍历所有类别找到第一个有文档的类别作为主类别
 			for (const [category, data] of Object.entries(formData.documentTypes)) {
@@ -207,12 +212,17 @@ export default function AppointmentsPage() {
 				}
 			}
 
+			// 合并地址：AddressCascader选择的地址 + 详细地址
+			const fullAddress = [...(formData.contactAddressDetails || []), formData.contactAddress]
+				.filter(Boolean)
+				.join(" ");
+
 			// 准备符合AppointmentFormData类型的提交数据
 			const submitData = {
 				dateTime: formData.dateTime,
 				contactName: formData.contactName,
 				contactPhone: formData.contactPhone,
-				contactAddress: formData.contactAddress,
+				contactAddress: fullAddress, // 使用合并后的完整地址
 				documentCount: formData.documentCount || totalDocumentCount,
 				documentCategory: documentCategory,
 				documentType: documentType,

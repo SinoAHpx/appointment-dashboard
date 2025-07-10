@@ -66,13 +66,19 @@ export function AppointmentEditDialog({
                 }, 0);
             }, 0);
 
+            // 合并地址：AddressCascader选择的地址 + 详细地址
+            const fullAddress = [
+                ...(data.contactAddressDetails || []),
+                data.contactAddress
+            ].filter(Boolean).join(" ");
+
             // 转换数据格式 - 使用新的文档类型结构
             const submitData = {
                 id: appointment.id,
                 customerName: data.contactName,
                 appointmentTime: data.dateTime,
                 contactPhone: data.contactPhone,
-                contactAddress: data.contactAddress,
+                contactAddress: fullAddress, // 使用合并后的完整地址
                 notes: data.notes,
                 documentCount: data.documentCount || totalDocumentCount,
                 documentTypesJson: JSON.stringify({
