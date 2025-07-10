@@ -30,9 +30,9 @@ export function AppointmentDetailsDialog({
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[80%] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>预约详情 {appointment.appointmentId || appointment.id}</DialogTitle>
+                    <DialogTitle></DialogTitle>
                 </DialogHeader>
                 <div className="py-4">
                     <AppointmentDetailCard appointment={appointment} />
