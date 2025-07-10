@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { type Appointment } from "@/lib/stores/appointments";
 import { documentTypes, documentTypesByCategory, formatDateTime, getStatusData } from "@/lib/utils/appointments/helpers";
 import { useStaffStore, useVehicleStore } from "@/lib/stores";
@@ -75,7 +76,7 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
     };
 
     return (
-        <div className="bg-white border border-gray-200">
+        <div className="bg-white border border-gray-200 w-full overflow-hidden">
             {/* 标题行 */}
             <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200">
                 <span className="font-medium text-gray-900">预约 #{appointment.appointmentId || appointment.id}</span>
@@ -84,140 +85,142 @@ export function AppointmentDetailCard({ appointment }: { appointment: Appointmen
                 </Badge>
             </div>
 
-            {/* 信息内容 */}
-            <div className="p-3">
-                <div className="space-y-1 text-sm">
-                    <div className="grid grid-cols-4 gap-2">
-                        <span className="text-gray-500">时间</span>
-                        <span className="col-span-3">{formatDateTime(appointment.dateTime)}</span>
-                    </div>
+            {/* 表格内容 */}
+            <div className="p-3 overflow-x-auto">
+                <Table className="w-full table-fixed">
+                    <TableBody>
+                        <TableRow>
+                            <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">时间</TableCell>
+                            <TableCell className="py-1 break-words">{formatDateTime(appointment.dateTime)}</TableCell>
+                        </TableRow>
 
-                    <div className="grid grid-cols-4 gap-2">
-                        <span className="text-gray-500">联系人</span>
-                        <span className="col-span-3">{appointment.contactName}</span>
-                    </div>
+                        <TableRow>
+                            <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">联系人</TableCell>
+                            <TableCell className="py-1 break-words">{appointment.contactName}</TableCell>
+                        </TableRow>
 
-                    <div className="grid grid-cols-4 gap-2">
-                        <span className="text-gray-500">电话</span>
-                        <span className="col-span-3">{appointment.contactPhone}</span>
-                    </div>
+                        <TableRow>
+                            <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">电话</TableCell>
+                            <TableCell className="py-1 break-words">{appointment.contactPhone}</TableCell>
+                        </TableRow>
 
-                    <div className="grid grid-cols-4 gap-2">
-                        <span className="text-gray-500">地址</span>
-                        <span className="col-span-3 text-xs">{appointment.contactAddress}</span>
-                    </div>
+                        <TableRow>
+                            <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">地址</TableCell>
+                            <TableCell className="py-1 text-xs break-words">{appointment.contactAddress}</TableCell>
+                        </TableRow>
 
-                    {/* 文档信息 - 恢复详细处理 */}
-                    {(hasPaper || hasElectronic || hasOther) && docTypes ? (
-                        <>
-                            {hasPaper && (
-                                <div className="grid grid-cols-4 gap-2">
-                                    <span className="text-gray-500">纸介质</span>
-                                    <div className="col-span-3 text-xs">
-                                        <div className="mb-1">
-                                            总计 {Object.values(docTypes.paper.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)} 个
-                                        </div>
-                                        <div className="text-gray-600">
-                                            {Object.entries(docTypes.paper.items)
-                                                .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
-                                                .map(([type, item]) => {
-                                                    const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
-                                                    const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
-                                                    return `${getTypeDisplayName('paper', type, customName)}(${count})`;
-                                                })
-                                                .join('、')}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                        {/* 文档信息 - 恢复详细处理 */}
+                        {(hasPaper || hasElectronic || hasOther) && docTypes ? (
+                            <>
+                                {hasPaper && (
+                                    <TableRow>
+                                        <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">纸介质</TableCell>
+                                        <TableCell className="py-1 text-xs">
+                                            <div className="mb-1">
+                                                总计 {Object.values(docTypes.paper.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)} 个
+                                            </div>
+                                            <div className="text-gray-600 break-words">
+                                                {Object.entries(docTypes.paper.items)
+                                                    .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
+                                                    .map(([type, item]) => {
+                                                        const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                                                        const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                                                        return `${getTypeDisplayName('paper', type, customName)}(${count})`;
+                                                    })
+                                                    .join('、')}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
 
-                            {hasElectronic && (
-                                <div className="grid grid-cols-4 gap-2">
-                                    <span className="text-gray-500">磁介质</span>
-                                    <div className="col-span-3 text-xs">
-                                        <div className="mb-1">
-                                            总计 {Object.values(docTypes.electronic.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)} 个
-                                        </div>
-                                        <div className="text-gray-600">
-                                            {Object.entries(docTypes.electronic.items)
-                                                .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
-                                                .map(([type, item]) => {
-                                                    const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
-                                                    const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
-                                                    return `${getTypeDisplayName('magnetic', type, customName)}(${count})`;
-                                                })
-                                                .join('、')}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                                {hasElectronic && (
+                                    <TableRow>
+                                        <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">磁介质</TableCell>
+                                        <TableCell className="py-1 text-xs">
+                                            <div className="mb-1">
+                                                总计 {Object.values(docTypes.electronic.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)} 个
+                                            </div>
+                                            <div className="text-gray-600 break-words">
+                                                {Object.entries(docTypes.electronic.items)
+                                                    .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
+                                                    .map(([type, item]) => {
+                                                        const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                                                        const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                                                        return `${getTypeDisplayName('magnetic', type, customName)}(${count})`;
+                                                    })
+                                                    .join('、')}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
 
-                            {hasOther && (
-                                <div className="grid grid-cols-4 gap-2">
-                                    <span className="text-gray-500">其他介质</span>
-                                    <div className="col-span-3 text-xs">
-                                        <div className="mb-1">
-                                            总计 {Object.values(docTypes.other.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)} 个
-                                        </div>
-                                        <div className="text-gray-600">
-                                            {Object.entries(docTypes.other.items)
-                                                .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
-                                                .map(([type, item]) => {
-                                                    const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
-                                                    const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
-                                                    return `${getTypeDisplayName('other', type, customName)}(${count})`;
-                                                })
-                                                .join('、')}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="grid grid-cols-4 gap-2">
-                            <span className="text-gray-500">文档</span>
-                            <span className="col-span-3">{documentType} {appointment.documentCount} 个</span>
-                        </div>
-                    )}
+                                {hasOther && (
+                                    <TableRow>
+                                        <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">其他介质</TableCell>
+                                        <TableCell className="py-1 text-xs">
+                                            <div className="mb-1">
+                                                总计 {Object.values(docTypes.other.items).reduce((sum: number, item: any) => sum + (item?.count || item || 0), 0)} 个
+                                            </div>
+                                            <div className="text-gray-600 break-words">
+                                                {Object.entries(docTypes.other.items)
+                                                    .filter(([_, item]) => (typeof item === 'number' ? item > 0 : ((item as any)?.count || 0) > 0))
+                                                    .map(([type, item]) => {
+                                                        const count = typeof item === 'number' ? item : ((item as any)?.count || 0);
+                                                        const customName = typeof item === 'object' ? (item as any)?.customName : undefined;
+                                                        return `${getTypeDisplayName('other', type, customName)}(${count})`;
+                                                    })
+                                                    .join('、')}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </>
+                        ) : (
+                            <TableRow>
+                                <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">文档</TableCell>
+                                <TableCell className="py-1 break-words">{documentType} {appointment.documentCount} 个</TableCell>
+                            </TableRow>
+                        )}
 
-                    {/* 指派信息 */}
-                    {(assignedStaffInfo && assignedStaffInfo.length > 0) && (
-                        <div className="grid grid-cols-4 gap-2">
-                            <span className="text-gray-500">人员</span>
-                            <span className="col-span-3">{assignedStaffInfo.join('、')}</span>
-                        </div>
-                    )}
+                        {/* 指派信息 */}
+                        {(assignedStaffInfo && assignedStaffInfo.length > 0) && (
+                            <TableRow>
+                                <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">人员</TableCell>
+                                <TableCell className="py-1 break-words">{assignedStaffInfo.join('、')}</TableCell>
+                            </TableRow>
+                        )}
 
-                    {(assignedVehiclesInfo && assignedVehiclesInfo.length > 0) && (
-                        <div className="grid grid-cols-4 gap-2">
-                            <span className="text-gray-500">车辆</span>
-                            <span className="col-span-3">{assignedVehiclesInfo.join('、')}</span>
-                        </div>
-                    )}
+                        {(assignedVehiclesInfo && assignedVehiclesInfo.length > 0) && (
+                            <TableRow>
+                                <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">车辆</TableCell>
+                                <TableCell className="py-1 break-words">{assignedVehiclesInfo.join('、')}</TableCell>
+                            </TableRow>
+                        )}
 
-                    {/* 时间信息 */}
-                    {appointment.estimatedCompletionTime && (
-                        <div className="grid grid-cols-4 gap-2">
-                            <span className="text-gray-500">预计上门</span>
-                            <span className="col-span-3">{formatDateTime(appointment.estimatedCompletionTime)}</span>
-                        </div>
-                    )}
+                        {/* 时间信息 */}
+                        {appointment.estimatedCompletionTime && (
+                            <TableRow>
+                                <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">预计上门</TableCell>
+                                <TableCell className="py-1 break-words">{formatDateTime(appointment.estimatedCompletionTime)}</TableCell>
+                            </TableRow>
+                        )}
 
-                    {/* 备注信息 */}
-                    {appointment.notes && (
-                        <div className="grid grid-cols-4 gap-2">
-                            <span className="text-gray-500">备注</span>
-                            <span className="col-span-3">{appointment.notes}</span>
-                        </div>
-                    )}
+                        {/* 备注信息 */}
+                        {appointment.notes && (
+                            <TableRow>
+                                <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">备注</TableCell>
+                                <TableCell className="py-1 break-words">{appointment.notes}</TableCell>
+                            </TableRow>
+                        )}
 
-                    {appointment.processingNotes && (
-                        <div className="grid grid-cols-4 gap-2">
-                            <span className="text-gray-500">处理备注</span>
-                            <span className="col-span-3">{appointment.processingNotes}</span>
-                        </div>
-                    )}
-                </div>
+                        {appointment.processingNotes && (
+                            <TableRow>
+                                <TableCell className="text-gray-500 font-normal w-24 py-1 align-top">处理备注</TableCell>
+                                <TableCell className="py-1 break-words">{appointment.processingNotes}</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </div>
         </div>
     );

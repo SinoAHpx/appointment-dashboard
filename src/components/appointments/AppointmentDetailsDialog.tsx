@@ -30,7 +30,7 @@ export function AppointmentDetailsDialog({
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[80%] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle></DialogTitle>
                 </DialogHeader>
