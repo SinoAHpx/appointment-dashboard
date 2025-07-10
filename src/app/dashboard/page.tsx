@@ -15,16 +15,17 @@ import {
     useStaffStore,
     useVehicleStore,
 } from "@/lib/store";
-import { CalendarDays, Car, Clock, UserCircle } from "lucide-react";
+import { CalendarDays, Car, Clock, UserCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
 
 export default function DashboardPage() {
     const { isAdmin, user } = useAuthStore();
     const router = useRouter();
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Fetch data from stores
     const { appointments, fetchAppointments } = useAppointmentStore();
@@ -41,6 +42,24 @@ export default function DashboardPage() {
     );
     const availableStaff = staffList.filter((staff) => staff.status === "active");
     const availableVehicles = vehicles.filter((vehicle) => vehicle.isAvailable);
+
+    // 刷新所有数据的函数
+    const handleRefresh = async () => {
+        if (!isAdmin()) return;
+
+        setIsRefreshing(true);
+        try {
+            await Promise.all([
+                fetchAppointments(),
+                fetchStaff(),
+                fetchVehicles(),
+            ]);
+        } catch (error) {
+            console.error('刷新数据失败:', error);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
 
     useEffect(() => {
         // 只有管理员才获取所有数据
@@ -64,11 +83,23 @@ export default function DashboardPage() {
     return (
         <AuthGuard requiredRole="admin">
             <div className="space-y-6">
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl font-bold">
-                        欢迎回来, {user?.username || "用户"}
-                    </h1>
-                    <p className="text-muted-foreground">查看并管理您的预约系统</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold">
+                            欢迎回来, {user?.username || "用户"}
+                        </h1>
+                        <p className="text-muted-foreground">查看并管理您的预约系统</p>
+                    </div>
+                    <Button
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        variant="outline"
+                        size="sm"
+                        className="w-fit"
+                    >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        {isRefreshing ? '刷新中...' : '刷新数据'}
+                    </Button>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
