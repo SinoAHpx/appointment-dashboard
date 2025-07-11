@@ -506,6 +506,50 @@ export function getUserBids(userId: number): WasteBid[] {
 }
 
 /**
+ * 获取所有出价记录（用于数据导出）
+ */
+export function getAllWasteBids(): WasteBid[] {
+    try {
+        const db = getDb();
+        const query = db.query<any, []>(`
+            SELECT 
+                wb.*,
+                wa.title as auctionTitle,
+                wab.title as batchTitle,
+                wab.batchNumber,
+                u.name as bidderName,
+                u.username as bidderUsername
+            FROM waste_bids wb
+            LEFT JOIN waste_auctions wa ON wb.auctionId = wa.id
+            LEFT JOIN waste_batches wab ON wa.batchId = wab.id
+            LEFT JOIN users u ON wb.bidderId = u.id
+            ORDER BY wb.bidTime DESC
+        `);
+
+        return query.all().map((row: any) => ({
+            id: row.id,
+            auctionId: row.auctionId,
+            bidderId: row.bidderId,
+            bidAmount: row.bidAmount,
+            bidTime: row.bidTime,
+            notes: row.notes,
+            status: row.status,
+            auctionTitle: row.auctionTitle,
+            batchTitle: row.batchTitle,
+            batchNumber: row.batchNumber,
+            bidder: {
+                id: row.bidderId,
+                name: row.bidderName,
+                username: row.bidderUsername,
+            },
+        }));
+    } catch (error) {
+        console.error("获取所有出价记录失败:", error);
+        return [];
+    }
+}
+
+/**
  * 更新竞价状态
  */
 export function updateWasteAuctionStatus(id: number, status: WasteAuction["status"]): boolean {

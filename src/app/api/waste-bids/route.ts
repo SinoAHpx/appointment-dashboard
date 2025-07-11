@@ -4,10 +4,11 @@ import {
     createWasteBid,
     getUserBids,
     getAuctionBids,
+    getAllWasteBids,
 } from "@/lib/db/waste-auction.queries";
 
 /**
- * 获取出价（可以是用户的出价历史或特定竞价的所有出价）
+ * 获取出价（可以是用户的出价历史、特定竞价的所有出价，或所有出价记录）
  */
 export async function GET(request: NextRequest) {
     try {
@@ -36,13 +37,15 @@ export async function GET(request: NextRequest) {
                 data: bids,
             });
         } else {
-            return NextResponse.json(
-                {
-                    success: false,
-                    message: "请提供用户ID或竞价ID",
-                },
-                { status: 400 }
-            );
+            // 获取所有出价记录（用于数据导出）
+            const bids = await withDbConnection(() => {
+                return getAllWasteBids();
+            });
+
+            return NextResponse.json({
+                success: true,
+                data: bids,
+            });
         }
     } catch (error) {
         console.error("获取出价失败:", error);
