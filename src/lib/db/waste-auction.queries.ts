@@ -73,8 +73,8 @@ export function createWasteBatch(data: {
 
         const query = db.query<WasteBatch, any[]>(`
             INSERT INTO waste_batches (
-                batchNumber, title, description, estimatedWeight, location, wasteType, category, createdBy
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                batchNumber, title, description, estimatedWeight, location, wasteType, category, createdBy, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'published')
             RETURNING *
         `);
 
@@ -145,6 +145,40 @@ export function updateWasteBatchStatus(id: number, status: WasteBatch["status"])
 }
 
 /**
+ * 删除尾料批次
+ */
+export function deleteWasteBatch(id: number): boolean {
+    try {
+        const db = getDb();
+        const query = db.query<any, [number]>(`
+            DELETE FROM waste_batches WHERE id = ?
+        `);
+        query.run(id);
+        return true;
+    } catch (error) {
+        console.error("删除尾料批次失败:", error);
+        return false;
+    }
+}
+
+/**
+ * 根据时间计算竞价状态
+ */
+function calculateAuctionStatus(startTime: string, endTime: string): WasteAuction["status"] {
+    const now = new Date();
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    if (now < start) {
+        return "pending";
+    } else if (now >= start && now < end) {
+        return "active";
+    } else {
+        return "ended";
+    }
+}
+
+/**
  * 创建竞价
  */
 export function createWasteAuction(data: {
@@ -160,10 +194,13 @@ export function createWasteAuction(data: {
     try {
         const db = getDb();
 
+        // 根据时间计算初始状态
+        const initialStatus = calculateAuctionStatus(data.startTime, data.endTime);
+
         const query = db.query<WasteAuction, any[]>(`
             INSERT INTO waste_auctions (
-                batchId, title, description, startTime, endTime, basePrice, reservePrice, createdBy
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                batchId, title, description, startTime, endTime, basePrice, reservePrice, createdBy, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING *
         `);
 
@@ -175,7 +212,8 @@ export function createWasteAuction(data: {
             data.endTime,
             data.basePrice,
             data.reservePrice || null,
-            data.createdBy
+            data.createdBy,
+            initialStatus
         );
     } catch (error) {
         console.error("创建竞价失败:", error);
@@ -184,7 +222,7 @@ export function createWasteAuction(data: {
 }
 
 /**
- * 获取所有竞价（带关联数据）
+ * 获取所有竞价（带关联数据和动态状态）
  */
 export function getAllWasteAuctions(): WasteAuction[] {
     try {
@@ -206,31 +244,41 @@ export function getAllWasteAuctions(): WasteAuction[] {
             ORDER BY wa.createdAt DESC
         `);
 
-        return query.all().map((row: any) => ({
-            id: row.id,
-            batchId: row.batchId,
-            title: row.title,
-            description: row.description,
-            startTime: row.startTime,
-            endTime: row.endTime,
-            basePrice: row.basePrice,
-            reservePrice: row.reservePrice,
-            status: row.status,
-            createdAt: row.createdAt,
-            createdBy: row.createdBy,
-            winnerId: row.winnerId,
-            winningBid: row.winningBid,
-            batch: {
-                id: row.batchId,
-                batchNumber: row.batchNumber,
-                title: row.batchTitle,
-                wasteType: row.wasteType,
-                estimatedWeight: row.estimatedWeight,
-                location: row.location,
-            },
-            bidCount: row.bidCount || 0,
-            highestBid: row.highestBid || 0,
-        }));
+        return query.all().map((row: any) => {
+            // 动态计算当前状态
+            const currentStatus = calculateAuctionStatus(row.startTime, row.endTime);
+
+            // 如果状态发生变化，更新数据库
+            if (currentStatus !== row.status && row.status !== 'cancelled') {
+                updateWasteAuctionStatus(row.id, currentStatus);
+            }
+
+            return {
+                id: row.id,
+                batchId: row.batchId,
+                title: row.title,
+                description: row.description,
+                startTime: row.startTime,
+                endTime: row.endTime,
+                basePrice: row.basePrice,
+                reservePrice: row.reservePrice,
+                status: currentStatus, // 使用动态计算的状态
+                createdAt: row.createdAt,
+                createdBy: row.createdBy,
+                winnerId: row.winnerId,
+                winningBid: row.winningBid,
+                batch: {
+                    id: row.batchId,
+                    batchNumber: row.batchNumber,
+                    title: row.batchTitle,
+                    wasteType: row.wasteType,
+                    estimatedWeight: row.estimatedWeight,
+                    location: row.location,
+                },
+                bidCount: row.bidCount || 0,
+                highestBid: row.highestBid || 0,
+            };
+        });
     } catch (error) {
         console.error("获取竞价列表失败:", error);
         return [];
@@ -261,31 +309,41 @@ export function getActiveWasteAuctions(): WasteAuction[] {
             ORDER BY wa.endTime ASC
         `);
 
-        return query.all().map((row: any) => ({
-            id: row.id,
-            batchId: row.batchId,
-            title: row.title,
-            description: row.description,
-            startTime: row.startTime,
-            endTime: row.endTime,
-            basePrice: row.basePrice,
-            reservePrice: row.reservePrice,
-            status: row.status,
-            createdAt: row.createdAt,
-            createdBy: row.createdBy,
-            winnerId: row.winnerId,
-            winningBid: row.winningBid,
-            batch: {
-                id: row.batchId,
-                batchNumber: row.batchNumber,
-                title: row.batchTitle,
-                wasteType: row.wasteType,
-                estimatedWeight: row.estimatedWeight,
-                location: row.location,
-            },
-            bidCount: row.bidCount || 0,
-            highestBid: row.highestBid || 0,
-        }));
+        return query.all().map((row: any) => {
+            // 动态计算当前状态
+            const currentStatus = calculateAuctionStatus(row.startTime, row.endTime);
+
+            // 如果状态发生变化，更新数据库
+            if (currentStatus !== row.status && row.status !== 'cancelled') {
+                updateWasteAuctionStatus(row.id, currentStatus);
+            }
+
+            return {
+                id: row.id,
+                batchId: row.batchId,
+                title: row.title,
+                description: row.description,
+                startTime: row.startTime,
+                endTime: row.endTime,
+                basePrice: row.basePrice,
+                reservePrice: row.reservePrice,
+                status: currentStatus, // 使用动态计算的状态
+                createdAt: row.createdAt,
+                createdBy: row.createdBy,
+                winnerId: row.winnerId,
+                winningBid: row.winningBid,
+                batch: {
+                    id: row.batchId,
+                    batchNumber: row.batchNumber,
+                    title: row.batchTitle,
+                    wasteType: row.wasteType,
+                    estimatedWeight: row.estimatedWeight,
+                    location: row.location,
+                },
+                bidCount: row.bidCount || 0,
+                highestBid: row.highestBid || 0,
+            };
+        });
     } catch (error) {
         console.error("获取活跃竞价失败:", error);
         return [];
@@ -495,4 +553,4 @@ export function setAuctionWinner(auctionId: number, winnerId: number, winningBid
         console.error("设置竞价获胜者失败:", error);
         return false;
     }
-} 
+}
