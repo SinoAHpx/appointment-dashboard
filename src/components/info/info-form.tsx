@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useSystemInfoStore } from "@/lib/stores/info";
 
 const formSchema = z.object({
     notes: z.string().min(1, "请输入备注信息"),
@@ -28,7 +30,10 @@ const formSchema = z.object({
 
 export function InfoForm() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    // 使用SystemInfoStore管理状态
+    const { info, isLoading, error, fetchInfo, updateInfo, clearError } = useSystemInfoStore();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -42,41 +47,77 @@ export function InfoForm() {
     });
 
     useEffect(() => {
-        // 获取初始数据
-        fetch("/api/info")
-            .then((res) => res.json())
-            .then((data) => {
-                if (data) {
-                    form.reset(data);
-                }
-            })
-            .catch((error) => {
-                console.error("获取系统信息失败:", error);
-                toast.error("获取系统信息失败");
-            });
-    }, [form]);
+        // 只有当没有数据时才获取，避免重复请求
+        if (!info && !isLoading) {
+            fetchInfo();
+        }
+    }, [info, isLoading, fetchInfo]);
+
+    useEffect(() => {
+        // 当从store获取到数据时，更新表单
+        if (info) {
+            form.reset(info);
+        }
+    }, [info, form]);
+
+    useEffect(() => {
+        // 处理获取数据时的错误
+        if (error) {
+            toast.error(`获取系统信息失败: ${error}`);
+        }
+    }, [error]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
-            setLoading(true);
-            const response = await fetch("/api/info", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(values),
-            });
+            setSaving(true);
+            clearError(); // 清除之前的错误
 
-            if (!response.ok) {
-                throw new Error("更新失败");
+            const success = await updateInfo(values);
+
+            if (success) {
+                toast.success("系统信息更新成功");
+                router.refresh();
+            } else {
+                // updateInfo 方法已经处理了错误，这里只需要显示通用错误消息
+                throw new Error("更新失败，请重试");
             }
-
-            toast.success("系统信息更新成功");
-            router.refresh();
         } catch (error) {
             console.error("更新系统信息失败:", error);
             toast.error("更新系统信息失败");
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
+    }
+
+    // 加载状态显示
+    if (isLoading) {
+        return (
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-32 w-full" />
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="flex justify-end">
+                    <Skeleton className="h-10 w-24" />
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -157,8 +198,8 @@ export function InfoForm() {
                 />
 
                 <div className="flex justify-end">
-                    <Button type="submit" disabled={loading}>
-                        {loading ? "保存中..." : "保存更改"}
+                    <Button type="submit" disabled={saving || isLoading}>
+                        {saving ? "保存中..." : "保存更改"}
                     </Button>
                 </div>
             </form>
