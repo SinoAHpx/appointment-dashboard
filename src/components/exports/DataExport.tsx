@@ -16,7 +16,7 @@ import { Appointment, useAppointmentStore } from "@/lib/stores";
 import { useUserStore, AdminUser } from "@/lib/stores/user";
 import { useStaffStore, Staff } from "@/lib/stores/staff";
 import { useVehicleStore, Vehicle } from "@/lib/stores/vehicles";
-import { Download, FileDown, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Download, FileDown, FileSpreadsheet, Loader2, Database } from "lucide-react";
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -147,6 +147,7 @@ export function DataExport() {
         bidNotes: false,
     });
     const [isExporting, setIsExporting] = useState(false);
+    const [isBackingUp, setIsBackingUp] = useState(false);
 
     // 组件加载时获取数据
     useEffect(() => {
@@ -809,6 +810,46 @@ export function DataExport() {
         return statusMap[status] || status;
     };
 
+    // 数据库备份功能
+    const backupDatabase = async () => {
+        setIsBackingUp(true);
+        try {
+            const response = await fetch('/api/database/backup');
+
+            if (!response.ok) {
+                throw new Error('备份失败');
+            }
+
+            // 获取文件内容
+            const blob = await response.blob();
+
+            // 生成时间戳用于文件名
+            const timestamp = new Date().toISOString().replace(/:/g, "-").replace(/\./g, "-").substring(0, 19);
+            const fileName = `appointment_dashboard_backup_${timestamp}.sqlite`;
+
+            // 创建下载链接
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = fileName;
+
+            // 触发下载
+            document.body.appendChild(a);
+            a.click();
+
+            // 清理
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+        } catch (error) {
+            console.error('数据库备份失败:', error);
+            alert('数据库备份失败，请稍后重试');
+        } finally {
+            setIsBackingUp(false);
+        }
+    };
+
     // 添加formatDate函数到组件内部
     function formatDate(dateTimeStr: string): string {
         try {
@@ -827,6 +868,45 @@ export function DataExport() {
 
     return (
         <div className="space-y-6">
+            {/* 数据库备份功能 */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Database className="h-5 w-5" />
+                        数据库备份
+                    </CardTitle>
+                    <CardDescription>
+                        备份整个数据库文件，包含所有系统数据
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        此功能将生成完整的数据库备份文件，包含所有预约、用户、员工、车辆和竞价数据。
+                        建议定期备份以确保数据安全。
+                    </p>
+                </CardContent>
+                <CardFooter>
+                    <Button
+                        onClick={backupDatabase}
+                        disabled={isBackingUp}
+                        className="w-full"
+                        variant="outline"
+                    >
+                        {isBackingUp ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                正在备份数据库...
+                            </>
+                        ) : (
+                            <>
+                                <Database className="mr-2 h-4 w-4" />
+                                备份数据库
+                            </>
+                        )}
+                    </Button>
+                </CardFooter>
+            </Card>
+
             <RadioGroup
                 value={selectedExportType}
                 onValueChange={(value) => setSelectedExportType(value as ExportType)}
