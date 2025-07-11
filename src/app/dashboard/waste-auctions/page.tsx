@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Package, Gavel, Users, X } from "lucide-react";
+import { Plus, Package, Gavel, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/lib/stores";
 
@@ -74,6 +74,8 @@ export default function WasteAuctionsPage() {
     const [showCreateAuctionDialog, setShowCreateAuctionDialog] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [batchToDelete, setBatchToDelete] = useState<number | null>(null);
+    const [deleteAuctionDialogOpen, setDeleteAuctionDialogOpen] = useState(false);
+    const [auctionToDelete, setAuctionToDelete] = useState<number | null>(null);
 
     // 表单状态
     const [batchForm, setBatchForm] = useState({
@@ -235,6 +237,35 @@ export default function WasteAuctionsPage() {
     const openDeleteDialog = (batchId: number) => {
         setBatchToDelete(batchId);
         setDeleteDialogOpen(true);
+    };
+
+    // 删除竞价
+    const handleDeleteAuction = async (auctionId: number) => {
+        try {
+            const response = await fetch(`/api/waste-auctions/${auctionId}`, {
+                method: "DELETE",
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                toast.success("竞价删除成功");
+                fetchData();
+            } else {
+                toast.error(data.message || "删除失败");
+            }
+        } catch (error) {
+            console.error("删除竞价失败:", error);
+            toast.error("删除失败");
+        } finally {
+            setDeleteAuctionDialogOpen(false);
+            setAuctionToDelete(null);
+        }
+    };
+
+    // 打开删除竞价确认对话框
+    const openDeleteAuctionDialog = (auctionId: number) => {
+        setAuctionToDelete(auctionId);
+        setDeleteAuctionDialogOpen(true);
     };
 
     // 状态颜色映射
@@ -414,19 +445,9 @@ export default function WasteAuctionsPage() {
                                                 批次号: {batch.batchNumber} | 类型: {getWasteTypeText(batch.wasteType)}
                                             </CardDescription>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant={getStatusColor(batch.status)}>
-                                                {getStatusText(batch.status)}
-                                            </Badge>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
-                                                onClick={() => openDeleteDialog(batch.id)}
-                                            >
-                                                <X size={16} />
-                                            </Button>
-                                        </div>
+                                        <Badge variant={getStatusColor(batch.status)}>
+                                            {getStatusText(batch.status)}
+                                        </Badge>
                                     </div>
                                 </CardHeader>
                                 <CardContent>
@@ -449,6 +470,15 @@ export default function WasteAuctionsPage() {
                                         <div className="col-span-2">
                                             <span className="font-medium">创建时间:</span> {new Date(batch.createdAt).toLocaleString()}
                                         </div>
+                                    </div>
+                                    <div className="flex justify-end mt-4">
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={() => openDeleteDialog(batch.id)}
+                                        >
+                                            删除
+                                        </Button>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -614,30 +644,39 @@ export default function WasteAuctionsPage() {
                                             <span className="font-medium">竞价描述:</span> {auction.description}
                                         </div>
                                     )}
-                                    <div className="flex gap-2">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => fetchAuctionBids(auction.id)}
+                                            >
+                                                <Users size={16} className="mr-2" />
+                                                查看出价详情
+                                            </Button>
+                                            {auction.status === 'active' && (
+                                                <Badge variant="outline" className="text-green-600 border-green-600">
+                                                    正在进行中
+                                                </Badge>
+                                            )}
+                                            {auction.status === 'pending' && (
+                                                <Badge variant="outline" className="text-blue-600 border-blue-600">
+                                                    即将开始
+                                                </Badge>
+                                            )}
+                                            {auction.status === 'ended' && (
+                                                <Badge variant="outline" className="text-gray-600 border-gray-600">
+                                                    竞价结束
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <Button
-                                            variant="outline"
                                             size="sm"
-                                            onClick={() => fetchAuctionBids(auction.id)}
+                                            variant="destructive"
+                                            onClick={() => openDeleteAuctionDialog(auction.id)}
                                         >
-                                            <Users size={16} className="mr-2" />
-                                            查看出价详情
+                                            删除
                                         </Button>
-                                        {auction.status === 'active' && (
-                                            <Badge variant="outline" className="text-green-600 border-green-600">
-                                                正在进行中
-                                            </Badge>
-                                        )}
-                                        {auction.status === 'pending' && (
-                                            <Badge variant="outline" className="text-blue-600 border-blue-600">
-                                                即将开始
-                                            </Badge>
-                                        )}
-                                        {auction.status === 'ended' && (
-                                            <Badge variant="outline" className="text-gray-600 border-gray-600">
-                                                竞价结束
-                                            </Badge>
-                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -713,6 +752,32 @@ export default function WasteAuctionsPage() {
                         <Button
                             variant="destructive"
                             onClick={() => batchToDelete && handleDeleteBatch(batchToDelete)}
+                        >
+                            删除
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* 删除竞价确认对话框 */}
+            <Dialog open={deleteAuctionDialogOpen} onOpenChange={setDeleteAuctionDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>确认删除</DialogTitle>
+                        <DialogDescription>
+                            确定要删除这个竞价吗？此操作不可恢复，相关的出价记录也会被删除。
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeleteAuctionDialogOpen(false)}
+                        >
+                            取消
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => auctionToDelete && handleDeleteAuction(auctionToDelete)}
                         >
                             删除
                         </Button>

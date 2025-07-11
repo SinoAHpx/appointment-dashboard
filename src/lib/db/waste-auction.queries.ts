@@ -523,6 +523,32 @@ export function updateWasteAuctionStatus(id: number, status: WasteAuction["statu
 }
 
 /**
+ * 删除竞价（同时删除相关的出价记录）
+ */
+export function deleteWasteAuction(id: number): boolean {
+    try {
+        const db = getDb();
+
+        // 先删除相关的出价记录
+        const deleteBidsQuery = db.query<any, [number]>(`
+            DELETE FROM waste_bids WHERE auctionId = ?
+        `);
+        deleteBidsQuery.run(id);
+
+        // 然后删除竞价记录
+        const deleteAuctionQuery = db.query<any, [number]>(`
+            DELETE FROM waste_auctions WHERE id = ?
+        `);
+        deleteAuctionQuery.run(id);
+
+        return true;
+    } catch (error) {
+        console.error("删除竞价失败:", error);
+        return false;
+    }
+}
+
+/**
  * 确定竞价获胜者
  */
 export function setAuctionWinner(auctionId: number, winnerId: number, winningBid: number): boolean {
