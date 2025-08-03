@@ -140,6 +140,16 @@ export function middleware(request: NextRequest) {
             }
         }
 
+        // 检查尾料处置商是否尝试访问普通用户的预约页面
+        if (pathname === "/dashboard/appointments" || pathname.startsWith("/dashboard/appointments/")) {
+            if (authResult.user?.role === 'waste_disposal_merchant') {
+                console.log(`尾料处置商用户尝试访问预约页面: ${pathname}`);
+                // 尾料处置商不允许访问预约页面，重定向到竞拍页面
+                const auctionsUrl = new URL("/dashboard/auctions", request.url);
+                return NextResponse.redirect(auctionsUrl);
+            }
+        }
+
         // 检查尾料处置商专用路径
         if (isWasteDisposalPath(pathname)) {
             const isWasteDisposalMerchant = authResult.user?.role === 'waste_disposal_merchant';
