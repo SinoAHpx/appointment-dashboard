@@ -131,15 +131,6 @@ export default function DashboardPage() {
                             <div className="text-2xl font-bold">
                                 {todaysAppointments.length}
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                其中{" "}
-                                {
-                                    pendingAppointments.filter((app) =>
-                                        (app.dateTime ?? '').startsWith(today),
-                                    ).length
-                                }{" "}
-                                个待确认
-                            </p>
                         </CardContent>
                     </Card>
                     <Card
